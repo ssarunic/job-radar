@@ -22,5 +22,7 @@ config/settings.local.yaml
 # Directories are preserved via .gitkeep.
 jobs/*
 !jobs/.gitkeep
+companies/*
+!companies/.gitkeep
 data/*
 !data/.gitkeep
