@@ -80,10 +80,23 @@ def _from_url(url: str, http=None) -> dict | None:
     if "smartrecruiters" in host:
         return mk("smartrecruiters", seg0)
     if "myworkdayjobs" in host:
-        site = path[-1] if path else ""
         return mk("workday", "", careers=url, name=host.split(".")[0].title())
-    # unknown host -> custom (Playwright); user can refine
-    return mk("custom", "", careers=url, name=host.replace("www.", "").split(".")[0].title())
+
+    # Unrecognised host: body-probe for an embedded ATS (esp. Talemetry, which has
+    # no host marker). Cloudflare-protected sites (e.g. NatWest) will 403 here and
+    # fall through to custom — set ats_type by hand for those (#2).
+    nm = host.replace("www.", "").split(".")[0].title()
+    if http is not None:
+        try:
+            body = http.get(url).text.lower()
+            if "talemetry" in body:
+                origin = f"{urlsplit(url).scheme}://{host}"
+                return mk("talemetry", "", careers=origin, name=nm)
+            if "myworkdayjobs" in body:
+                return mk("workday", "", careers=url, name=nm)
+        except Exception:
+            pass
+    return mk("custom", "", careers=url, name=nm)
 
 
 def discover(query: str, http) -> dict | None:

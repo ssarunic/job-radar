@@ -8,13 +8,14 @@ Usage:
 """
 from __future__ import annotations
 
+import sys
 import time
 from datetime import date, datetime, timezone
 from pathlib import Path
 
 import click
 
-from outputs import index_builder, md_writer, summary
+from outputs import index_builder, md_writer, notify, summary
 from scrapers.http_client import HttpClient
 from scrapers.ladder import open_company
 from scrapers.rate_limiter import RateLimiter
@@ -130,6 +131,13 @@ def seek(only, limit):
     text += f"\nIndex: {n_index} postings -> data/jobs.jsonl"
     summary.emit(run_dir, text)
 
+    # Push only when this run surfaced new/reopened roles (no-op unless configured).
+    try:
+        if notify.notify(diff, settings, http):
+            click.echo("📲 notification sent")
+    except Exception as e:  # noqa: BLE001 — never let notify failure fail the run
+        click.echo(f"(notification skipped: {e})")
+
 
 def _http():
     settings = load_settings()
@@ -181,9 +189,11 @@ def follow(query):
     if registry.add_company(info):
         click.echo(f"✓ Following {info['name']} via {info['ats_type']} "
                    f"(slug {info['ats_slug'] or info['slug']}).")
-        click.echo(f"  Run:  python main.py seek --only {info['slug']}")
+        click.echo(f"  Run:  {sys.executable} main.py seek --only {info['slug']}")
     else:
-        click.echo(f"Already tracking {info['slug']}.")
+        existing = registry.find_existing(info)
+        who = existing["name"] if existing else info["slug"]
+        click.echo(f"Already tracking {who}.")
 
 
 @cli.command()
@@ -216,15 +226,17 @@ def roles_cmd(company, min_rank, status, limit):
 def new_cmd(since):
     """New roles since your last check (or --since DATE)."""
     rows = queries.load_index(DATA_DIR / "jobs.jsonl")
-    marker_path = DATA_DIR / "last_checked.txt"
-    # auto marker: strictly after last check (same-day roles already seen);
-    # explicit --since: inclusive window.
-    since_eff = since or queries.read_marker(marker_path) or "0000-00-00"
-    res = queries.new_roles(rows, since_eff, strict=not since)
-    _print_roles(res, header=f"New open roles since {since_eff}")
-    if not since:                       # advance the marker only on the auto path
-        queries.write_marker(marker_path, date.today().isoformat())
-        click.echo(f"  (marker advanced to {date.today().isoformat()})")
+    if since:                           # explicit inclusive window; no state change
+        _print_roles(queries.new_roles(rows, since),
+                     header=f"New open roles since {since}")
+        return
+    # auto path: roles not yet surfaced, tracked by id (robust to same-day re-runs).
+    seen_path = DATA_DIR / "seen_roles.json"
+    seen = queries.read_seen(seen_path)
+    res = queries.unseen_roles(rows, seen)
+    _print_roles(res, header="New open roles since last check")
+    if res:
+        queries.write_seen(seen_path, seen | {r["id"] for r in res})
 
 
 if __name__ == "__main__":

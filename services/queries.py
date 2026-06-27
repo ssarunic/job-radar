@@ -48,26 +48,40 @@ def open_roles(rows, company=None, min_rank=None, status="open") -> list[dict]:
     return out
 
 
-def new_roles(rows, since: str, status_in=("open",), strict=False) -> list[dict]:
-    """Roles first seen since `since` (ISO date strings compare lexically).
-    strict=True -> first_seen > since (auto last-check marker: same-day roles were
-    already seen). strict=False -> first_seen >= since (explicit --since window)."""
-    def fresh(fs):
-        fs = fs or ""
-        return fs > since if strict else fs >= since
+def new_roles(rows, since: str, status_in=("open",)) -> list[dict]:
+    """Roles first seen on/after `since` (inclusive; ISO dates compare lexically).
+    Used by the explicit `--since DATE` window."""
     out = [r for r in group_roles(rows)
-           if fresh(r.get("first_seen"))
+           if (r.get("first_seen") or "") >= since
            and (not status_in or r.get("status") in status_in)]
     out.sort(key=lambda r: (r.get("first_seen", ""), r.get("company", "")))
     return out
 
 
-def read_marker(path: Path) -> str | None:
+def unseen_roles(rows, seen_ids, status_in=("open",)) -> list[dict]:
+    """Roles not yet surfaced by the auto `new` path (#1). Keyed on role id, so it's
+    independent of `first_seen` date granularity — a role discovered later the same
+    day still shows on the next call instead of being hidden."""
+    out = [r for r in group_roles(rows)
+           if r.get("id") not in seen_ids
+           and (not status_in or r.get("status") in status_in)]
+    out.sort(key=lambda r: (r.get("first_seen", ""), r.get("company", "")))
+    return out
+
+
+def read_seen(path: Path) -> set:
+    import json
     p = Path(path)
-    return p.read_text(encoding="utf-8").strip() if p.exists() else None
+    if p.exists():
+        try:
+            return set(json.loads(p.read_text(encoding="utf-8")))
+        except Exception:
+            return set()
+    return set()
 
 
-def write_marker(path: Path, value: str) -> None:
+def write_seen(path: Path, ids: set) -> None:
+    import json
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(value, encoding="utf-8")
+    p.write_text(json.dumps(sorted(ids)), encoding="utf-8")

@@ -28,8 +28,10 @@ unless they ask for detail. Quote the role title, company, location, and the job
 ## Notes
 
 - **follow** auto-detects the ATS (Greenhouse/Ashby/Lever/SmartRecruiters) from a company
-  name. For Workday/Talemetry/custom sites, pass the careers URL instead. After following,
-  offer to run `seek --only <slug>` to fetch that company's roles immediately.
+  name. For Workday pass the careers URL. **Cloudflare-protected sites (e.g. NatWest/Talemetry)
+  can't be detected from a URL** — `follow` records them as `custom`; tell the user to set
+  `ats_type` (e.g. `talemetry`) in `config/companies.csv` afterwards. After following, offer to
+  run `seek --only <slug>` to fetch that company's roles.
 - **unfollow** takes the company *slug* (shown by `companies`), not the display name. If the
   user gives a name, look up the slug from `companies` first.
 - **new** advances a "last checked" marker each time it runs (no `--since`), so the next
