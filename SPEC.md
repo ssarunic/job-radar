@@ -18,8 +18,11 @@ Build a **one-shot CLI** (`python main.py seek`) that, for a configured list of 
 4. Writes one Markdown file per kept role (canonical record) and regenerates a JSONL index.
 5. Emits a per-run diff and a console/TXT summary.
 
-**Out of scope this iteration** (deferred, do not build): scheduler/cron, notifications
-(ntfy/Telegram/email), Exploratory/company-enrichment mode, XLSX export, fit scoring.
+**Built since:** scheduler (launchd/cron via `scripts/`) + ntfy notifications (`outputs/notify.py`,
+fires only on new/reopened roles) — see §13.
+
+**Still out of scope** (deferred): Telegram/email notifiers, Exploratory/company-enrichment
+mode, XLSX export, fit scoring.
 
 Build against **2–3 companies of different ATS types** first (one Greenhouse/Lever-style API,
 one custom JS site requiring Playwright) so both paths are exercised before scaling the list.
@@ -385,6 +388,23 @@ Stack: Python 3.9+, `click`, `pyyaml`, `requests`, `beautifulsoup4`, `playwright
 - writes a readable `summary.txt`.
 
 No scheduler, no notifications, no XLSX. Those come only after this is solid.
+
+---
+
+## 13. Scheduling & notifications
+
+The one-shot is driven on a schedule by the OS (no long-running Python loop):
+
+- `scripts/run_seek.sh` — wrapper: resolves the repo, runs `seek` with the venv, logs to
+  `data/runs/cron.log`.
+- `scripts/com.jobsearch.seek.plist` — macOS launchd agent (daily 08:00). Load with
+  `cp … ~/Library/LaunchAgents/ && launchctl load …`. Linux: a cron line (see `scripts/README.md`).
+
+**Notifications** (`outputs/notify.py`): after a run, if `notify.enabled` and the diff contains
+`added`/`reopened` rows, push a message listing the new roles. Default provider **ntfy**
+(`https://ntfy.sh/<topic>` — zero setup, install the app, subscribe to the topic). Never fires for
+routine updates/closures; never fails the run (wrapped). Configure under `notify:` in
+`config/settings.yaml`. The send is injectable, so it's unit-tested without network.
 
 ---
 

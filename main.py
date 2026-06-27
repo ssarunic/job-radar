@@ -14,7 +14,7 @@ from pathlib import Path
 
 import click
 
-from outputs import index_builder, md_writer, summary
+from outputs import index_builder, md_writer, notify, summary
 from scrapers.http_client import HttpClient
 from scrapers.ladder import open_company
 from scrapers.rate_limiter import RateLimiter
@@ -129,6 +129,13 @@ def seek(only, limit):
                                  settings.get("runtime_budget_min", 30))
     text += f"\nIndex: {n_index} postings -> data/jobs.jsonl"
     summary.emit(run_dir, text)
+
+    # Push only when this run surfaced new/reopened roles (no-op unless configured).
+    try:
+        if notify.notify(diff, settings, http):
+            click.echo("📲 notification sent")
+    except Exception as e:  # noqa: BLE001 — never let notify failure fail the run
+        click.echo(f"(notification skipped: {e})")
 
 
 def _http():

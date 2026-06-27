@@ -10,6 +10,12 @@ user_agent: "JobSeekAssistant/0.1 (+personal job search; contact ssarunic@gmail.
 headless: true               # Playwright headless mode
 stealth: true                # playwright-stealth: defeats Cloudflare even headless
 
+# Push notifications — fire only when a run finds new/reopened roles.
+notify:
+  enabled: false             # set true once a topic is configured
+  provider: ntfy             # ntfy (zero-setup): publish to https://ntfy.sh/<topic>
+  ntfy_topic: ""             # a hard-to-guess topic, e.g. "ssarunic-pm-roles-7x2k9"
+
 # Claude API: read from env ANTHROPIC_API_KEY if blank. Used only for fuzzy parsing.
 anthropic_api_key: ""
 anthropic_model: "claude-haiku-4-5-20251001"   # cheap model for extraction; fallback to regex on failure
