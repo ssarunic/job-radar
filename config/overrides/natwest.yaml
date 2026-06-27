@@ -1,0 +1,4 @@
+# NatWest runs on Talemetry (Cloudflare-protected). The scraper warms a browser
+# context, then calls the jobs.json API via in-page fetch. Every PM title
+# contains "product", so this query is an effective server-side prefilter.
+ats_query: "product"

@@ -1,0 +1,25 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# OS
+.DS_Store
+
+# Editor / agent-local settings
+.claude/
+.idea/
+.vscode/
+
+# Secrets / local overrides
+.env
+config/settings.local.yaml
+
+# Generated runtime output — regenerable, kept local (not versioned).
+# Directories are preserved via .gitkeep.
+jobs/*
+!jobs/.gitkeep
+data/*
+!data/.gitkeep

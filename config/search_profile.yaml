@@ -1,0 +1,44 @@
+# "What I'm looking for" — global search criteria (SPEC §3.2). Maps onto README §10–13.
+roles:
+  - "Product Manager"
+  - "Senior Product Manager"
+  - "Group Product Manager"
+  - "Principal Product Manager"
+  - "Head of Product"
+  - "Director of Product"
+  - "VP Product"
+  - "Chief Product Officer"
+
+seniority_min: 3                 # README §11: keep rank >= 3
+include_product_owner: true      # README §11 step 8
+
+exclude_titles:                  # README §11 steps 5-6
+  - "marketing"
+  - "growth marketing"
+  - "brand"
+  - "design"
+  - "hr"
+  - "talent"
+  - "people ops"
+  - "recruit"
+
+locations:
+  - "London"
+  - "UK"
+  - "United Kingdom"
+  - "England"
+
+allow_remote: true               # accept if UK/Europe/EMEA-eligible (not US-only)
+remote_keywords:
+  - "remote"
+  - "anywhere"
+  - "uk remote"
+  - "emea remote"
+  - "europe remote"
+
+employment:                      # exclude Contract (README §10)
+  - "Full time"
+  - "Part time"
+
+recency_days: 45
+max_roles_per_company: 10
