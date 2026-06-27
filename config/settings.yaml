@@ -2,6 +2,7 @@
 request_timeout: 20          # seconds per URL
 rate_limit_per_sec: 1        # max requests per second per domain
 retries: 2                   # network retries, exponential backoff
+respect_robots: true         # robots.txt check for company-site (discovery) rungs
 runtime_budget_min: 30       # per-batch wall-clock budget
 max_companies: 300           # hard cap
 ats_max_pages: 25            # pagination cap for Workday/SmartRecruiters (logged if hit)

@@ -15,8 +15,10 @@ from pathlib import Path
 import click
 
 from outputs import index_builder, md_writer, summary
-from scrapers.ladder import make_fetcher
+from scrapers.http_client import HttpClient
+from scrapers.ladder import open_company
 from scrapers.rate_limiter import RateLimiter
+from scrapers.result import BLOCKED, ERROR
 from services import pipeline, reconciler
 from services.claude_service import ClaudeService
 from services.loader import (load_companies, load_profile, load_settings,
@@ -51,6 +53,7 @@ def seek(only, limit):
         return
 
     limiter = RateLimiter(settings.get("rate_limit_per_sec", 1))
+    http = HttpClient(settings, limiter)
     claude = ClaudeService(settings)
     today = datetime.now(timezone.utc).date()
     today_iso = today.isoformat()
@@ -71,30 +74,36 @@ def seek(only, limit):
         stats["companies"] += 1
         profile = merged_profile(company, base_profile)
         click.echo(f"→ {name} ({company.get('ats_type') or 'auto'}) …")
-        try:
-            with make_fetcher(company, profile, settings, limiter) as fetcher:
-                raw, status, rung = fetcher.listing()
-                if status == "blocked":
-                    stats["blocked"] += 1
-                    failed_urls.append(company["careers_url"])
-                    stats["per_company"][name] = {"kept": 0, "rung": rung, "status": "blocked"}
-                    click.echo(f"   ⚠ blocked (bot challenge) via {rung}")
-                    continue
-                kept = pipeline.process_company(
-                    company, profile, raw, fetcher, settings, claude, today)
-        except Exception as e:  # noqa: BLE001 — keep the batch alive (README §16)
-            stats["errors"] += 1
-            failed_urls.append(company["careers_url"])
-            stats["per_company"][name] = {"kept": 0, "rung": "-", "status": f"error: {e}"}
-            click.echo(f"   ✗ error: {e}")
-            continue
+        kept = []
+        with open_company(company, profile, http) as (fetcher, result):
+            rung = result.rung
+            if result.status in (BLOCKED, ERROR):
+                key = "blocked" if result.status == BLOCKED else "errors"
+                stats[key] += 1
+                failed_urls.append(company["careers_url"])
+                stats["per_company"][name] = {
+                    "kept": 0, "rung": rung,
+                    "status": f"{result.status}: {result.error}".strip(": ")}
+                icon = "⚠" if result.status == BLOCKED else "✗"
+                click.echo(f"   {icon} {result.status} via {rung}: {result.error}")
+                continue
+            try:
+                kept = (pipeline.process_company(company, profile, result.postings,
+                                                 fetcher, settings, claude, today)
+                        if result.postings else [])
+            except Exception as e:  # noqa: BLE001 — keep the batch alive (README §16)
+                stats["errors"] += 1
+                failed_urls.append(company["careers_url"])
+                stats["per_company"][name] = {"kept": 0, "rung": rung, "status": f"error: {e}"}
+                click.echo(f"   ✗ error: {e}")
+                continue
 
         stats["ok"] += 1
         stats["kept"] += len(kept)
         stats["per_company"][name] = {"kept": len(kept), "rung": rung,
-                                      "status": f"{status}/{len(raw)} listed"}
+                                      "status": f"{result.status}/{len(result.postings)} listed"}
         all_current.extend(kept)
-        click.echo(f"   ✓ {len(kept)} kept (from {len(raw)} listed) via {rung}")
+        click.echo(f"   ✓ {len(kept)} kept (from {len(result.postings)} listed) via {rung}")
 
     # --- Reconcile, write canonical MD, rebuild index, emit diff/summary -----
     current_actions, missing_actions, diff = reconciler.reconcile(

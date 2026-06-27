@@ -113,6 +113,21 @@ Hardcoded per single-user tool: `request_timeout: 20`, `rate_limit_per_sec: 1`,
 For each active company, attempt rungs in order; stop at the first that yields postings.
 Log which rung succeeded into each role's `source_detail`.
 
+**Contract (#1).** Every rung's `listing()` returns a `ListingResult(status, postings,
+rung, error)` with `status ∈ {ok, empty, blocked, error}`. `open_company()` runs an
+ordered attempt loop (`scrapers/ladder.py::_attempt`): stop on `ok` (the winning fetcher
+stays open for detail); on `error`/`blocked` fall through to the next rung; on `empty`,
+fall through for *discovery* rungs (custom Playwright→static) but treat it as terminal
+for an ATS-API rung (trust an API that genuinely returned nothing). Exceptions are caught
+and converted to `status=error`, so one bad company never kills the batch.
+
+**Shared HTTP client (#8).** All `requests`-based adapters go through
+`scrapers/http_client.py::HttpClient`: per-domain rate limiting, `retries` with exponential
+backoff (retry only on connection errors + 429/5xx; never on 4xx), a single User-Agent, and
+a `robots.txt` check (`allowed()`, fails open on challenge/missing; `respect_robots: true`).
+Discovery rungs (static/Playwright/Talemetry) are robots-checked; documented ATS JSON APIs
+are exempt.
+
 ### 4.1 Rung 1 — ATS JSON API (no browser)
 
 If `ats_type` is set (or detected), call the platform's public JSON endpoint with `requests`.

@@ -1,25 +1,28 @@
-"""Workday ATS adapter — Rung 1 JSON `cxs` API (SPEC §4.1). Listing-only.
+"""Workday ATS adapter — Rung 1 JSON `cxs` API (SPEC §4.1).
 
 Workday's search is a POST to a tenant/site-specific `cxs` endpoint derived from
 the company's careers URL (`https://{tenant}.wdN.myworkdayjobs.com/{site}`).
 Uses `searchText=product` as a server-side prefilter; the classifier does the
-precise filtering. `postedOn` is relative text ("Posted 30+ Days Ago"), so it's
-left unparsed (recency keeps it). Descriptions need per-job calls — deferred.
+precise filtering. Listing has no description; detail() adds description + the
+real startDate + employment type (SPEC b).
 """
 from __future__ import annotations
 
 from urllib.parse import urlsplit
 
-import requests
-
 from scrapers.htmltext import html_to_text
+from scrapers.result import ListingResult, OK, EMPTY
+
+_JSON_HEADERS = {"Accept": "application/json"}
 
 
 class WorkdayFetcher:
-    needs_detail = True  # detail call adds description + real date + employment type
+    needs_detail = True
+    check_robots = False  # documented JSON API
+    rung_name = "workday"
 
-    def __init__(self, company, settings, limiter, query="product"):
-        self.company, self.settings, self.limiter = company, settings, limiter
+    def __init__(self, company, http, query="product"):
+        self.company, self.http = company, http
         self.query = query
         p = urlsplit(company["careers_url"])
         self.host = p.netloc
@@ -34,19 +37,14 @@ class WorkdayFetcher:
     def __exit__(self, *exc):
         return False
 
-    def listing(self):
-        headers = {"User-Agent": "Mozilla/5.0", "Accept": "application/json",
-                   "Content-Type": "application/json"}
-        timeout = self.settings.get("request_timeout", 20)
-        max_pages = self.settings.get("ats_max_pages", 25)  # Workday caps limit at 20
+    def listing(self) -> ListingResult:
+        max_pages = self.http.settings.get("ats_max_pages", 25)  # Workday caps limit at 20
         out, offset, total, pages = [], 0, None, 0
         while True:
-            self.limiter.wait(self.base)
-            r = requests.post(self.cxs + "/jobs", headers=headers, timeout=timeout,
-                              json={"appliedFacets": {}, "limit": 20,
-                                    "offset": offset, "searchText": self.query})
-            r.raise_for_status()
-            data = r.json()
+            data = self.http.post_json(
+                self.cxs + "/jobs", headers=_JSON_HEADERS,
+                json={"appliedFacets": {}, "limit": 20, "offset": offset,
+                      "searchText": self.query})
             total = data.get("total", 0) if total is None else total
             posts = data.get("jobPostings", [])
             for j in posts:
@@ -70,20 +68,15 @@ class WorkdayFetcher:
                 print(f"   … Workday page cap hit ({max_pages} pages, "
                       f"{offset}/{total}); raise ats_max_pages to fetch all")
                 break
-        return out, ("ok" if out else "empty"), "workday"
+        return ListingResult(OK if out else EMPTY, out, self.rung_name)
 
-    def detail(self, url):
-        """Fetch jobDescription + structured fields. The date/employment lines are
-        embedded as text so the pipeline's generic parsers pick them up (SPEC b)."""
+    def detail(self, url) -> str:
+        """jobDescription + structured fields, embedded as text so the pipeline's
+        generic date/employment parsers pick them up (SPEC b)."""
         if not url or url == self.base:
             return ""
         path = url.split(f"{self.base}/{self.site}", 1)[-1]
-        self.limiter.wait(self.base)
-        r = requests.get(self.cxs + path,
-                         headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"},
-                         timeout=self.settings.get("request_timeout", 20))
-        r.raise_for_status()
-        jpi = r.json().get("jobPostingInfo", {}) or {}
+        jpi = self.http.get_json(self.cxs + path).get("jobPostingInfo", {}) or {}
         header = (f"Employment type: {jpi.get('timeType','')}\n"
                   f"Date posted: {jpi.get('startDate','')}\n"
                   f"Location: {jpi.get('location','')}\n\n")

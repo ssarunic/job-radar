@@ -15,6 +15,7 @@ from __future__ import annotations
 from urllib.parse import urlsplit, quote_plus
 
 from scrapers.playwright_scraper import PlaywrightSession
+from scrapers.result import ListingResult, OK, EMPTY, BLOCKED
 
 
 def _origin(url: str) -> str:
@@ -36,9 +37,12 @@ class TalemetryFetcher:
     # Detail pages clear Cloudflare when settings.stealth is on; without stealth
     # they get challenged and detail() returns "" (graceful).
     needs_detail = True
+    check_robots = True
+    rung_name = "talemetry"
 
-    def __init__(self, company, settings, limiter, query="product", per_page=100):
-        self.company, self.settings, self.limiter = company, settings, limiter
+    def __init__(self, company, http, query="product", per_page=100):
+        self.company, self.http = company, http
+        self.settings = http.settings
         self.query = query
         self.per_page = per_page
         self.origin = _origin(company["careers_url"])
@@ -53,23 +57,23 @@ class TalemetryFetcher:
             self.session.__exit__(*exc)
         return False
 
-    def listing(self):
-        self.limiter.wait(self.origin)
+    def listing(self) -> ListingResult:
+        self.http.wait(self.origin)
         if not self.session.warm(self.origin + "/"):
-            return [], "blocked", "talemetry"
+            return ListingResult(BLOCKED, [], self.rung_name, "Cloudflare challenge")
 
         api = (self.origin + "/search/jobs.json?search_type=talemetry"
                f"&q={quote_plus(self.query)}&per_page={self.per_page}")
         first = self.session.fetch_json(api + "&page=1")
         if first is None:
-            return [], "blocked", "talemetry"
+            return ListingResult(BLOCKED, [], self.rung_name, "jobs.json blocked")
 
         total = int(first.get("total_entries", 0))
         per = int(first.get("per_page", self.per_page)) or self.per_page
         entries = list(first.get("entries", []))
         pages = (total + per - 1) // per if total else 1
         for page_no in range(2, pages + 1):
-            self.limiter.wait(self.origin)
+            self.http.wait(self.origin)
             data = self.session.fetch_json(f"{api}&page={page_no}")
             if not data:
                 break
@@ -90,10 +94,10 @@ class TalemetryFetcher:
                 "source_type": "CompanySite",
                 "source_detail": "Talemetry",
             })
-        return out, ("ok" if out else "empty"), "talemetry"
+        return ListingResult(OK if out else EMPTY, out, self.rung_name)
 
     def detail(self, url):
         if not url or url == self.origin:
             return ""
-        self.limiter.wait(self.origin)
+        self.http.wait(self.origin)
         return self.session.detail(url)
