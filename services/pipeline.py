@@ -143,7 +143,7 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
 
         jp.workplace_model = location_filter.workplace_model(" ; ".join(jp.locations), body)
         jp.requirements = _extract_requirements(body)
-        jp.description = _summarise(body)   # keep the MD readable
+        jp.description = _clean_body(body)   # full ad text (MD is the canonical record)
         kept.append(jp)
         if len(kept) >= max_roles:          # cap AFTER detail filtering (#2)
             break
@@ -168,6 +168,9 @@ def _find_date(body: str) -> str | None:
     return m.group(2).strip() if m else None
 
 
-def _summarise(body: str, max_chars: int = 1500) -> str:
+def _clean_body(body: str, max_chars: int = 40000) -> str:
+    """Store the full ad text. The cap is a safety valve against pathological page
+    dumps (e.g. a whole rendered HTML body), not normal truncation — real ads are
+    well under it."""
     body = (body or "").strip()
-    return body if len(body) <= max_chars else body[:max_chars].rstrip() + " …"
+    return body if len(body) <= max_chars else body[:max_chars].rstrip() + "\n\n[truncated]"
