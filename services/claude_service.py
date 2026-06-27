@@ -45,6 +45,24 @@ class ClaudeService:
             return None
         return None
 
+    def extract_company(self, text: str, company_name: str) -> dict | None:
+        """Summarise a company from job-description text (README §22 enrich prompt).
+        Returns {description,industry,sub_industry,hq_location,total_funding,
+        employee_count,year_founded} or None."""
+        if not self.enabled or not text:
+            return None
+        prompt = (
+            f"From this job-posting text for {company_name}, extract company facts. "
+            "Return ONLY JSON with keys description (1-2 sentence summary), industry "
+            "(broad), sub_industry (narrow), hq_location ('City, Country'), "
+            "total_funding (original string or ''), employee_count (string or ''), "
+            "year_founded (YYYY or null). Use '' / null when not stated; do not invent.\n\n"
+            + text[:6000])
+        data = self._ask_json(prompt)
+        if not data or not isinstance(data.get("description", ""), str):
+            return None
+        return data
+
     def extract_salary(self, text: str) -> dict | None:
         """Return {min,max,currency,compensation_type,original_text} or None."""
         if not self.enabled or not text:

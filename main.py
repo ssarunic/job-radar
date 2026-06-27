@@ -15,18 +15,20 @@ from pathlib import Path
 
 import click
 
-from outputs import index_builder, md_writer, notify, summary
+from outputs import company_index, index_builder, md_writer, notify, summary
 from scrapers.http_client import HttpClient
 from scrapers.ladder import open_company
 from scrapers.rate_limiter import RateLimiter
 from scrapers.result import BLOCKED, ERROR
-from services import discovery, pipeline, queries, reconciler, registry
+from services import (company_enricher, discovery, pipeline, queries,
+                      reconciler, registry)
 from services.claude_service import ClaudeService
 from services.loader import (load_companies, load_profile, load_settings,
                              merged_profile)
 
 ROOT = Path(__file__).resolve().parent
 JOBS_DIR = ROOT / "jobs"
+COMPANIES_DIR = ROOT / "companies"
 DATA_DIR = ROOT / "data"
 
 
@@ -162,6 +164,41 @@ def _print_roles(roles: list, header: str) -> None:
                    f"{_fmt_salary(r.get('salary'))}")
         click.echo(f"      seen {r.get('first_seen','?')} · {r.get('status','?')} · "
                    f"{r.get('job_ad_url','')}")
+
+
+@cli.command("enrich")
+@click.option("--only", default=None, help="Enrich a single company by slug.")
+@click.option("--limit", default=None, type=int, help="Enrich first N active companies.")
+def enrich_cmd(only, limit):
+    """Exploratory mode: enrich tracked companies into the Company Index."""
+    settings = load_settings()
+    base_profile = load_profile()
+    companies = [c for c in load_companies() if c["active"]]
+    if only:
+        companies = [c for c in companies if c["slug"] == only]
+    if limit:
+        companies = companies[:limit]
+    http = HttpClient(settings, RateLimiter(settings.get("rate_limit_per_sec", 1)))
+    claude = ClaudeService(settings)
+    now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    n = 0
+    for company in companies:
+        profile = merged_profile(company, base_profile)
+        click.echo(f"→ enrich {company['name']} …")
+        try:
+            with open_company(company, profile, http) as (fetcher, result):
+                postings = result.postings if result.status not in (BLOCKED, ERROR) else []
+            c = company_enricher.enrich(company, postings, claude, now_iso)
+            company_index.write_company(COMPANIES_DIR, c)
+            n += 1
+            click.echo(f"   {c.data_confidence:<6} HQ={c.hq_location or '?':<18} "
+                       f"{(c.description or '(no description)')[:64]}")
+        except Exception as e:  # noqa: BLE001 — keep the batch alive
+            click.echo(f"   ✗ error: {e}")
+
+    n_idx = company_index.rebuild_index(COMPANIES_DIR, DATA_DIR / "company_index.jsonl")
+    click.echo(f"Enriched {n} companies → {n_idx} rows in data/company_index.jsonl")
 
 
 @cli.command("companies")

@@ -21,8 +21,10 @@ Build a **one-shot CLI** (`python main.py seek`) that, for a configured list of 
 **Built since:** scheduler (launchd/cron via `scripts/`) + ntfy notifications (`outputs/notify.py`,
 fires only on new/reopened roles) — see §13.
 
-**Still out of scope** (deferred): Telegram/email notifiers, Exploratory/company-enrichment
-mode, XLSX export, fit scoring.
+**Built since:** Exploratory/company-enrichment mode (`enrich` command, `companies/<slug>.md`
+canonical + `data/company_index.jsonl`) — see §14.
+
+**Still out of scope** (deferred): Telegram/email notifiers, XLSX export, fit scoring.
 
 Build against **2–3 companies of different ATS types** first (one Greenhouse/Lever-style API,
 one custom JS site requiring Playwright) so both paths are exercised before scaling the list.
@@ -405,6 +407,24 @@ The one-shot is driven on a schedule by the OS (no long-running Python loop):
 (`https://ntfy.sh/<topic>` — zero setup, install the app, subscribe to the topic). Never fires for
 routine updates/closures; never fails the run (wrapped). Configure under `notify:` in
 `config/settings.yaml`. The send is injectable, so it's unit-tested without network.
+
+---
+
+## 14. Exploratory mode (company enrichment)
+
+`python main.py enrich [--only --limit]` builds the Company Index. For each company it
+ladder-fetches the listing and derives, **public-HTML-only**:
+
+- **Description** — the "About <company>" blurb embedded in a job posting (Greenhouse/Ashby/Lever
+  ship descriptions); or a Claude 1–2 sentence summary when `use_claude` is on.
+- **HQ** — the most common posting city (an *approximation*, flagged in `notes`).
+- **Industry / funding / revenue / employees / founded** — only when `use_claude` parses the
+  About text; otherwise left blank with `DataConfidence: Low` (no paid APIs, README §14).
+
+Storage mirrors jobs: `companies/<slug>.md` is canonical (note-preserving via the same renderer),
+`data/company_index.jsonl` is the derived index. Workday/SmartRecruiters/Talemetry boards ship no
+listing descriptions → those land `Low` confidence. Verified live: 30 companies, 25 Medium / 5 Low
+with heuristics only (Claude off).
 
 ---
 
