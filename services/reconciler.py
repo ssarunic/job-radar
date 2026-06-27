@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from models.job_posting import canonical_url
 from outputs import md_writer
 
 
@@ -26,21 +27,41 @@ def load_existing(jobs_dir: Path) -> dict:
     return out
 
 
-def reconcile(existing: dict, current_postings: list, today: str):
+def reconcile(existing: dict, current_postings: list, today: str,
+              processed_slugs=None):
     """Return (current_actions, missing_actions, diff).
 
-    current_actions: list of (job_posting, frontmatter, notes)
+    current_actions: list of (job_posting, frontmatter, notes, prior_path)
     missing_actions: list of (path, frontmatter)
     diff:            list of dict change records
+
+    processed_slugs: set of company slugs that were authoritatively checked this
+    run. Only postings of those companies are aged when missing (#1) — so a
+    partial run (--only/--limit, runtime budget, blocked/error) never ages
+    companies it didn't actually look at. None = age all (legacy/tests).
     """
     current_actions, missing_actions, diff = [], [], []
     current_ids = set()
+
+    # #2 migration: index existing by canonical URL so a posting whose id changed
+    # (old location-derived id -> new URL-only id) is still recognised by URL.
+    by_url = {}
+    for jid, rec in existing.items():
+        u = canonical_url(rec["fm"].get("job_ad_url", ""))
+        if u:
+            by_url.setdefault(u, (jid, rec))
 
     for jp in current_postings:
         jid = jp.id
         current_ids.add(jid)
         fm = jp.to_frontmatter()
         prior = existing.get(jid)
+        if prior is None:                       # id miss -> try URL (migration) (#2)
+            u = canonical_url(jp.job_ad_url)
+            alt = by_url.get(u) if u else None
+            if alt and alt[0] != jid:
+                current_ids.add(alt[0])         # old record consumed, don't age it
+                prior = alt[1]
         if prior:
             old = prior["fm"]
             old_status = old.get("status", "open")
@@ -76,6 +97,10 @@ def reconcile(existing: dict, current_postings: list, today: str):
     # Postings on disk not seen this run
     for jid, rec in existing.items():
         if jid in current_ids:
+            continue
+        # #1 only age a posting if its company was authoritatively checked this run
+        if processed_slugs is not None and \
+                rec["fm"].get("company_slug") not in processed_slugs:
             continue
         fm = dict(rec["fm"])
         status = fm.get("status", "open")

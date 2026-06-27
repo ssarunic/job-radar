@@ -141,6 +141,48 @@ def test_reopened_when_closed_role_reappears():
     assert any(d["change"] == "reopened" for d in diff)
 
 
+def test_partial_run_does_not_age_unchecked_companies():
+    """#1: a posting whose company wasn't checked this run must not age."""
+    jp = _jp()  # company_slug 'monzo'
+    existing = _existing(jp, missing_runs=0)
+    # this run only checked 'cohere' (jp's company 'monzo' was NOT checked)
+    _, missing, diff = reconciler.reconcile(existing, [], TODAY,
+                                            processed_slugs={"cohere"})
+    assert missing == []          # monzo posting left untouched
+    assert diff == []
+
+
+def test_checked_company_still_ages_when_missing():
+    jp = _jp()
+    existing = _existing(jp, missing_runs=1)
+    _, missing, diff = reconciler.reconcile(existing, [], TODAY,
+                                            processed_slugs={"monzo"})
+    assert missing[0][1]["status"] == "suspected_filled"
+
+
+def test_url_migration_preserves_notes_and_applied():
+    """#2: an old location-derived id is matched by URL; notes/applied carry over."""
+    jp = _jp()                      # new URL-only id
+    old = JobPosting(company="Monzo", company_slug="monzo",
+                     title_raw="Senior Product Manager", locations=["London"],
+                     job_ad_url=jp.job_ad_url)
+    old_fm = old.to_frontmatter()
+    old_id = "oldlocid"             # simulate a different (legacy) id on disk
+    old_fm["id"] = old_id
+    old_fm.update({"first_seen": "2026-01-01", "status": "applied", "missing_runs": 0})
+    existing = {old_id: {"fm": old_fm,
+                         "body": "## My notes\n\nApplied; spoke to Jane.\n",
+                         "path": Path("/tmp/old.md")}}
+    current, missing, diff = reconciler.reconcile(existing, [jp], TODAY,
+                                                  processed_slugs={"monzo"})
+    j2, fm, notes, prior_path = current[0]
+    assert fm["status"] == "applied"            # applied carried over
+    assert fm["first_seen"] == "2026-01-01"     # continuity preserved
+    assert "Jane" in notes
+    assert prior_path == Path("/tmp/old.md")    # old file will be renamed/removed
+    assert missing == []                        # old id NOT treated as missing
+
+
 def test_load_existing_roundtrip(tmp_path):
     from outputs import md_writer
     jp = _jp()

@@ -264,7 +264,8 @@ Apply, in order, exactly as specified in the README — do not reinvent:
 2. **Title exclusions** — README §11 steps 5–6 (marketing/brand/HR/design-only).
 3. **Employment type** — exclude Contract (README §10).
 4. **Location expansion** — one row per location, max 5; >5 with London ⇒ London + Remote only
-   (README §12). Remote accepted only if UK/Europe/EMEA-eligible.
+   (README §12). Remote accepted only if UK/Europe/EMEA-eligible; a remote label naming a
+   non-eligible region (`Remote (USA)`, `Remote - Canada`, `Remote (APAC)`, …) is rejected (#3).
 5. **Salary** — never convert currency; min/max + currency + original text; bonus ⇒ `Base+Bonus`
    (README §13).
 6. **Recency** — drop if older than `recency_days` when a date is present. The
@@ -295,12 +296,16 @@ Per run (`python main.py seek`):
 2. Load prior state by scanning existing `jobs/**/*.md` frontmatter into memory.
 3. For each company: ladder-fetch listing → filter/rank → detail-fetch kept roles → parse.
 4. **Reconcile against prior state:**
-   - new `id` ⇒ create MD, `status: open`, `first_seen = last_seen = today`.
+   - new `id` ⇒ create MD, `status: open`, `first_seen = last_seen = today`. If the `id` misses
+     but the **canonical URL** matches an existing record (old location-derived id → new URL-only
+     id), treat it as the same role: carry over `first_seen`/notes/`applied`, rename the file (#2).
    - seen again ⇒ update `last_seen`, `last_checked`; refresh scraper-managed fields; preserve
      user-owned fields (§6.3).
    - **missing this run** ⇒ apply README lifecycle: missing for **N=2** consecutive runs ⇒
      `suspected_filled`; missing the next run ⇒ `closed`. (Track a `missing_runs` counter in
-     frontmatter; never auto-close a `status: applied` role.)
+     frontmatter; never auto-close a `status: applied` role.) **Only postings of companies that
+     were authoritatively checked this run are aged** — a partial run (`--only`/`--limit`, runtime
+     budget, blocked/error) passes `processed_slugs` so it never ages companies it didn't look at (#1).
 5. Regenerate `data/jobs.jsonl` from all MD frontmatter.
 6. Write `data/runs/<ts>/diff.jsonl` with `{change: added|updated|reopened|suspected_filled|closed,
    id, …}`. An `updated` row is emitted only when a *content* field actually changed between runs

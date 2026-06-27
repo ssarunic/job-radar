@@ -51,6 +51,18 @@ def _is_concrete_foreign(loc: str) -> bool:
     return not _is_remote(loc) and not _is_uk(loc) and not _is_europe(loc)
 
 
+# Named regions a UK seeker isn't eligible for (#3). A remote label naming one of
+# these (without also naming UK/Europe/EMEA) is rejected — e.g. "Remote (USA)".
+_INELIGIBLE_RX = re.compile(
+    r"\b(us|usa|u\.s\.?a?\.?|united states|america|americas|canada|apac|latam|"
+    r"india|australia|anz|singapore|japan|china|hong kong|brazil|mexico|"
+    r"philippines|new zealand|nz|uae|dubai|israel|korea|africa)\b")
+
+
+def _names_ineligible_region(loc_lower: str) -> bool:
+    return bool(_INELIGIBLE_RX.search(loc_lower))
+
+
 def accept(loc: str, profile: dict) -> bool:
     """Single-location acceptance (UK, or UK/EU-eligible remote)."""
     if _is_uk(loc):
@@ -110,6 +122,8 @@ def expand(location_str: str, profile: dict) -> list[str]:
             explicit = _is_uk(pl) or any(t in pl for t in ("uk", "europe", "emea", "eu "))
             if explicit or uk_or_eu:
                 accepted.append(p)          # remote alongside a UK/EU office
+            elif _names_ineligible_region(pl):
+                continue                    # Remote (USA/Canada/APAC…) -> reject (#3)
             elif not foreign_present:
                 accepted.append(p)          # truly region-less remote
             # else: remote tied to US/foreign-only context -> reject

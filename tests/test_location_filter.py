@@ -17,9 +17,20 @@ PROFILE = {"allow_remote": True}
     ("Remote", ["Remote"]),                                  # region-less remote kept
     ("Remote (UK)", ["Remote (UK)"]),
     ("London; Remote (EMEA)", ["London", "Remote (EMEA)"]),
+    ("Remote (USA)", []),                                    # #3 named non-eligible region
+    ("Remote - United States", []),
+    ("Remote (Canada)", []),
+    ("Remote (APAC)", []),
+    ("Remote (India)", []),
 ])
 def test_expand(raw, expected):
     assert L.expand(raw, PROFILE) == expected
+
+
+def test_remote_with_eligible_region_named_is_kept():
+    # explicit UK eligibility present -> kept even though a non-eligible region exists
+    assert L.expand("Remote in the UK", PROFILE) == ["Remote in the UK"]
+    assert L.expand("Remote (Europe)", PROFILE) == ["Remote (Europe)"]
 
 
 def test_remote_disabled():

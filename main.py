@@ -62,6 +62,7 @@ def seek(only, limit):
 
     existing = reconciler.load_existing(JOBS_DIR)
     all_current: list = []
+    processed_slugs: set = set()   # companies authoritatively checked this run (#1)
     stats = {"companies": 0, "ok": 0, "blocked": 0, "errors": 0,
              "kept": 0, "per_company": {}}
     failed_urls: list[str] = []
@@ -100,14 +101,16 @@ def seek(only, limit):
 
         stats["ok"] += 1
         stats["kept"] += len(kept)
+        processed_slugs.add(company["slug"])   # authoritative (ok/empty) -> may age its jobs
         stats["per_company"][name] = {"kept": len(kept), "rung": rung,
                                       "status": f"{result.status}/{len(result.postings)} listed"}
         all_current.extend(kept)
         click.echo(f"   ✓ {len(kept)} kept (from {len(result.postings)} listed) via {rung}")
 
     # --- Reconcile, write canonical MD, rebuild index, emit diff/summary -----
+    # Only age postings for companies we actually checked this run (#1).
     current_actions, missing_actions, diff = reconciler.reconcile(
-        existing, all_current, today_iso)
+        existing, all_current, today_iso, processed_slugs)
 
     for jp, fm, notes, prior_path in current_actions:
         md_writer.write_posting(JOBS_DIR, jp.company_slug, jp.role_slug, jp.id,
