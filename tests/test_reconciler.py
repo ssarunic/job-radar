@@ -42,6 +42,43 @@ def test_seen_again_preserves_first_seen_bumps_last_seen():
     assert not diff                           # 'updated' not emitted (current behaviour)
 
 
+def test_updated_diff_on_salary_change():
+    """#7: a salary change on a seen-again role emits an 'updated' diff row."""
+    jp = _jp()
+    existing = _existing(jp)
+    existing[jp.id]["fm"]["salary"] = {"min": 100000, "max": 120000, "currency": "GBP"}
+    jp.salary.min, jp.salary.max, jp.salary.currency = 130000, 150000, "GBP"
+    _, _, diff = reconciler.reconcile(existing, [jp], TODAY)
+    upd = [d for d in diff if d["change"] == "updated"]
+    assert len(upd) == 1
+    assert "salary" in upd[0]["changes"]
+    assert upd[0]["changes"]["salary"][1]["min"] == 130000
+
+
+def test_updated_diff_on_title_and_location_change():
+    jp = _jp()
+    existing = _existing(jp)
+    existing[jp.id]["fm"]["title_raw"] = "Product Manager"
+    existing[jp.id]["fm"]["locations"] = ["Manchester"]
+    _, _, diff = reconciler.reconcile(existing, [jp], TODAY)  # jp is SPM / London
+    upd = [d for d in diff if d["change"] == "updated"][0]
+    assert set(upd["changes"]) >= {"title_raw", "locations"}
+
+
+def test_no_updated_diff_when_content_unchanged():
+    jp = _jp()
+    _, _, diff = reconciler.reconcile(_existing(jp), [jp], TODAY)
+    assert [d for d in diff if d["change"] == "updated"] == []
+
+
+def test_lifecycle_fields_do_not_trigger_updated():
+    """Bumping last_seen/last_checked alone must not count as an update."""
+    jp = _jp()
+    existing = _existing(jp, last_seen="2026-01-01", last_checked="2026-01-01")
+    _, _, diff = reconciler.reconcile(existing, [jp], TODAY)
+    assert diff == []
+
+
 def test_applied_status_preserved():
     jp = _jp()
     current, _, _ = reconciler.reconcile(_existing(jp, status="applied"), [jp], TODAY)
