@@ -64,7 +64,8 @@ def reconcile(existing: dict, current_postings: list, today: str):
             fm["status"] = "open"
             change = "added"
             notes = ""
-        current_actions.append((jp, fm, notes))
+        # prior_path lets the writer clean up a renamed file (title change) (#3)
+        current_actions.append((jp, fm, notes, prior["path"] if prior else None))
         if change in ("added", "reopened"):
             diff.append(_diff_row(change, fm))
 
@@ -99,7 +100,7 @@ def _diff_row(change: str, fm: dict) -> dict:
         "id": fm.get("id"),
         "company": fm.get("company"),
         "title": fm.get("title_raw"),
-        "location": fm.get("location"),
+        "location": ", ".join(fm.get("locations") or []),
         "status": fm.get("status"),
         "url": fm.get("job_ad_url"),
     }

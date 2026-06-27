@@ -38,6 +38,25 @@ def test_extract_notes_empty_when_none(tmp_path):
     assert md_writer.extract_notes(body) == ""
 
 
+def test_rename_removes_stale_file(tmp_path):
+    """#3: same id, new title slug -> old file is removed, not orphaned."""
+    old = md_writer.write_posting(tmp_path, "monzo", "old-title", "abc12345",
+                                  FM, "d", "", "")
+    assert old.exists()
+    new = md_writer.write_posting(tmp_path, "monzo", "new-title", "abc12345",
+                                  FM, "d", "", "", prior_path=old)
+    assert new.exists()
+    assert not old.exists()           # stale file cleaned up
+    assert new.name == "new-title--abc12345.md"
+
+
+def test_no_unlink_when_path_unchanged(tmp_path):
+    p1 = md_writer.write_posting(tmp_path, "monzo", "spm", "abc12345", FM, "d", "", "x")
+    p2 = md_writer.write_posting(tmp_path, "monzo", "spm", "abc12345", FM, "d2", "", "x",
+                                 prior_path=p1)
+    assert p1 == p2 and p2.exists()
+
+
 def test_update_frontmatter_preserves_body(tmp_path):
     path = md_writer.write_posting(tmp_path, "monzo", "spm", "abc12345", FM,
                                    "desc body", "", "my note here")
