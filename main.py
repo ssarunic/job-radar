@@ -9,7 +9,7 @@ Usage:
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 import click
@@ -19,7 +19,7 @@ from scrapers.http_client import HttpClient
 from scrapers.ladder import open_company
 from scrapers.rate_limiter import RateLimiter
 from scrapers.result import BLOCKED, ERROR
-from services import pipeline, reconciler
+from services import discovery, pipeline, queries, reconciler, registry
 from services.claude_service import ClaudeService
 from services.loader import (load_companies, load_profile, load_settings,
                              merged_profile)
@@ -129,6 +129,102 @@ def seek(only, limit):
                                  settings.get("runtime_budget_min", 30))
     text += f"\nIndex: {n_index} postings -> data/jobs.jsonl"
     summary.emit(run_dir, text)
+
+
+def _http():
+    settings = load_settings()
+    return HttpClient(settings, RateLimiter(settings.get("rate_limit_per_sec", 1)))
+
+
+def _fmt_salary(sal: dict | None) -> str:
+    if not sal or sal.get("min") is None:
+        return ""
+    cur = sal.get("currency") or ""
+    lo, hi = sal.get("min"), sal.get("max")
+    rng = f"{lo:,}" if lo == hi else f"{lo:,}–{hi:,}"
+    return f" · {cur} {rng}"
+
+
+def _print_roles(roles: list, header: str) -> None:
+    click.echo(f"{header}: {len(roles)}")
+    for r in roles:
+        locs = ", ".join(r.get("locations") or [])
+        click.echo(f"  • {r.get('company','')}: {r.get('title_raw','')} "
+                   f"(rank {r.get('seniority_rank','?')}) [{locs}]"
+                   f"{_fmt_salary(r.get('salary'))}")
+        click.echo(f"      seen {r.get('first_seen','?')} · {r.get('status','?')} · "
+                   f"{r.get('job_ad_url','')}")
+
+
+@cli.command("companies")
+def companies_cmd():
+    """List the companies you're tracking."""
+    rows = registry.list_companies()
+    active = sum(1 for c in rows if c["active"])
+    click.echo(f"Tracking {active} active / {len(rows)} total:")
+    for c in sorted(rows, key=lambda c: (not c["active"], c["name"].lower())):
+        flag = "●" if c["active"] else "○"
+        click.echo(f"  {flag} {c['name']:<22} {c['ats_type'] or 'auto':<14} (slug {c['slug']})")
+
+
+@cli.command()
+@click.argument("query")
+def follow(query):
+    """Start tracking a company by name (auto-detects ATS) or careers URL."""
+    info = discovery.discover(query, _http())
+    if not info:
+        click.echo(f"Couldn't auto-detect an ATS for {query!r}. Add it to "
+                   f"config/companies.csv manually (ats_type workday/talemetry/custom "
+                   f"+ careers_url).")
+        return
+    info["active"] = True
+    if registry.add_company(info):
+        click.echo(f"✓ Following {info['name']} via {info['ats_type']} "
+                   f"(slug {info['ats_slug'] or info['slug']}).")
+        click.echo(f"  Run:  python main.py seek --only {info['slug']}")
+    else:
+        click.echo(f"Already tracking {info['slug']}.")
+
+
+@cli.command()
+@click.argument("slug")
+def unfollow(slug):
+    """Stop tracking a company (sets active=false; keeps its data)."""
+    if registry.set_active(slug, False):
+        click.echo(f"✓ Unfollowed {slug} (active=false).")
+    else:
+        click.echo(f"No company with slug {slug!r}. See `companies`.")
+
+
+@cli.command("roles")
+@click.option("--company", default=None, help="Filter by company name or slug.")
+@click.option("--min-rank", type=int, default=None, help="Minimum seniority rank.")
+@click.option("--status", default="open", help="open | suspected_filled | closed | applied | all.")
+@click.option("--limit", type=int, default=None)
+def roles_cmd(company, min_rank, status, limit):
+    """Show tracked roles (open by default)."""
+    rows = queries.load_index(DATA_DIR / "jobs.jsonl")
+    res = queries.open_roles(rows, company=company, min_rank=min_rank,
+                             status=(None if status == "all" else status))
+    if limit:
+        res = res[:limit]
+    _print_roles(res, header=f"{status} roles" + (f" at {company}" if company else ""))
+
+
+@cli.command("new")
+@click.option("--since", default=None, help="ISO date (YYYY-MM-DD); overrides the auto marker.")
+def new_cmd(since):
+    """New roles since your last check (or --since DATE)."""
+    rows = queries.load_index(DATA_DIR / "jobs.jsonl")
+    marker_path = DATA_DIR / "last_checked.txt"
+    # auto marker: strictly after last check (same-day roles already seen);
+    # explicit --since: inclusive window.
+    since_eff = since or queries.read_marker(marker_path) or "0000-00-00"
+    res = queries.new_roles(rows, since_eff, strict=not since)
+    _print_roles(res, header=f"New open roles since {since_eff}")
+    if not since:                       # advance the marker only on the auto path
+        queries.write_marker(marker_path, date.today().isoformat())
+        click.echo(f"  (marker advanced to {date.today().isoformat()})")
 
 
 if __name__ == "__main__":

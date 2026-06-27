@@ -8,8 +8,9 @@ __pycache__/
 # OS
 .DS_Store
 
-# Editor / agent-local settings
-.claude/
+# Editor / agent-local settings (keep committed skills under .claude/skills/)
+.claude/*
+!.claude/skills/
 .idea/
 .vscode/
 
