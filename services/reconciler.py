@@ -68,6 +68,10 @@ def reconcile(existing: dict, current_postings: list, today: str):
         current_actions.append((jp, fm, notes, prior["path"] if prior else None))
         if change in ("added", "reopened"):
             diff.append(_diff_row(change, fm))
+        elif change == "updated" and prior:          # #7: emit meaningful updates
+            changed = _changed_fields(prior["fm"], fm)
+            if changed:
+                diff.append(_diff_row("updated", fm, changed))
 
     # Postings on disk not seen this run
     for jid, rec in existing.items():
@@ -94,8 +98,24 @@ def reconcile(existing: dict, current_postings: list, today: str):
     return current_actions, missing_actions, diff
 
 
-def _diff_row(change: str, fm: dict) -> dict:
-    return {
+# Content fields whose change is worth reporting (not lifecycle bookkeeping) (#7)
+_COMPARED = ("title_raw", "title_normalised", "seniority_rank", "locations",
+             "employment_type", "workplace_model", "compensation_type",
+             "posted_date", "job_ad_url", "source_detail", "salary")
+
+
+def _changed_fields(old: dict, new: dict) -> dict:
+    """Return {field: [old, new]} for meaningful content changes between runs."""
+    changes = {}
+    for f in _COMPARED:
+        o, n = old.get(f), new.get(f)
+        if o != n:
+            changes[f] = [o, n]
+    return changes
+
+
+def _diff_row(change: str, fm: dict, changes: dict | None = None) -> dict:
+    row = {
         "change": change,
         "id": fm.get("id"),
         "company": fm.get("company"),
@@ -104,3 +124,6 @@ def _diff_row(change: str, fm: dict) -> dict:
         "status": fm.get("status"),
         "url": fm.get("job_ad_url"),
     }
+    if changes:
+        row["changes"] = changes
+    return row

@@ -27,6 +27,7 @@ def build_summary(stats: dict, diff: list[dict], failed_urls: list[str],
     for d in diff:
         counts[d["change"]] = counts.get(d["change"], 0) + 1
     lines.append(f"Changes             : added={counts.get('added',0)} "
+                 f"updated={counts.get('updated',0)} "
                  f"reopened={counts.get('reopened',0)} "
                  f"suspected_filled={counts.get('suspected_filled',0)} "
                  f"closed={counts.get('closed',0)}")
@@ -45,8 +46,11 @@ def build_summary(stats: dict, diff: list[dict], failed_urls: list[str],
         lines.append("-" * 60)
         lines.append("New / changed postings:")
         for d in diff[:40]:
+            extra = ""
+            if d.get("changes"):
+                extra = " — changed: " + ", ".join(d["changes"].keys())
             lines.append(f"  [{d['change']:<16}] {d.get('company','')}: "
-                         f"{d.get('title','')} ({d.get('location','')})")
+                         f"{d.get('title','')} ({d.get('location','')}){extra}")
 
     if failed_urls:
         lines.append("-" * 60)

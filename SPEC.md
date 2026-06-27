@@ -302,7 +302,10 @@ Per run (`python main.py seek`):
      `suspected_filled`; missing the next run ⇒ `closed`. (Track a `missing_runs` counter in
      frontmatter; never auto-close a `status: applied` role.)
 5. Regenerate `data/jobs.jsonl` from all MD frontmatter.
-6. Write `data/runs/<ts>/diff.jsonl` with `{change: added|updated|suspected_filled|closed, id, …}`.
+6. Write `data/runs/<ts>/diff.jsonl` with `{change: added|updated|reopened|suspected_filled|closed,
+   id, …}`. An `updated` row is emitted only when a *content* field actually changed between runs
+   (title, locations, salary, employment, comp type, posted date, URL, source — not lifecycle
+   bookkeeping like `last_seen`), and carries a `changes: {field: [old, new]}` map (#7).
 7. Print + write `data/runs/<ts>/summary.txt`: companies processed, roles added/updated/closed,
    failures, blocked, elapsed vs budget, list of failed URLs (README §16).
 
