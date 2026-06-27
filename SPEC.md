@@ -272,7 +272,9 @@ Apply, in order, exactly as specified in the README — do not reinvent:
    (README §12). Remote accepted only if UK/Europe/EMEA-eligible; a remote label naming a
    non-eligible region (`Remote (USA)`, `Remote - Canada`, `Remote (APAC)`, …) is rejected (#3).
 5. **Salary** — never convert currency; min/max + currency + original text; bonus ⇒ `Base+Bonus`
-   (README §13).
+   (README §13). **Source preference:** ATS-provided *structured* compensation (Ashby
+   `summaryComponents`) is authoritative when present, then Claude (if enabled), then the
+   context-aware regex over the description.
 6. **Recency** — drop if older than `recency_days` when a date is present. The
    cutoff tests a **freshness** date (last-updated) when the source provides one,
    not first-publish: a live ATS feed only returns currently-open roles, so an
