@@ -34,6 +34,28 @@ def test_add_duplicate_rejected(tmp_path):
     assert len(registry.list_companies(p)) == 1
 
 
+def test_dedup_by_ats_slug_despite_different_company_slug(tmp_path):
+    """#3: same ATS board, different generated slug -> not a duplicate company."""
+    p = tmp_path / "companies.csv"
+    p.write_text(HEADER +
+                 "Black Forest Labs,black-forest-labs,"
+                 "https://job-boards.greenhouse.io/blackforestlabs,greenhouse,blackforestlabs,medium,true\n")
+    dup = {"name": "Blackforestlabs", "slug": "blackforestlabs",
+           "careers_url": "https://job-boards.greenhouse.io/blackforestlabs",
+           "ats_type": "greenhouse", "ats_slug": "blackforestlabs",
+           "priority": "medium", "active": True}
+    assert registry.add_company(dup, p) is False
+    assert len(registry.list_companies(p)) == 1
+
+
+def test_dedup_by_careers_url(tmp_path):
+    p = _csv(tmp_path)
+    dup = {"name": "Monzo Bank", "slug": "monzo-bank",
+           "careers_url": "https://job-boards.greenhouse.io/monzo/",  # trailing slash
+           "ats_type": "", "ats_slug": "", "priority": "low", "active": True}
+    assert registry.add_company(dup, p) is False
+
+
 def test_set_active_toggle(tmp_path):
     p = _csv(tmp_path)
     assert registry.set_active("monzo", False, p) is True

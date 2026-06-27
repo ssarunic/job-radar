@@ -37,23 +37,31 @@ def test_new_roles_since():
     assert [r["id"] for r in res] == ["b"]     # only the 06-27 open role
 
 
-def test_new_roles_strict_excludes_marker_day():
-    # auto-marker path: same-day roles were already seen at last check
-    assert queries.new_roles(ROWS, since="2026-06-27", strict=True) == []
-    # inclusive --since path still shows them
-    assert [r["id"] for r in queries.new_roles(ROWS, since="2026-06-27")] == ["b"]
-
-
 def test_new_roles_excludes_closed_even_if_recent():
     res = queries.new_roles(ROWS, since="2026-01-01")
     assert "c" not in {r["id"] for r in res}   # closed filtered out
 
 
-def test_marker_roundtrip(tmp_path):
-    p = tmp_path / "last_checked.txt"
-    assert queries.read_marker(p) is None
-    queries.write_marker(p, "2026-06-27")
-    assert queries.read_marker(p) == "2026-06-27"
+def test_unseen_roles_filters_by_id():
+    assert {r["id"] for r in queries.unseen_roles(ROWS, seen_ids=set())} == {"a", "b"}
+    assert [r["id"] for r in queries.unseen_roles(ROWS, seen_ids={"a"})] == ["b"]
+    assert queries.unseen_roles(ROWS, seen_ids={"a", "b"}) == []
+
+
+def test_unseen_roles_shows_same_day_role_discovered_after_check(tmp_path):
+    """#1 regression: a role discovered the same day after a check still appears."""
+    # first check: only 'a' existed and was marked seen
+    seen = {"a"}
+    # later same day 'b' (first_seen today) appears -> must be unseen
+    res = queries.unseen_roles(ROWS, seen_ids=seen)
+    assert [r["id"] for r in res] == ["b"]
+
+
+def test_seen_roundtrip(tmp_path):
+    p = tmp_path / "seen_roles.json"
+    assert queries.read_seen(p) == set()
+    queries.write_seen(p, {"a", "b"})
+    assert queries.read_seen(p) == {"a", "b"}
 
 
 def test_load_index(tmp_path):

@@ -16,6 +16,26 @@ class FakeHttp:
         e = HTTPError("404"); e.response = None; raise e
 
 
+class _Resp:
+    def __init__(self, text):
+        self.text = text
+
+
+class FakeHttpText:
+    """get() returns a response with .text (for body-probe)."""
+    def __init__(self, text):
+        self._text = text
+
+    def get(self, url, **kw):
+        return _Resp(self._text)
+
+
+class FakeHttpRaises:
+    """get() raises, like a Cloudflare-blocked fetch."""
+    def get(self, url, **kw):
+        raise HTTPError("403")
+
+
 def test_from_url_ashby():
     d = discovery.discover("https://jobs.ashbyhq.com/openai", http=None)
     assert d["ats_type"] == "ashby" and d["ats_slug"] == "openai"
@@ -35,6 +55,20 @@ def test_from_url_workday():
 
 def test_from_url_unknown_is_custom():
     d = discovery.discover("https://tessl.io/careers", http=None)
+    assert d["ats_type"] == "custom"
+
+
+def test_from_url_body_probe_detects_talemetry():
+    """#2: an unrecognised host whose body mentions Talemetry is detected."""
+    http = FakeHttpText("<html>powered by Talemetry, Inc.</html>")
+    d = discovery.discover("https://jobs.example.com/", http)
+    assert d["ats_type"] == "talemetry"
+    assert d["careers_url"] == "https://jobs.example.com"
+
+
+def test_from_url_cloudflare_falls_back_to_custom():
+    http = FakeHttpRaises()
+    d = discovery.discover("https://jobs.natwestgroup.com/", http)
     assert d["ats_type"] == "custom"
 
 

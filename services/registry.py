@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
+from models.job_posting import canonical_url
 from services.loader import CONFIG
 
 CSV = CONFIG / "companies.csv"
@@ -30,11 +31,30 @@ def _write(rows: list[dict], path: Path) -> None:
             w.writerow(out)
 
 
+def _same_company(a: dict, b: dict) -> bool:
+    """True if two rows are the same company — by slug, by (ats_type, ats_slug),
+    or by canonical careers_url (#3: board slug may differ from company slug)."""
+    if a["slug"] == b["slug"]:
+        return True
+    at, asl = (a.get("ats_type") or ""), (a.get("ats_slug") or "")
+    if at and asl and at == (b.get("ats_type") or "") and asl == (b.get("ats_slug") or ""):
+        return True
+    ua, ub = canonical_url(a.get("careers_url", "")), canonical_url(b.get("careers_url", ""))
+    return bool(ua) and ua == ub
+
+
+def find_existing(row: dict, path: Path = CSV) -> dict | None:
+    for r in list_companies(path):
+        if _same_company(row, r):
+            return r
+    return None
+
+
 def add_company(row: dict, path: Path = CSV) -> bool:
-    """Append a company; return False if the slug is already tracked."""
-    rows = list_companies(path)
-    if any(r["slug"] == row["slug"] for r in rows):
+    """Append a company; return False if it's already tracked (slug / ATS / URL)."""
+    if find_existing(row, path) is not None:
         return False
+    rows = list_companies(path)
     rows.append(row)
     _write(rows, path)
     return True
