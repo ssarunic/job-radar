@@ -23,7 +23,7 @@ def list_companies(path: Path = CSV) -> list[dict]:
 
 def _write(rows: list[dict], path: Path) -> None:
     with open(path, "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=FIELDS)
+        w = csv.DictWriter(f, fieldnames=FIELDS, lineterminator="\n")  # unix EOL, clean diffs
         w.writeheader()
         for r in rows:
             out = {k: r.get(k, "") for k in FIELDS}
