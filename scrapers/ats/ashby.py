@@ -19,6 +19,33 @@ def _locations(job) -> str:
     return "; ".join(p for p in parts if p)
 
 
+def _salary(job) -> dict | None:
+    """Structured compensation from Ashby (authoritative; ?includeCompensation=true).
+    Returns {min,max,currency,original_text,compensation_type} or None."""
+    comp = job.get("compensation") or {}
+    components = comp.get("summaryComponents") or []
+    base = next((c for c in components
+                 if c.get("compensationType") == "Salary" and c.get("minValue") is not None),
+                None)
+    if not base:
+        return None
+    types = {c.get("compensationType") for c in components}
+    if "Bonus" in types:
+        ctype = "Base+Bonus"
+    elif types & {"Commission", "OTE"}:
+        ctype = "OTE"
+    else:
+        ctype = "Base Only"
+    return {
+        "min": base.get("minValue"),
+        "max": base.get("maxValue"),
+        "currency": base.get("currencyCode"),
+        "original_text": (comp.get("compensationTierSummary")
+                          or comp.get("scrapeableCompensationSalarySummary")),
+        "compensation_type": ctype,
+    }
+
+
 def fetch_listing(ats_slug: str, http) -> list[dict]:
     out = []
     for j in http.get_json(API.format(slug=ats_slug)).get("jobs", []):
@@ -34,6 +61,7 @@ def fetch_listing(ats_slug: str, http) -> list[dict]:
             "description": desc,
             "employment_type": EMP.get(j.get("employmentType"), ""),
             "salary_text": desc,
+            "salary": _salary(j),          # structured comp, preferred over regex
             "source_type": "ATS",
             "source_detail": "Ashby",
         })

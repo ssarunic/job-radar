@@ -130,16 +130,24 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
         if jp.employment_type not in allowed:
             continue
 
-        salary_text = raw.get("salary_text") or body
-        sal_dict = claude.extract_salary(salary_text) if claude else None
-        if sal_dict:
-            jp.salary = Salary(min=sal_dict.get("salary_min"),
-                               max=sal_dict.get("salary_max"),
-                               currency=sal_dict.get("currency"),
-                               original_text=sal_dict.get("original_text"))
-            jp.compensation_type = sal_dict.get("compensation_type", "Not Stated")
+        ats_sal = raw.get("salary")
+        if ats_sal and ats_sal.get("min") is not None:
+            # ATS-provided structured comp (e.g. Ashby) — authoritative
+            jp.salary = Salary(min=ats_sal.get("min"), max=ats_sal.get("max"),
+                               currency=ats_sal.get("currency"),
+                               original_text=ats_sal.get("original_text"))
+            jp.compensation_type = ats_sal.get("compensation_type", "Base Only")
         else:
-            jp.salary, jp.compensation_type = salary_parser.parse(salary_text)
+            salary_text = raw.get("salary_text") or body
+            sal_dict = claude.extract_salary(salary_text) if claude else None
+            if sal_dict:
+                jp.salary = Salary(min=sal_dict.get("salary_min"),
+                                   max=sal_dict.get("salary_max"),
+                                   currency=sal_dict.get("currency"),
+                                   original_text=sal_dict.get("original_text"))
+                jp.compensation_type = sal_dict.get("compensation_type", "Not Stated")
+            else:
+                jp.salary, jp.compensation_type = salary_parser.parse(salary_text)
 
         jp.workplace_model = location_filter.workplace_model(" ; ".join(jp.locations), body)
         jp.requirements = _extract_requirements(body)
