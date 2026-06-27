@@ -37,12 +37,17 @@ def render(frontmatter: dict, description: str, requirements: str, notes: str) -
 
 def write_posting(jobs_dir: Path, company_slug: str, role_slug: str, job_id: str,
                   frontmatter: dict, description: str, requirements: str,
-                  notes: str = "") -> Path:
+                  notes: str = "", prior_path: Path | None = None) -> Path:
     company_dir = jobs_dir / company_slug
     company_dir.mkdir(parents=True, exist_ok=True)
     path = company_dir / f"{role_slug}--{job_id}.md"
     path.write_text(render(frontmatter, description, requirements, notes),
                     encoding="utf-8")
+    # Title rename -> same id, new slug: remove the stale file (#3)
+    if prior_path is not None:
+        prior_path = Path(prior_path)
+        if prior_path != path and prior_path.exists():
+            prior_path.unlink()
     return path
 
 

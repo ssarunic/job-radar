@@ -109,9 +109,10 @@ def seek(only, limit):
     current_actions, missing_actions, diff = reconciler.reconcile(
         existing, all_current, today_iso)
 
-    for jp, fm, notes in current_actions:
+    for jp, fm, notes, prior_path in current_actions:
         md_writer.write_posting(JOBS_DIR, jp.company_slug, jp.role_slug, jp.id,
-                                fm, jp.description, jp.requirements, notes)
+                                fm, jp.description, jp.requirements, notes,
+                                prior_path=prior_path)
     for path, fm in missing_actions:
         md_writer.update_frontmatter(path, fm)
 

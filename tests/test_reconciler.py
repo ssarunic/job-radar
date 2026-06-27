@@ -9,7 +9,7 @@ TODAY = "2026-06-27"
 
 def _jp():
     return JobPosting(company="Monzo", company_slug="monzo",
-                      title_raw="Senior Product Manager", location="London",
+                      title_raw="Senior Product Manager", locations=["London"],
                       job_ad_url="https://job-boards.greenhouse.io/monzo/jobs/123")
 
 
@@ -25,7 +25,7 @@ def test_new_posting_added():
     jp = _jp()
     current, missing, diff = reconciler.reconcile({}, [jp], TODAY)
     assert len(current) == 1
-    _, fm, notes = current[0]
+    _, fm, notes, _ = current[0]
     assert fm["status"] == "open"
     assert fm["first_seen"] == TODAY and fm["last_seen"] == TODAY
     assert fm["missing_runs"] == 0
@@ -35,7 +35,7 @@ def test_new_posting_added():
 def test_seen_again_preserves_first_seen_bumps_last_seen():
     jp = _jp()
     current, _, diff = reconciler.reconcile(_existing(jp), [jp], TODAY)
-    _, fm, _ = current[0]
+    _, fm, _, _ = current[0]
     assert fm["first_seen"] == "2026-01-01"   # preserved
     assert fm["last_seen"] == TODAY           # bumped
     assert fm["status"] == "open"
@@ -45,7 +45,7 @@ def test_seen_again_preserves_first_seen_bumps_last_seen():
 def test_applied_status_preserved():
     jp = _jp()
     current, _, _ = reconciler.reconcile(_existing(jp, status="applied"), [jp], TODAY)
-    _, fm, _ = current[0]
+    _, fm, _, _ = current[0]
     assert fm["status"] == "applied"
 
 
@@ -53,7 +53,7 @@ def test_notes_carried_through():
     jp = _jp()
     body = "## Description\n\nx\n\n## My notes\n\nCalled recruiter.\n"
     current, _, _ = reconciler.reconcile(_existing(jp, body=body), [jp], TODAY)
-    _, _, notes = current[0]
+    _, _, notes, _ = current[0]
     assert "Called recruiter." in notes
 
 
@@ -98,7 +98,7 @@ def test_reopened_when_closed_role_reappears():
     jp = _jp()
     current, _, diff = reconciler.reconcile(
         _existing(jp, status="closed", missing_runs=3), [jp], TODAY)
-    _, fm, _ = current[0]
+    _, fm, _, _ = current[0]
     assert fm["status"] == "open"
     assert fm["missing_runs"] == 0
     assert any(d["change"] == "reopened" for d in diff)

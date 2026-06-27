@@ -4,18 +4,18 @@ from models.job_posting import JobPosting, canonical_url, _slugify
 
 def _jp(**kw):
     base = dict(company="Monzo", company_slug="monzo", title_raw="Senior Product Manager",
-                location="London", job_ad_url="https://job-boards.greenhouse.io/monzo/jobs/123")
+                locations=["London"], job_ad_url="https://job-boards.greenhouse.io/monzo/jobs/123")
     base.update(kw)
     return JobPosting(**base)
 
 
-def test_id_stable_for_same_url_and_location():
+def test_id_stable_for_same_url():
     assert _jp().id == _jp().id
 
 
-def test_id_changes_with_location():
-    # current behaviour: location folds into the id for multi-location expansion
-    assert _jp(location="London").id != _jp(location="Remote").id
+def test_id_stable_across_location_change():
+    """#3: URL-backed id must NOT change when location labels change."""
+    assert _jp(locations=["London"]).id == _jp(locations=["Remote", "Edinburgh"]).id
 
 
 def test_id_is_8_hex():
@@ -27,7 +27,14 @@ def test_id_is_8_hex():
 def test_id_without_url_uses_composite():
     a = _jp(job_ad_url="", description="alpha body text")
     b = _jp(job_ad_url="", description="alpha body text")
-    assert a.id == b.id  # deterministic from company+title+desc+location
+    assert a.id == b.id  # deterministic from company+title+desc+locations
+
+
+def test_id_without_url_varies_by_location():
+    """No-URL fallback still distinguishes by location (README §15)."""
+    a = _jp(job_ad_url="", locations=["London"])
+    b = _jp(job_ad_url="", locations=["Manchester"])
+    assert a.id != b.id
 
 
 def test_canonical_url_strips_query_fragment_and_trailing_slash():

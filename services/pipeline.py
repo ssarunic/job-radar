@@ -73,23 +73,26 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
         freshness = normalize_date(raw.get("freshness_date")) or posted
         if _too_old(freshness, recency_days, today):
             continue
-        for loc in location_filter.expand(raw.get("location", ""), profile):
-            jp = JobPosting(
-                company=company["name"],
-                company_slug=company["slug"],
-                title_raw=raw.get("title", ""),
-                title_normalised=cls.normalised,
-                seniority_level=cls.level,
-                seniority_rank=cls.rank,
-                location=loc,
-                workplace_model=location_filter.workplace_model(loc, raw.get("description", "")),
-                description=raw.get("description", "") or "",
-                posted_date=posted,
-                job_ad_url=raw.get("url", ""),
-                source_type=raw.get("source_type", ""),
-                source_detail=raw.get("source_detail", ""),
-            )
-            candidates.append((jp, raw))
+        # One JobPosting per role, holding all accepted locations (#3). Locations
+        # expand to rows at output time, not into the identity.
+        locs = location_filter.expand(raw.get("location", ""), profile)
+        if not locs:
+            continue
+        jp = JobPosting(
+            company=company["name"],
+            company_slug=company["slug"],
+            title_raw=raw.get("title", ""),
+            title_normalised=cls.normalised,
+            seniority_level=cls.level,
+            seniority_rank=cls.rank,
+            locations=locs,
+            description=raw.get("description", "") or "",
+            posted_date=posted,
+            job_ad_url=raw.get("url", ""),
+            source_type=raw.get("source_type", ""),
+            source_detail=raw.get("source_detail", ""),
+        )
+        candidates.append((jp, raw))
 
     # --- Stage B: dedup, rank, per-company cap (before detail fetch) ----------
     by_id: dict[str, tuple[JobPosting, dict]] = {}
@@ -138,7 +141,7 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
         else:
             jp.salary, jp.compensation_type = salary_parser.parse(salary_text)
 
-        jp.workplace_model = location_filter.workplace_model(jp.location, body)
+        jp.workplace_model = location_filter.workplace_model(" ; ".join(jp.locations), body)
         jp.requirements = _extract_requirements(body)
         jp.description = _summarise(body)   # keep the MD readable
         kept.append(jp)

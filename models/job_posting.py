@@ -48,7 +48,7 @@ class JobPosting:
     seniority_rank: int = 0
     employment_type: str = ""          # Full time | Part time | Contract | Unknown
     workplace_model: str = ""          # On site | Hybrid | Remote
-    location: str = ""                 # single location for this (expanded) row
+    locations: list = field(default_factory=list)  # all accepted locations for this role
     remote_eligible_regions: str = ""
     salary: Salary = field(default_factory=Salary)
     compensation_type: str = "Not Stated"
@@ -61,17 +61,20 @@ class JobPosting:
 
     @property
     def id(self) -> str:
-        """Stable key (SPEC §6.2). Location is folded in so multi-location
-        expansions stay distinct while true duplicates collapse."""
+        """Stable key (SPEC §6.2, #3). URL-backed jobs key on the canonical URL
+        ONLY — location-label changes must not mint a new id. Locations expand to
+        rows at output time, not into the identity. No-URL jobs fall back to a
+        composite (README §15)."""
         base = canonical_url(self.job_ad_url)
         if not base:
+            locs = ";".join(sorted(l.lower().strip() for l in self.locations))
             base = "|".join([
                 self.company_slug,
                 self.title_normalised.lower(),
                 (self.description or "")[:120],
+                locs,
             ])
-        key = f"{base}#{self.location.lower().strip()}"
-        return hashlib.sha1(key.encode("utf-8")).hexdigest()[:8]
+        return hashlib.sha1(base.encode("utf-8")).hexdigest()[:8]
 
     @property
     def role_slug(self) -> str:
@@ -89,7 +92,7 @@ class JobPosting:
             "seniority_rank": self.seniority_rank,
             "employment_type": self.employment_type,
             "workplace_model": self.workplace_model,
-            "location": self.location,
+            "locations": list(self.locations),
             "remote_eligible_regions": self.remote_eligible_regions,
             "salary": {
                 "min": self.salary.min,

@@ -45,6 +45,11 @@ Rules:
   nested fields preserved, `pandas.read_json(path, lines=True)` works.
 - **Never overwrite the `## My notes` section** or any `status: applied` set by the user. When a
   role's frontmatter is regenerated, preserve user-owned fields (see §6.3).
+- **Identity is one MD file per role (#3).** The id keys on the canonical URL only — location
+  labels never change identity, so a role with multiple offices is a single canonical record with
+  `locations: [...]`. The index is the **derived display view**: `index_builder` expands each role
+  to one JSONL row per location (README §12 one-row-per-location). A title rename keeps the id but
+  changes the filename slug; the writer removes the stale file (`prior_path`).
 - Upgrade path (do **not** build now): swap the derived index for SQLite, keeping MD canonical.
 
 ---
