@@ -1,8 +1,6 @@
 """Ashby ATS adapter — Rung 1 JSON API (SPEC §4.1). Rich listing incl. descriptions."""
 from __future__ import annotations
 
-import requests
-
 API = "https://api.ashbyhq.com/posting-api/job-board/{slug}?includeCompensation=true"
 
 EMP = {"FullTime": "Full time", "PartTime": "Part time",
@@ -21,13 +19,9 @@ def _locations(job) -> str:
     return "; ".join(p for p in parts if p)
 
 
-def fetch_listing(ats_slug: str, settings: dict) -> list[dict]:
-    r = requests.get(API.format(slug=ats_slug),
-                     headers={"User-Agent": settings.get("user_agent", "JSA")},
-                     timeout=settings.get("request_timeout", 20))
-    r.raise_for_status()
+def fetch_listing(ats_slug: str, http) -> list[dict]:
     out = []
-    for j in r.json().get("jobs", []):
+    for j in http.get_json(API.format(slug=ats_slug)).get("jobs", []):
         if not j.get("isListed", True):
             continue
         desc = j.get("descriptionPlain", "") or ""

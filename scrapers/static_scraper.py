@@ -1,22 +1,14 @@
-"""Rung 3 — static HTML via requests + BeautifulSoup (SPEC §4.3)."""
+"""Rung 3 — static HTML via the shared HTTP client + BeautifulSoup (SPEC §4.3)."""
 from __future__ import annotations
 
 from urllib.parse import urljoin
 
-import requests
 from bs4 import BeautifulSoup
 
 
-def _headers(settings: dict) -> dict:
-    return {"User-Agent": settings.get("user_agent", "JobSeekAssistant")}
-
-
-def listing(url: str, selectors: dict, settings: dict):
-    """Return (postings, status)."""
-    r = requests.get(url, headers=_headers(settings),
-                     timeout=settings.get("request_timeout", 20))
-    r.raise_for_status()
-    soup = BeautifulSoup(r.text, "lxml")
+def listing(url: str, selectors: dict, http):
+    """Return (postings, status). status in {ok, empty}."""
+    soup = BeautifulSoup(http.get(url).text, "lxml")
     out = []
     for card in soup.select(selectors["job_card"]):
         title_el = card.select_one(selectors["title"]) if selectors.get("title") else None
@@ -37,11 +29,8 @@ def listing(url: str, selectors: dict, settings: dict):
     return out, ("ok" if out else "empty")
 
 
-def detail(url: str, settings: dict) -> str:
-    r = requests.get(url, headers=_headers(settings),
-                     timeout=settings.get("request_timeout", 20))
-    r.raise_for_status()
-    soup = BeautifulSoup(r.text, "lxml")
+def detail(url: str, http) -> str:
+    soup = BeautifulSoup(http.get(url).text, "lxml")
     for tag in soup(["script", "style", "nav", "header", "footer"]):
         tag.decompose()
     return soup.get_text("\n", strip=True)

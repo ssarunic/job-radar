@@ -8,8 +8,6 @@ from __future__ import annotations
 
 from urllib.parse import urlsplit
 
-import requests
-
 from scrapers.htmltext import html_to_text
 
 API = "https://api.smartrecruiters.com/v1/companies/{slug}/postings"
@@ -30,16 +28,11 @@ def _location(loc: dict) -> str:
     return base
 
 
-def fetch_listing(ats_slug: str, settings: dict) -> list[dict]:
-    headers = {"User-Agent": settings.get("user_agent", "JSA")}
-    timeout = settings.get("request_timeout", 20)
+def fetch_listing(ats_slug: str, http) -> list[dict]:
     out, offset, total = [], 0, None
     while True:
-        r = requests.get(API.format(slug=ats_slug),
-                         params={"q": "product", "limit": 100, "offset": offset},
-                         headers=headers, timeout=timeout)
-        r.raise_for_status()
-        data = r.json()
+        data = http.get_json(API.format(slug=ats_slug),
+                             params={"q": "product", "limit": 100, "offset": offset})
         total = data.get("totalFound", 0) if total is None else total
         content = data.get("content", [])
         for j in content:
@@ -62,17 +55,14 @@ def fetch_listing(ats_slug: str, settings: dict) -> list[dict]:
     return out
 
 
-def fetch_detail(url: str, settings: dict) -> str:
+def fetch_detail(url: str, http) -> str:
     """Fetch the posting's description sections (SPEC §4.4 / b)."""
     parts = urlsplit(url).path.strip("/").split("/")
     if len(parts) < 2:
         return ""
     slug, pid = parts[-2], parts[-1]
-    r = requests.get(f"{API.format(slug=slug)}/{pid}",
-                     headers={"User-Agent": settings.get("user_agent", "JSA")},
-                     timeout=settings.get("request_timeout", 20))
-    r.raise_for_status()
-    secs = (r.json().get("jobAd") or {}).get("sections") or {}
+    data = http.get_json(f"{API.format(slug=slug)}/{pid}")
+    secs = (data.get("jobAd") or {}).get("sections") or {}
 
     def text(key):
         return html_to_text((secs.get(key) or {}).get("text", ""))

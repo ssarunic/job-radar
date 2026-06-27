@@ -1,30 +1,13 @@
 """Greenhouse ATS adapter — Rung 1 JSON API (SPEC §4.1). No browser needed."""
 from __future__ import annotations
 
-import html as _html
-
-import requests
-from bs4 import BeautifulSoup
+from scrapers.htmltext import html_to_text as _text
 
 API = "https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true"
 
 
-def _text(content_html: str) -> str:
-    if not content_html:
-        return ""
-    soup = BeautifulSoup(_html.unescape(content_html), "lxml")
-    return soup.get_text("\n", strip=True)
-
-
-def fetch_listing(ats_slug: str, settings: dict) -> list[dict]:
-    url = API.format(slug=ats_slug)
-    r = requests.get(
-        url,
-        headers={"User-Agent": settings.get("user_agent", "JobSeekAssistant")},
-        timeout=settings.get("request_timeout", 20),
-    )
-    r.raise_for_status()
-    jobs = r.json().get("jobs", [])
+def fetch_listing(ats_slug: str, http) -> list[dict]:
+    jobs = http.get_json(API.format(slug=ats_slug)).get("jobs", [])
     out = []
     for j in jobs:
         out.append({
