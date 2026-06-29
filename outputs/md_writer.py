@@ -21,8 +21,16 @@ def parse_md(path: Path) -> tuple[dict, str]:
 
 
 def extract_notes(body: str) -> str:
+    return split_body(body)[1]
+
+
+def split_body(body: str) -> tuple[str, str]:
+    """Split a rendered body into (ad_markdown, notes) on the `## My notes`
+    boundary. Single owner of that contract (render writes it; readers use this)."""
     m = NOTES_RX.search(body or "")
-    return m.group(1).strip() if m else ""
+    if not m:
+        return (body or "").strip(), ""
+    return (body[:m.start()].strip(), m.group(1).strip())
 
 
 def render(frontmatter: dict, description: str, requirements: str, notes: str) -> str:

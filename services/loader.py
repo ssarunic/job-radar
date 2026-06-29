@@ -3,12 +3,12 @@ from __future__ import annotations
 
 import csv
 import os
-from pathlib import Path
 
 import yaml
 
-ROOT = Path(__file__).resolve().parent.parent
-CONFIG = ROOT / "config"
+from services import store
+
+CONFIG = store.config_dir()   # single source of store layout (services.store)
 
 
 def load_settings() -> dict:

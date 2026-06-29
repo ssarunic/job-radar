@@ -11,7 +11,6 @@ from __future__ import annotations
 import sys
 import time
 from datetime import date, datetime, timezone
-from pathlib import Path
 
 import click
 
@@ -21,15 +20,13 @@ from scrapers.ladder import open_company
 from scrapers.rate_limiter import RateLimiter
 from scrapers.result import BLOCKED, ERROR
 from services import (company_enricher, discovery, pipeline, queries,
-                      reconciler, registry)
+                      reconciler, registry, store)
 from services.claude_service import ClaudeService
 from services.loader import (load_companies, load_profile, load_settings,
                              merged_profile)
 
-ROOT = Path(__file__).resolve().parent
-JOBS_DIR = ROOT / "jobs"
-COMPANIES_DIR = ROOT / "companies"
-DATA_DIR = ROOT / "data"
+JOBS_DIR = store.jobs_dir()
+COMPANIES_DIR = store.companies_dir()
 
 
 @click.group()
@@ -122,10 +119,10 @@ def seek(only, limit):
     for path, fm in missing_actions:
         md_writer.update_frontmatter(path, fm)
 
-    n_index = index_builder.rebuild(JOBS_DIR, DATA_DIR / "jobs.jsonl")
+    n_index = index_builder.rebuild(JOBS_DIR, store.index_path())
 
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
-    run_dir = DATA_DIR / "runs" / ts
+    run_dir = store.runs_dir() / ts
     summary.write_diff(run_dir, diff)
     text = summary.build_summary(stats, diff, failed_urls,
                                  time.monotonic() - started,
@@ -197,7 +194,7 @@ def enrich_cmd(only, limit):
         except Exception as e:  # noqa: BLE001 — keep the batch alive
             click.echo(f"   ✗ error: {e}")
 
-    n_idx = company_index.rebuild_index(COMPANIES_DIR, DATA_DIR / "company_index.jsonl")
+    n_idx = company_index.rebuild_index(COMPANIES_DIR, store.company_index_path())
     click.echo(f"Enriched {n} companies → {n_idx} rows in data/company_index.jsonl")
 
 
@@ -250,7 +247,7 @@ def unfollow(slug):
 @click.option("--limit", type=int, default=None)
 def roles_cmd(company, min_rank, status, limit):
     """Show tracked roles (open by default)."""
-    rows = queries.load_index(DATA_DIR / "jobs.jsonl")
+    rows = queries.load_index(store.index_path())
     res = queries.open_roles(rows, company=company, min_rank=min_rank,
                              status=(None if status == "all" else status))
     if limit:
@@ -262,13 +259,13 @@ def roles_cmd(company, min_rank, status, limit):
 @click.option("--since", default=None, help="ISO date (YYYY-MM-DD); overrides the auto marker.")
 def new_cmd(since):
     """New roles since your last check (or --since DATE)."""
-    rows = queries.load_index(DATA_DIR / "jobs.jsonl")
+    rows = queries.load_index(store.index_path())
     if since:                           # explicit inclusive window; no state change
         _print_roles(queries.new_roles(rows, since),
                      header=f"New open roles since {since}")
         return
     # auto path: roles not yet surfaced, tracked by id (robust to same-day re-runs).
-    seen_path = DATA_DIR / "seen_roles.json"
+    seen_path = store.seen_path()
     seen = queries.read_seen(seen_path)
     res = queries.unseen_roles(rows, seen)
     _print_roles(res, header="New open roles since last check")
