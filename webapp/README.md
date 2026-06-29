@@ -18,24 +18,24 @@ data (Constitution §3).
 **Dev** (two processes, hot reload):
 ```bash
 # API  (from repo root; uses the project venv which has fastapi/uvicorn)
-.venv/bin/python -m uvicorn app:app --app-dir webapp/backend --reload --port 8000
-# UI   (proxies /api -> :8000)
+.venv/bin/python -m uvicorn app:app --app-dir webapp/backend --reload --port 8765
+# UI   (proxies /api -> :8765)
 cd webapp/frontend && npm install && npm run dev
 ```
 
 **Prod / single process** (FastAPI serves the built UI):
 ```bash
 cd webapp/frontend && npm install && npm run build   # -> dist/
-.venv/bin/python -m uvicorn app:app --app-dir webapp/backend --port 8000
-# open http://127.0.0.1:8000
+.venv/bin/python -m uvicorn app:app --app-dir webapp/backend --port 8765
+# open http://127.0.0.1:8765
 ```
 
 **uv** (standalone backend env): `uv run --project webapp/backend uvicorn app:app --app-dir webapp/backend`.
 
 ## Tailscale (Phase 4)
 Bind to the tailnet so the phone can open deep links:
-`uvicorn app:app --app-dir webapp/backend --host 0.0.0.0 --port 8000`, then reach
-it at `http://<your-mac>.<tailnet>.ts.net:8000`. Keep it tailnet-only (no public exposure).
+`uvicorn app:app --app-dir webapp/backend --host 0.0.0.0 --port 8765`, then reach
+it at `http://<your-mac>.<tailnet>.ts.net:8765`. Keep it tailnet-only (no public exposure).
 
 ## Tests
 ```bash
