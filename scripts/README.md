@@ -1,8 +1,13 @@
 # Scheduling `seek`
 
+> **Production (Raspberry Pi) uses the in-container scheduler** — `scripts/scheduler.py`
+> runs `seek` daily at 08:00 Europe/London inside the `scraper` container. See
+> **`specs/deploy.md`**. The launchd/cron setup below is for running `seek` directly
+> on a macOS/Linux host **without** Docker.
+
 Run the one-shot on a schedule with the OS scheduler (no long-running Python loop).
 A run emits a push notification only when it finds **new/reopened** roles
-(configure `notify` in `config/settings.yaml` first).
+(configure `notify` in `config/settings.yaml` first — `provider: slack` or `ntfy`).
 
 ## macOS — launchd (recommended)
 

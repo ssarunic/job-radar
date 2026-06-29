@@ -1,5 +1,9 @@
 # Deploy — CI/CD to the Raspberry Pi
 
+> **Status: live.** Running on `dalstonserver` (arm64) since 2026-06-29, currently
+> **v1.1.0**. Daily 08:00 Europe/London scrape → Slack. Reachable on the tailnet at
+> http://dalstonserver.tail824f04.ts.net:8765.
+
 Trunk-based + tag-to-release + GHCR image + pull-based (Watchtower) deploy.
 Defers to `constitution.md` for principles; this is the operational runbook.
 

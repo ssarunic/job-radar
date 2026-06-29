@@ -1,6 +1,7 @@
 # Build Spec — Job Seek Mode (Local-First)
 
-> **Status:** active build spec for the first implementation iteration.
+> **Status:** implemented & deployed — live on a Raspberry Pi via CI/CD
+> (tag → GHCR arm64 image → Watchtower), daily 08:00 scraper → Slack. See `specs/deploy.md`.
 > **Relationship to `README.md`:** `README.md` remains the source of truth for *domain rules*
 > (seniority ranking, title/location/salary handling, dedup, lifecycle). This document is the
 > source of truth for *how we build and store* the Job Seek pipeline. Where the two differ, the
@@ -24,7 +25,12 @@ Build a **one-shot CLI** (`python main.py seek`) that, for a configured list of 
 **Built since:** Exploratory/company-enrichment mode (`enrich` command, `companies/<slug>.md`
 canonical + `data/company_index.jsonl`) — see §14.
 
-**Still out of scope** (deferred): Telegram/email notifiers, XLSX export, fit scoring.
+**Built since:** CI/CD + deploy — GitHub Actions (CI on PRs; `vX.Y.Z` tag → arm64 image → GHCR),
+multi-stage Docker + Compose, Watchtower pull-deploy to the Raspberry Pi, in-container 08:00
+daily scheduler (`scripts/scheduler.py`), and a Workday UK location facet — see `specs/deploy.md`.
+
+**Still out of scope** (deferred): Telegram/email notifiers, XLSX export, fit scoring,
+web-app write-back (edit notes / mark applied), GitHub branch protection (needs Pro on private repos).
 
 Build against **2–3 companies of different ATS types** first (one Greenhouse/Lever-style API,
 one custom JS site requiring Playwright) so both paths are exercised before scaling the list.

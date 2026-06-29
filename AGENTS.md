@@ -28,3 +28,7 @@ Canonical store is **Markdown with frontmatter** (`jobs/<company>/<role>--<id>.m
 JSON API → optional Playwright → static HTML) with 7 ATS adapters. Claude is used
 **only** for fuzzy parsing and is **off by default**, always with a heuristic
 fallback. Store paths resolve through `services/store.py` (honours `JSA_ROOT`).
+
+**Deployed** via CI/CD (push a `vX.Y.Z` tag → GitHub Actions → arm64 image → GHCR →
+Watchtower) to a Raspberry Pi over Tailscale; the scraper runs daily at 08:00 and
+posts new roles to Slack. See `specs/deploy.md` (and `[[deploy-pipeline]]` memory).
