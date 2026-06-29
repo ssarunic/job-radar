@@ -18,7 +18,8 @@ services:
     labels:
       com.centurylinklabs.watchtower.enable: "true"
 
-  # Daily seek loop — the service that fires Slack notifications.
+  # Daily seek — the service that fires Slack notifications. Runs at a fixed local
+  # time (default 08:00 Europe/London), not 24h after start.
   scraper:
     image: ghcr.io/ssarunic/job-search-assistant:latest
     profiles: ["scheduler"]
@@ -28,10 +29,12 @@ services:
       SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
       WEB_BASE_URL: ${WEB_BASE_URL:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      SEEK_AT: ${SEEK_AT:-08:00}          # daily run time (local)
+      SEEK_TZ: ${SEEK_TZ:-Europe/London}
     volumes:
       - jsa-data:/data
     restart: unless-stopped
-    entrypoint: ["sh", "-c", "while true; do python main.py seek || true; sleep 86400; done"]
+    command: ["schedule"]
     labels:
       com.centurylinklabs.watchtower.enable: "true"
 

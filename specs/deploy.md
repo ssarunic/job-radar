@@ -53,8 +53,9 @@ docker compose --profile scheduler up -d        # web + daily scraper + watchtow
 ```
 
 Reachable on the tailnet at **http://dalstonserver.tail824f04.ts.net:8765**.
-The daily `seek` then notifies Slack only on genuinely new/reopened roles, each
-deep-linked to its detail page via `WEB_BASE_URL`.
+The scheduler runs `seek` **daily at 08:00 Europe/London** (override with
+`SEEK_AT=HH:MM` / `SEEK_TZ=Area/City` in `.env`), notifying Slack only on
+genuinely new/reopened roles, each deep-linked to its detail page via `WEB_BASE_URL`.
 
 ## Branch protection (one-time, after the first CI run names the check)
 
