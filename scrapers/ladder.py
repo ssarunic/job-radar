@@ -10,6 +10,7 @@ from contextlib import contextmanager
 
 from scrapers import static_scraper
 from scrapers.ats import ashby, greenhouse, lever, smartrecruiters
+from scrapers.ats.revolut_people import RevolutPeopleFetcher
 from scrapers.ats.talemetry import TalemetryFetcher
 from scrapers.ats.workday import WorkdayFetcher
 from scrapers.playwright_scraper import PlaywrightSession
@@ -24,7 +25,8 @@ def detect_ats(company: dict, http) -> str:
     url = company.get("careers_url", "")
     markers = (("greenhouse", "greenhouse"), ("lever.co", "lever"),
                ("ashbyhq", "ashby"), ("smartrecruiters", "smartrecruiters"),
-               ("myworkdayjobs", "workday"), ("talemetry", "talemetry"))
+               ("myworkdayjobs", "workday"), ("revolutpeople", "revolutpeople"),
+               ("talemetry", "talemetry"))
     low = url.lower()
     for needle, ats in markers:
         if needle in low:
@@ -155,6 +157,8 @@ def _build_rungs(company, profile, http):
         return [primary, playwright, static]   # fall back only on error/blocked
     if ats == "workday":
         return [(True, lambda: WorkdayFetcher(company, http, query)), playwright, static]
+    if ats == "revolutpeople":
+        return [(True, lambda: RevolutPeopleFetcher(company, http)), playwright, static]
     if ats == "talemetry":
         return [(True, lambda: TalemetryFetcher(company, http, query)), static]
     # custom / unresolved -> discovery rungs only

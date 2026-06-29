@@ -5,7 +5,7 @@ Anthropic,anthropic,https://job-boards.greenhouse.io/anthropic,greenhouse,anthro
 PolyAI,polyai,https://job-boards.greenhouse.io/polyai,greenhouse,polyai,medium,true
 Speechmatics,speechmatics,https://job-boards.greenhouse.io/speechmatics,greenhouse,speechmatics,medium,true
 ElevenLabs,elevenlabs,https://jobs.ashbyhq.com/elevenlabs,ashby,elevenlabs,high,true
-Fin,fin,https://jobs.ashbyhq.com/fin,ashby,fin,medium,true
+Fin,fin,https://jobs.ashbyhq.com/fin,ashby,fin,medium,false
 Synthesia,synthesia,https://jobs.ashbyhq.com/synthesia,ashby,synthesia,medium,true
 Granola,granola,https://jobs.ashbyhq.com/granola,ashby,granola,medium,true
 Rasa,rasa,https://jobs.ashbyhq.com/rasa,ashby,rasa,low,true
@@ -32,3 +32,8 @@ NVidia,nvidia,https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite,work
 Barclays,barclays,https://barclays.wd3.myworkdayjobs.com/External_Career_Site_Barclays,workday,,medium,true
 Google,google,https://www.google.com/about/careers/applications/jobs/results,custom,,low,false
 Tessl,tessl,https://tessl.io/careers,custom,,low,false
+Spotify,spotify,https://jobs.lever.co/spotify,lever,spotify,medium,true
+Canva,canva,https://jobs.smartrecruiters.com/canva,smartrecruiters,canva,medium,true
+Plaid,plaid,https://jobs.ashbyhq.com/plaid,ashby,plaid,medium,true
+Fin AI (Intercom),fin-ai,https://job-boards.greenhouse.io/intercom,greenhouse,intercom,high,true
+Cleo AI,cleo-ai,https://revolutpeople.com/cleo/public/careers,revolutpeople,cleo,medium,true
