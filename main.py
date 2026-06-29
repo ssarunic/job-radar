@@ -9,18 +9,17 @@ Usage:
 from __future__ import annotations
 
 import sys
-import time
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 import click
 
-from outputs import company_index, index_builder, md_writer, notify, summary
+from outputs import company_index
 from scrapers.http_client import HttpClient
 from scrapers.ladder import open_company
 from scrapers.rate_limiter import RateLimiter
 from scrapers.result import BLOCKED, ERROR
-from services import (company_enricher, discovery, pipeline, queries,
-                      reconciler, registry, store)
+from services import (company_enricher, discovery, queries, registry,
+                      run_service, store)
 from services.claude_service import ClaudeService
 from services.loader import (load_companies, load_profile, load_settings,
                              merged_profile)
@@ -36,102 +35,13 @@ def cli():
 def seek(only, limit):
     """Discover open senior PM roles across the configured companies."""
     settings = load_settings()
-    base_profile = load_profile()
-    companies = [c for c in load_companies() if c["active"]]
-    if only:
-        companies = [c for c in companies if c["slug"] == only]
-    if limit:
-        companies = companies[:limit]
-    companies = companies[: settings.get("max_companies", 300)]
-
+    companies = run_service.select_companies(
+        load_companies(), only=only, limit=limit,
+        max_companies=settings.get("max_companies", 300))
     if not companies:
         click.echo("No active companies match. Check config/companies.csv.")
         return
-
-    limiter = RateLimiter(settings.get("rate_limit_per_sec", 1))
-    http = HttpClient(settings, limiter)
-    claude = ClaudeService(settings)
-    today = datetime.now(timezone.utc).date()
-    today_iso = today.isoformat()
-    started = time.monotonic()
-    budget_s = settings.get("runtime_budget_min", 30) * 60
-
-    existing = reconciler.load_existing(store.jobs_dir())
-    all_current: list = []
-    processed_slugs: set = set()   # companies authoritatively checked this run (#1)
-    stats = {"companies": 0, "ok": 0, "blocked": 0, "errors": 0,
-             "kept": 0, "per_company": {}}
-    failed_urls: list[str] = []
-
-    for company in companies:
-        if time.monotonic() - started > budget_s:
-            click.echo(f"⏱  Runtime budget reached — stopping before {company['name']}.")
-            break
-        name = company["name"]
-        stats["companies"] += 1
-        profile = merged_profile(company, base_profile)
-        click.echo(f"→ {name} ({company.get('ats_type') or 'auto'}) …")
-        kept = []
-        with open_company(company, profile, http) as (fetcher, result):
-            rung = result.rung
-            if result.status in (BLOCKED, ERROR):
-                key = "blocked" if result.status == BLOCKED else "errors"
-                stats[key] += 1
-                failed_urls.append(company["careers_url"])
-                stats["per_company"][name] = {
-                    "kept": 0, "rung": rung,
-                    "status": f"{result.status}: {result.error}".strip(": ")}
-                icon = "⚠" if result.status == BLOCKED else "✗"
-                click.echo(f"   {icon} {result.status} via {rung}: {result.error}")
-                continue
-            try:
-                kept = (pipeline.process_company(company, profile, result.postings,
-                                                 fetcher, settings, claude, today)
-                        if result.postings else [])
-            except Exception as e:  # noqa: BLE001 — keep the batch alive (README §16)
-                stats["errors"] += 1
-                failed_urls.append(company["careers_url"])
-                stats["per_company"][name] = {"kept": 0, "rung": rung, "status": f"error: {e}"}
-                click.echo(f"   ✗ error: {e}")
-                continue
-
-        stats["ok"] += 1
-        stats["kept"] += len(kept)
-        processed_slugs.add(company["slug"])   # authoritative (ok/empty) -> may age its jobs
-        stats["per_company"][name] = {"kept": len(kept), "rung": rung,
-                                      "status": f"{result.status}/{len(result.postings)} listed"}
-        all_current.extend(kept)
-        click.echo(f"   ✓ {len(kept)} kept (from {len(result.postings)} listed) via {rung}")
-
-    # --- Reconcile, write canonical MD, rebuild index, emit diff/summary -----
-    # Only age postings for companies we actually checked this run (#1).
-    current_actions, missing_actions, diff = reconciler.reconcile(
-        existing, all_current, today_iso, processed_slugs)
-
-    for jp, fm, notes, prior_path in current_actions:
-        md_writer.write_posting(store.jobs_dir(), jp.company_slug, jp.role_slug, jp.id,
-                                fm, jp.description, jp.requirements, notes,
-                                prior_path=prior_path)
-    for path, fm in missing_actions:
-        md_writer.update_frontmatter(path, fm)
-
-    n_index = index_builder.rebuild(store.jobs_dir(), store.index_path())
-
-    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
-    run_dir = store.runs_dir() / ts
-    summary.write_diff(run_dir, diff)
-    text = summary.build_summary(stats, diff, failed_urls,
-                                 time.monotonic() - started,
-                                 settings.get("runtime_budget_min", 30))
-    text += f"\nIndex: {n_index} postings -> data/jobs.jsonl"
-    summary.emit(run_dir, text)
-
-    # Push only when this run surfaced new/reopened roles (no-op unless configured).
-    try:
-        if notify.notify(diff, settings, http):
-            click.echo("📲 notification sent")
-    except Exception as e:  # noqa: BLE001 — never let notify failure fail the run
-        click.echo(f"(notification skipped: {e})")
+    run_service.seek_run(settings, load_profile(), companies, progress=click.echo)
 
 
 def _http():
