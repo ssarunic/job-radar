@@ -6,6 +6,8 @@ from pathlib import Path
 
 import yaml
 
+from services.store import atomic_write_text
+
 NOTES_RX = re.compile(r"##\s*My notes\s*\n(.*)\Z", re.DOTALL | re.IGNORECASE)
 
 
@@ -49,8 +51,7 @@ def write_posting(jobs_dir: Path, company_slug: str, role_slug: str, job_id: str
     company_dir = jobs_dir / company_slug
     company_dir.mkdir(parents=True, exist_ok=True)
     path = company_dir / f"{role_slug}--{job_id}.md"
-    path.write_text(render(frontmatter, description, requirements, notes),
-                    encoding="utf-8")
+    atomic_write_text(path, render(frontmatter, description, requirements, notes))
     # Title rename -> same id, new slug: remove the stale file (#3)
     if prior_path is not None:
         prior_path = Path(prior_path)
@@ -63,4 +64,4 @@ def update_frontmatter(path: Path, frontmatter: dict) -> None:
     """Rewrite only the frontmatter, preserving the existing body verbatim."""
     _, body = parse_md(path)
     fm = yaml.safe_dump(frontmatter, sort_keys=False, allow_unicode=True).strip()
-    path.write_text(f"---\n{fm}\n---\n\n{body}", encoding="utf-8")
+    atomic_write_text(path, f"---\n{fm}\n---\n\n{body}")

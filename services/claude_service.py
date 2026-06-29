@@ -6,10 +6,20 @@ falls back to regex/heuristics. Successful extractions are cached in-process.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 
 _cache: dict[str, dict] = {}
+
+_COMPANY_KEYS = ("description", "industry", "sub_industry", "hq_location",
+                 "total_funding", "employee_count", "year_founded")
+_CURRENCIES = {"GBP", "USD", "EUR", None}
+_COMP_TYPES = {"Base Only", "Base+Bonus", "OTE", "Equity", "Not Stated"}
+
+
+def _as_int(v):
+    return int(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else None
 
 
 class ClaudeService:
@@ -27,7 +37,8 @@ class ClaudeService:
     def _ask_json(self, prompt: str) -> dict | None:
         if not self.enabled:
             return None
-        key = str(hash(prompt))
+        # stable content hash (Python's salted str hash() is not stable across runs)
+        key = hashlib.sha1(f"{self.model}\n{prompt}".encode("utf-8")).hexdigest()
         if key in _cache:
             return _cache[key]
         try:
@@ -59,9 +70,12 @@ class ClaudeService:
             "year_founded (YYYY or null). Use '' / null when not stated; do not invent.\n\n"
             + text[:6000])
         data = self._ask_json(prompt)
-        if not data or not isinstance(data.get("description", ""), str):
+        if not data or not isinstance(data.get("description"), str) or not data["description"].strip():
             return None
-        return data
+        # project to the known schema (drop hallucinated keys; coerce to str/null)
+        out = {k: ("" if data.get(k) is None else str(data.get(k, ""))) for k in _COMPANY_KEYS}
+        out["year_founded"] = data.get("year_founded") if isinstance(data.get("year_founded"), int) else None
+        return out
 
     def extract_salary(self, text: str) -> dict | None:
         """Return {min,max,currency,compensation_type,original_text} or None."""
@@ -76,8 +90,15 @@ class ClaudeService:
         data = self._ask_json(prompt)
         if not data:
             return None
-        # minimal schema validation
-        if data.get("compensation_type") not in (
-                "Base Only", "Base+Bonus", "OTE", "Equity", "Not Stated"):
+        # schema validation: enums + numeric/string coercion (reject on bad enum)
+        if data.get("compensation_type") not in _COMP_TYPES:
             return None
-        return data
+        if data.get("currency") not in _CURRENCIES:
+            return None
+        return {
+            "salary_min": _as_int(data.get("salary_min")),
+            "salary_max": _as_int(data.get("salary_max")),
+            "currency": data.get("currency"),
+            "compensation_type": data["compensation_type"],
+            "original_text": str(data.get("original_text") or ""),
+        }

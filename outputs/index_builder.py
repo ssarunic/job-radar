@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from outputs import md_writer
+from services import store
 
 
 def rebuild(jobs_dir: Path, index_path: Path) -> int:
@@ -25,8 +26,6 @@ def rebuild(jobs_dir: Path, index_path: Path) -> int:
                 row["location"] = loc          # expanded display row
                 row["_path"] = rel
                 rows.append(row)
-    index_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(index_path, "w", encoding="utf-8") as f:
-        for r in rows:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    store.atomic_write_text(
+        index_path, "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
     return len(rows)

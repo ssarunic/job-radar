@@ -16,9 +16,22 @@ and **Exploratory** (company enrichment).
    accounts, no SSO. Anything exposed off-device goes over the user's private
    Tailscale network, never the public internet.
 
-2. **Public data only, politely.** Public HTML/JSON endpoints only; respect
-   `robots.txt`; per-domain rate limiting, timeouts, bounded retries. No login
-   areas, no scraping behind auth.
+2. **Public data only, politely.** Only public career pages and the public JSON
+   APIs their ATS platforms already serve to browsers. **No login areas, no auth,
+   no private endpoints.** Always: per-domain rate limiting, request timeouts,
+   bounded retries.
+   - **`robots.txt` is honoured for discovery rungs** (HTML scraping, headless
+     browser) — if disallowed, we don't fetch.
+   - **Documented ATS JSON APIs are treated as public consumption APIs** (the same
+     calls the vendor's own careers widget makes) and are not robots-gated; this
+     is deliberate and bounded to known ATS platforms.
+   - **Browser-fingerprint impersonation is allowed only to reach public JSON
+     behind a passive Cloudflare wall** (e.g. Talemetry via `curl_cffi` Safari
+     profile). It accesses the same public data a browser would — it does **not**
+     bypass authentication, paywalls, or login. A genuine interactive challenge
+     is treated as "do not enter," not something to defeat.
+   This principle is the single authority on crawler ethics; `README.md` /
+   `AGENTS.md` defer here.
 
 3. **Markdown is canonical; everything else is derived.** `jobs/<company>/<role>--<id>.md`
    (and `companies/<slug>.md`) are the single source of truth. `data/*.jsonl` indexes
