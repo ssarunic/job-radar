@@ -1,0 +1,34 @@
+# Weekly dependency checks across every ecosystem we use. Each PR Dependabot
+# opens is the "should we upgrade?" signal: minor/patch are grouped into one PR
+# per ecosystem (low noise); majors come as individual PRs to review deliberately.
+version: 2
+updates:
+  - package-ecosystem: "npm"            # webapp/frontend
+    directory: "/webapp/frontend"
+    schedule: { interval: "weekly" }
+    open-pull-requests-limit: 5
+    groups:
+      frontend-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "pip"            # core scraper deps (requirements.txt)
+    directory: "/"
+    schedule: { interval: "weekly" }
+    groups:
+      python-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "pip"            # web API deps (webapp/backend/pyproject.toml)
+    directory: "/webapp/backend"
+    schedule: { interval: "weekly" }
+    groups:
+      backend-minor-patch:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "docker"         # Dockerfile base images (node/python)
+    directory: "/"
+    schedule: { interval: "weekly" }
+
+  - package-ecosystem: "github-actions" # any CI workflows we add later
+    directory: "/"
+    schedule: { interval: "weekly" }
