@@ -41,7 +41,11 @@ def main() -> None:
         print(f"[scheduler] next run {target.isoformat()} (in {wait / 3600:.1f}h)", flush=True)
         time.sleep(max(1.0, wait))
         print(f"[scheduler] running seek {datetime.now(tz).isoformat()}", flush=True)
-        subprocess.run([sys.executable, "main.py", "seek"], check=False)
+        rc = subprocess.run([sys.executable, "main.py", "seek"]).returncode
+        # Keep the daily cadence on a transient failure, but make a bad run loud
+        # (visible in `docker logs`) instead of looking like a normal scheduled run.
+        if rc != 0:
+            print(f"[scheduler] WARNING: seek exited {rc}", file=sys.stderr, flush=True)
 
 
 if __name__ == "__main__":

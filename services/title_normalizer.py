@@ -37,6 +37,24 @@ def _strip_brackets(t: str) -> str:
     return re.sub(r"[\(\)\[\]\{\}]", " ", t)
 
 
+# Two distinct titles in one string ("X / Y", "X & Y", "X and Y").
+_SEG_RX = re.compile(r"\s*(?:/|\||&|\band\b|\bor\b)\s*", re.IGNORECASE)
+
+
+def _distinct_pm_segment(raw_title: str, excl: list) -> Optional[str]:
+    """README §11 exception: a marketing/brand title is kept if a *distinct*
+    segment is itself a PM title. Returns that segment (normalised) — e.g. the
+    'senior product manager' half of 'Product Marketing Manager / Senior Product
+    Manager' — or None. The segment must contain none of the excluded terms."""
+    for seg in _SEG_RX.split((raw_title or "").lower()):
+        seg = re.sub(r"\s+", " ", _strip_brackets(seg)).strip()
+        if not seg or any(e and re.search(r"\b" + re.escape(e), seg) for e in excl):
+            continue
+        if any(re.search(rx, seg) for rx, *_ in PATTERNS):
+            return seg
+    return None
+
+
 def classify(raw_title: str, profile: dict) -> Classification:
     """Return a Classification. `kept` reflects README §11 filter:
     rank >= seniority_min, OR Product Owner when include_product_owner."""
@@ -51,12 +69,20 @@ def classify(raw_title: str, profile: dict) -> Classification:
     # Match at a word boundary so short terms don't hit substrings
     # (e.g. 'hr' must not match inside "Threat"). Start-boundary only, so stems
     # still match ('design' -> 'designer', 'recruit' -> 'recruiter').
+    excluded_term = None
     for term in excl:
         if term and re.search(r"\b" + re.escape(term), t):
             # 'design' only excludes when it isn't a clear PM title
             if term == "design" and ("product manager" in t or "product owner" in t):
                 continue
-            return Classification("", "", 0, False, f"excluded:{term}")
+            excluded_term = term
+            break
+    if excluded_term:
+        seg = _distinct_pm_segment(raw_title, excl)
+        if seg:
+            t = seg          # README §11: a distinct PM title rescues a marketing/brand role
+        else:
+            return Classification("", "", 0, False, f"excluded:{excluded_term}")
 
     for rx, norm, level, rank in PATTERNS:
         if re.search(rx, t):

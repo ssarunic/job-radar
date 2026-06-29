@@ -105,17 +105,28 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
                                     pr[0].title_raw.lower()))
 
     # --- Stage C: detail fetch, then detail-derived filters, THEN cap (#2) ----
-    # Detail brings the real date/employment/salary, so filtering must happen
-    # before trimming to max_roles. Iterate the ranked pool (bounded), keep the
-    # first `max_roles` survivors, and stop early to bound detail fetches.
+    # Detail brings the real date/employment/salary, so contract/recency filters
+    # must run before trimming to max_roles. Iterate the FULL ranked pool until we
+    # have max_roles survivors — never truncate first, or a run of contract/stale
+    # roles at the top buries eligible ones below it. Detail fetches are the only
+    # real cost, so bound *those* with an explicit, logged cap (not a silent slice).
     allowed = set(profile.get("employment", ["Full time", "Part time"]))
-    pool = ranked[: max(max_roles * 3, max_roles)]
+    detail_cap = profile.get("detail_fetch_cap", max(50, max_roles * 5))
     kept: list[JobPosting] = []
-    for jp, raw in pool:
+    details = 0
+    for jp, raw in ranked:
+        if len(kept) >= max_roles:
+            break
+        if fetcher.needs_detail and details >= detail_cap:
+            print(f"   … detail-fetch cap ({detail_cap}) reached with "
+                  f"{len(kept)}/{max_roles} kept of {len(ranked)} ranked; "
+                  f"raise detail_fetch_cap to look deeper")
+            break
         body = jp.description
         if fetcher.needs_detail:
             body = fetcher.detail(jp.job_ad_url) or jp.description
             jp.description = body
+            details += 1
             if not jp.posted_date:
                 jp.posted_date = normalize_date(_find_date(body))
 
@@ -153,8 +164,6 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
         jp.requirements = _extract_requirements(body)
         jp.description = _clean_body(body)   # full ad text (MD is the canonical record)
         kept.append(jp)
-        if len(kept) >= max_roles:          # cap AFTER detail filtering (#2)
-            break
 
     return kept
 

@@ -56,3 +56,11 @@ def test_workplace_model(loc, desc, model):
 
 def test_split_locations_dedupes():
     assert L.split_locations("London; London") == ["London"]
+
+
+def test_named_ineligible_remote_rejected_amid_uk_context():
+    """#3 regression: 'Remote (USA)' must not ride in on a sibling London office."""
+    assert L.expand("London; Remote (USA)", PROFILE) == ["London"]
+    assert L.expand("London / Remote (Canada)", PROFILE) == ["London"]
+    # an explicitly UK/EU remote alongside London is still kept
+    assert "Remote (UK)" in L.expand("London; Remote (UK)", PROFILE)

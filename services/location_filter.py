@@ -120,10 +120,13 @@ def expand(location_str: str, profile: dict) -> list[str]:
             if not allow_remote or any(u in pl for u in US_ONLY):
                 continue
             explicit = _is_uk(pl) or any(t in pl for t in ("uk", "europe", "emea", "eu "))
+            # A remote that NAMES an ineligible region (e.g. "Remote (USA)") is
+            # rejected on its own terms — before posting-wide UK/EU context can
+            # rescue it (#3). Only spared if it also names UK/EU explicitly.
+            if _names_ineligible_region(pl) and not explicit:
+                continue
             if explicit or uk_or_eu:
                 accepted.append(p)          # remote alongside a UK/EU office
-            elif _names_ineligible_region(pl):
-                continue                    # Remote (USA/Canada/APAC…) -> reject (#3)
             elif not foreign_present:
                 accepted.append(p)          # truly region-less remote
             # else: remote tied to US/foreign-only context -> reject

@@ -100,3 +100,14 @@ def test_non_product_role_dropped():
 def test_markets_vp_not_a_product_role():
     """Real NatWest case: 'Structured Product Vice President' is markets, not PM."""
     assert classify("Structured Product Vice President", PROFILE).kept is False
+
+
+def test_marketing_kept_when_distinct_pm_title_present():
+    """README §11: marketing/brand dropped UNLESS a distinct segment is a PM title."""
+    c = classify("Product Marketing Manager / Senior Product Manager", PROFILE)
+    assert c.kept and c.rank == 3 and c.normalised == "Senior Product Manager"
+
+
+def test_marketing_alone_still_excluded():
+    assert not classify("Product Marketing Manager", PROFILE).kept
+    assert not classify("Brand Manager", PROFILE).kept
