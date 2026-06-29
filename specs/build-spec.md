@@ -18,8 +18,8 @@ Build a **one-shot CLI** (`python main.py seek`) that, for a configured list of 
 4. Writes one Markdown file per kept role (canonical record) and regenerates a JSONL index.
 5. Emits a per-run diff and a console/TXT summary.
 
-**Built since:** scheduler (launchd/cron via `scripts/`) + ntfy notifications (`outputs/notify.py`,
-fires only on new/reopened roles) — see §13.
+**Built since:** scheduler (launchd/cron via `scripts/`) + ntfy/Slack notifications
+(`outputs/notify.py`, fires only on new/reopened roles; Slack deep-links to the web app) — see §13.
 
 **Built since:** Exploratory/company-enrichment mode (`enrich` command, `companies/<slug>.md`
 canonical + `data/company_index.jsonl`) — see §14.
@@ -411,10 +411,19 @@ The one-shot is driven on a schedule by the OS (no long-running Python loop):
   `cp … ~/Library/LaunchAgents/ && launchctl load …`. Linux: a cron line (see `scripts/README.md`).
 
 **Notifications** (`outputs/notify.py`): after a run, if `notify.enabled` and the diff contains
-`added`/`reopened` rows, push a message listing the new roles. Default provider **ntfy**
-(`https://ntfy.sh/<topic>` — zero setup, install the app, subscribe to the topic). Never fires for
-routine updates/closures; never fails the run (wrapped). Configure under `notify:` in
-`config/settings.yaml`. The send is injectable, so it's unit-tested without network.
+`added`/`reopened` rows, push a message listing the new roles. Never fires for routine
+updates/closures; never fails the run (wrapped). Configure under `notify:` in
+`config/settings.yaml`. The send is injectable, so providers are unit-tested without network.
+Providers:
+- **ntfy** (`https://ntfy.sh/<topic>` — zero setup, install the app, subscribe to the topic):
+  plain-text body.
+- **slack** — Incoming Webhook (`notify.slack_webhook`, or `$SLACK_WEBHOOK_URL` if blank).
+  Sends a Block Kit message where **each role title deep-links to its web-app detail page**
+  (`web_base_url/jobs/<id>`, from `settings.web_base_url` or `$WEB_BASE_URL`) so you can open
+  it in the tracker from your phone, with an "apply ↗" link to the external posting. Falls
+  back to linking the external posting when no `web_base_url` is set. The scheduler/scraper
+  container is the one that fires these (it runs `seek`), so the webhook + base URL are set on
+  that service (see `docker-compose.yml`).
 
 ---
 

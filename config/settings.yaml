@@ -12,9 +12,14 @@ stealth: true                # playwright-stealth: defeats Cloudflare even headl
 
 # Push notifications — fire only when a run finds new/reopened roles.
 notify:
-  enabled: false             # set true once a topic is configured
-  provider: ntfy             # ntfy (zero-setup): publish to https://ntfy.sh/<topic>
-  ntfy_topic: ""             # a hard-to-guess topic, e.g. "ssarunic-pm-roles-7x2k9"
+  enabled: false             # set true once a provider is configured
+  provider: slack            # ntfy | slack
+  ntfy_topic: ""             # ntfy: a hard-to-guess topic, e.g. "ssarunic-pm-roles-7x2k9"
+  slack_webhook: ""          # slack: Incoming Webhook URL; reads $SLACK_WEBHOOK_URL if blank
+
+# Web app base URL — used for deep links in Slack notifications (role title -> /jobs/<id>).
+# e.g. http://<pi-host>.<tailnet>.ts.net:8765  (leave blank to link to the external posting)
+web_base_url: ""
 
 # Claude API: read from env ANTHROPIC_API_KEY if blank. Used only for fuzzy parsing.
 anthropic_api_key: ""

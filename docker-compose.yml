@@ -12,12 +12,18 @@ services:
 
   # Scheduler (opt-in: `docker compose --profile scheduler up -d`).
   # Simple daily loop for now; on the Pi this can become ofelia/cron/systemd.
+  # This is the service that fires Slack notifications (it runs `seek`), so it
+  # gets the webhook + the web base URL used for deep links. Set them on the host
+  # (e.g. an .env file or `export`); compose passes them through.
   scraper:
     image: job-radar:local
     profiles: ["scheduler"]
     depends_on: [web]
     environment:
       JSA_ROOT: /data
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}   # secret — never bake into the image
+      WEB_BASE_URL: ${WEB_BASE_URL:-}             # e.g. http://<pi>.<tailnet>.ts.net:8765
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}   # only if use_claude is enabled in settings
     volumes:
       - jsa-data:/data
     restart: unless-stopped
