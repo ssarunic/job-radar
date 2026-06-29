@@ -21,12 +21,13 @@ from scrapers.result import BLOCKED, ERROR
 from services import (company_enricher, discovery, queries, registry,
                       run_service, store)
 from services.claude_service import ClaudeService
-from services.loader import (load_companies, load_profile, load_settings,
-                             merged_profile)
+from services.loader import (load_companies, load_dotenv, load_profile,
+                             load_settings, merged_profile)
+
 
 @click.group()
 def cli():
-    pass
+    load_dotenv()   # pick up local .env (SLACK_WEBHOOK_URL, WEB_BASE_URL, ANTHROPIC_API_KEY)
 
 
 @cli.command()

@@ -3,12 +3,28 @@ from __future__ import annotations
 
 import csv
 import os
+from pathlib import Path
 
 import yaml
 
 from services import store
 
 # Paths resolved per call (not frozen at import) so JSA_ROOT works in test/web/embedded.
+
+
+def load_dotenv(path=None) -> None:
+    """Load KEY=VALUE lines from a local `.env` into os.environ (does not override
+    already-set vars). No dependency; docker-compose reads `.env` itself, and this
+    makes the local CLI behave the same (e.g. SLACK_WEBHOOK_URL, WEB_BASE_URL)."""
+    p = Path(path) if path else store.REPO_ROOT / ".env"
+    if not p.exists():
+        return
+    for line in p.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, val = line.split("=", 1)
+        os.environ.setdefault(key.strip(), val.strip().strip('"').strip("'"))
 
 
 def load_settings() -> dict:
