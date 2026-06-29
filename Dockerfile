@@ -10,7 +10,7 @@ COPY webapp/frontend/ ./
 RUN npm run build          # -> /ui/dist
 
 # --- stage 2: python runtime ---
-FROM python:3.13-slim-bookworm AS runtime
+FROM python:3.14-slim-bookworm AS runtime
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 JSA_ROOT=/data PORT=8765
 WORKDIR /app
 
