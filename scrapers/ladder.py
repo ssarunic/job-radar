@@ -171,8 +171,8 @@ def _attempt(http, rungs) -> tuple[object, ListingResult]:
     last = ListingResult(ERROR, [], "none", "no rungs configured")
     for terminal_on_empty, factory in rungs:
         fetcher = factory()
-        fetcher.__enter__()
         try:
+            fetcher.__enter__()   # in try: a missing optional browser degrades gracefully
             if getattr(fetcher, "check_robots", False) and \
                     not http.allowed(getattr(fetcher, "careers_url", "")):
                 res = ListingResult(BLOCKED, [], fetcher.rung_name, "robots.txt disallowed")
@@ -182,7 +182,10 @@ def _attempt(http, rungs) -> tuple[object, ListingResult]:
             res = ListingResult(ERROR, [], getattr(fetcher, "rung_name", "?"), str(e)[:200])
         if res.ok:
             return fetcher, res
-        fetcher.__exit__(None, None, None)
+        try:
+            fetcher.__exit__(None, None, None)
+        except Exception:
+            pass
         last = res
         if res.status == EMPTY and terminal_on_empty:
             break   # trust an ATS API that genuinely returned nothing

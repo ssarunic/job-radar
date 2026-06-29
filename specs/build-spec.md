@@ -155,19 +155,23 @@ Detection (`ats_type: auto`): fetch `careers_url`, inspect final URL/host and pa
 This rung handles most companies and is immune to HTML redesigns. Prefer it whenever possible.
 **Empirically, of 30 target companies: 10 Greenhouse, 14 Ashby, 1 Lever, 1 SmartRecruiters, 2 Workday, 1 Talemetry, 1 needs work (Google).** Ashby is the modern AI-startup default. `scratchpad/probe_ats.py` detects a company's ATS by trying each API against candidate slugs.
 
-**Cloudflare-walled JSON (e.g. NatWest / Talemetry).** Some ATS JSON APIs sit
-behind a Cloudflare managed challenge — plain `requests` *and* Playwright's
-`context.request` both get `403`. The working pattern (`scrapers/ats/talemetry.py`):
-warm a Playwright page on the site root (clears the challenge for the context),
-then call the JSON endpoint via in-page `fetch()` with a short retry loop until
-clearance lands. Because every target PM title contains "product", `q=product`
-is an effective server-side prefilter and the title classifier does the precise work.
+**Cloudflare-walled JSON (e.g. NatWest / Talemetry) — no browser needed.** Some ATS
+sit behind Cloudflare, but NatWest's is *fingerprint-based* (passive), not a JS
+challenge. So `scrapers/ats/talemetry.py` uses **`curl_cffi` impersonating Safari's
+TLS fingerprint** — plain `requests` and Chrome-impersonation get `403`, but Safari
+clears both the `jobs.json` listing API and detail pages with **no browser**.
+`q=product` is an effective server-side prefilter; the classifier does the rest.
 
-**`playwright-stealth` defeats Cloudflare even headless** (`settings.stealth: true`,
-on by default). With stealth, NatWest *detail* pages also clear (they don't
-without it), so the Talemetry adapter does full listing **+ detail** fetch
-(`needs_detail=True`); without stealth, detail fetches return "" gracefully.
-Detail URL pattern: `/jobs/{id}-{permalink}` (hyphen, not slash).
+Detail bodies come from the page's **schema.org `JobPosting` JSON-LD** (URL
+`/jobs/{id}-{permalink}`), parsed tolerantly (trailing commas). That yields clean
+Markdown **plus** structured `employmentType` and `datePosted` — richer than a
+rendered-text scrape, and feeds recency + Contract filtering. `needs_detail=True`.
+
+This makes the whole stack **browser-free**: Playwright/Chromium is no longer
+required (it was the only browser user). Playwright remains an *optional* fallback
+for hypothetical `custom` JS sites (Rung 2) — not installed by default; the ladder
+degrades to static HTML when it's absent. A genuine JS challenge (not NatWest's
+case) would need a browser or a FlareSolverr sidecar.
 
 ### 4.2 Rung 2 — Playwright (JS-rendered sites)
 

@@ -1,21 +1,29 @@
 """Talemetry (Jobvite/Radancy) ATS adapter — e.g. NatWest.
 
-The site is Cloudflare-protected, so the JSON search API can't be hit with
-plain requests. Instead we warm a Playwright browser context (clears the
-managed challenge) and call the `jobs.json` endpoint via in-page `fetch()`,
-which rides the context's clearance. Detail pages enforce a stronger challenge
-that headless can't clear, so this adapter is listing-only (descriptions stay
-empty; the job URL is still emitted for the user to open in a real browser).
+Cloudflare-protected, but the wall is fingerprint-based (passive), so curl_cffi
+impersonating Safari's TLS fingerprint gets through with **no browser** — both the
+`jobs.json` listing API and the detail pages. Detail bodies come from the page's
+schema.org `JobPosting` JSON-LD, which gives clean Markdown plus structured
+employmentType + datePosted (richer than the old rendered-text scrape).
 
-Every target PM title contains the word "product", so `q=product` is an
-effective server-side prefilter; the title classifier does the precise work.
+Every target PM title contains "product", so `q=product` is an effective
+server-side prefilter; the title classifier does the precise work.
 """
 from __future__ import annotations
 
-from urllib.parse import urlsplit, quote_plus
+import json
+import re
+from urllib.parse import quote_plus, urlsplit
 
-from scrapers.playwright_scraper import PlaywrightSession
-from scrapers.result import ListingResult, OK, EMPTY, BLOCKED
+from bs4 import BeautifulSoup
+from curl_cffi import requests as creq
+
+from scrapers.htmltext import html_to_markdown
+from scrapers.result import ListingResult, OK, EMPTY, BLOCKED, ERROR
+
+_IMPERSONATE = "safari"   # Safari fingerprint clears NatWest's Cloudflare; chrome does not
+_EMP = {"FULL_TIME": "Full time", "PART_TIME": "Part time",
+        "CONTRACTOR": "Contract", "TEMPORARY": "Contract", "INTERN": "Contract"}
 
 
 def _origin(url: str) -> str:
@@ -33,51 +41,65 @@ def _location_str(loc) -> str:
     return ", ".join(b for b in bits if b)
 
 
+def jobposting_ld(html: str) -> dict | None:
+    """Extract the schema.org JobPosting JSON-LD from a detail page (tolerant of
+    trailing commas, which these blocks sometimes contain)."""
+    soup = BeautifulSoup(html, "lxml")
+    for s in soup.find_all("script", type="application/ld+json"):
+        raw = s.string or ""
+        try:
+            obj = json.loads(re.sub(r",\s*([}\]])", r"\1", raw))
+        except Exception:
+            continue
+        for o in (obj if isinstance(obj, list) else [obj]):
+            if isinstance(o, dict) and "JobPosting" in str(o.get("@type", "")):
+                return o
+    return None
+
+
 class TalemetryFetcher:
-    # Detail pages clear Cloudflare when settings.stealth is on; without stealth
-    # they get challenged and detail() returns "" (graceful).
     needs_detail = True
     check_robots = True
     rung_name = "talemetry"
 
     def __init__(self, company, http, query="product", per_page=100):
         self.company, self.http = company, http
-        self.settings = http.settings
+        self.careers_url = company["careers_url"]
+        self.origin = _origin(company["careers_url"])
         self.query = query
         self.per_page = per_page
-        self.origin = _origin(company["careers_url"])
-        self.session = None
+        self.timeout = http.settings.get("request_timeout", 20)
 
     def __enter__(self):
-        self.session = PlaywrightSession(self.settings).__enter__()
         return self
 
     def __exit__(self, *exc):
-        if self.session:
-            self.session.__exit__(*exc)
         return False
 
-    def listing(self) -> ListingResult:
-        self.http.wait(self.origin)
-        if not self.session.warm(self.origin + "/"):
-            return ListingResult(BLOCKED, [], self.rung_name, "Cloudflare challenge")
+    def _get(self, url):
+        self.http.wait(self.origin)   # polite per-domain rate limit
+        return creq.get(url, impersonate=_IMPERSONATE, timeout=self.timeout)
 
+    def listing(self) -> ListingResult:
         api = (self.origin + "/search/jobs.json?search_type=talemetry"
                f"&q={quote_plus(self.query)}&per_page={self.per_page}")
-        first = self.session.fetch_json(api + "&page=1")
-        if first is None:
-            return ListingResult(BLOCKED, [], self.rung_name, "jobs.json blocked")
-
-        total = int(first.get("total_entries", 0))
-        per = int(first.get("per_page", self.per_page)) or self.per_page
-        entries = list(first.get("entries", []))
-        pages = (total + per - 1) // per if total else 1
-        for page_no in range(2, pages + 1):
-            self.http.wait(self.origin)
-            data = self.session.fetch_json(f"{api}&page={page_no}")
-            if not data:
+        try:
+            first = self._get(api + "&page=1")
+        except Exception as e:
+            return ListingResult(ERROR, [], self.rung_name, str(e)[:120])
+        if first.status_code == 403:
+            return ListingResult(BLOCKED, [], self.rung_name, "Cloudflare challenge")
+        if first.status_code != 200:
+            return ListingResult(ERROR, [], self.rung_name, f"HTTP {first.status_code}")
+        data = first.json()
+        total = int(data.get("total_entries", 0))
+        per = int(data.get("per_page", self.per_page)) or self.per_page
+        entries = list(data.get("entries", []))
+        for page_no in range(2, (total + per - 1) // per + 1 if total else 1):
+            try:
+                entries.extend(self._get(f"{api}&page={page_no}").json().get("entries", []))
+            except Exception:
                 break
-            entries.extend(data.get("entries", []))
 
         out = []
         for e in entries:
@@ -97,7 +119,17 @@ class TalemetryFetcher:
         return ListingResult(OK if out else EMPTY, out, self.rung_name)
 
     def detail(self, url):
+        """Clean Markdown ad from the JSON-LD JobPosting, prefixed with the
+        structured employment type + posted date so the pipeline parses them."""
         if not url or url == self.origin:
             return ""
-        self.http.wait(self.origin)
-        return self.session.detail(url)
+        try:
+            html = self._get(url).text
+        except Exception:
+            return ""
+        ld = jobposting_ld(html)
+        if not ld:
+            return ""
+        header = (f"Employment type: {_EMP.get(ld.get('employmentType'), '')}\n"
+                  f"Date posted: {ld.get('datePosted', '')}\n\n")
+        return header + html_to_markdown(ld.get("description", ""))
