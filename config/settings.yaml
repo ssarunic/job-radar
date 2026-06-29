@@ -12,7 +12,7 @@ stealth: true                # playwright-stealth: defeats Cloudflare even headl
 
 # Push notifications — fire only when a run finds new/reopened roles.
 notify:
-  enabled: false             # set true once a provider is configured
+  enabled: true              # slack provider configured (webhook via $SLACK_WEBHOOK_URL)
   provider: slack            # ntfy | slack
   ntfy_topic: ""             # ntfy: a hard-to-guess topic, e.g. "ssarunic-pm-roles-7x2k9"
   slack_webhook: ""          # slack: Incoming Webhook URL; reads $SLACK_WEBHOOK_URL if blank
