@@ -32,6 +32,13 @@ def test_entity_escaped_html_also_works():
     assert "- Item" in md
 
 
+def test_nested_bold_collapsed():
+    # <b><strong> nesting otherwise emits ****text**** which renders oddly
+    md = html_to_markdown("<p><b><strong>About Cleo</strong></b></p>")
+    assert "**About Cleo**" in md
+    assert "****" not in md
+
+
 def test_empty():
     assert html_to_markdown("") == ""
 

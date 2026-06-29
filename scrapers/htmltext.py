@@ -22,5 +22,7 @@ def html_to_markdown(content: str) -> str:
         return ""
     md = _md(_html.unescape(content), heading_style="ATX", bullets="-",
              strip=["script", "style"])
-    md = re.sub(r"\n{3,}", "\n\n", md)        # collapse runs of blank lines
+    md = re.sub(r"\n{3,}", "\n\n", md)              # collapse runs of blank lines
+    # nested <b><strong> emits ****text**** — collapse to plain bold
+    md = re.sub(r"\*{4}([^*]+?)\*{4}", r"**\1**", md)
     return md.strip()
