@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 from outputs import md_writer
+from services import store
 
 
 def write_company(companies_dir: Path, company) -> Path:
@@ -17,8 +18,8 @@ def write_company(companies_dir: Path, company) -> Path:
     if path.exists():
         _, body = md_writer.parse_md(path)
         notes = md_writer.extract_notes(body)
-    path.write_text(md_writer.render(company.to_frontmatter(), company.description, "", notes),
-                    encoding="utf-8")
+    store.atomic_write_text(
+        path, md_writer.render(company.to_frontmatter(), company.description, "", notes))
     return path
 
 
@@ -30,8 +31,6 @@ def rebuild_index(companies_dir: Path, index_path: Path) -> int:
             if fm.get("slug"):
                 fm["_path"] = str(path.relative_to(companies_dir.parent))
                 rows.append(fm)
-    index_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(index_path, "w", encoding="utf-8") as f:
-        for r in rows:
-            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    store.atomic_write_text(
+        index_path, "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
     return len(rows)

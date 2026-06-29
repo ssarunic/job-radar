@@ -4,27 +4,46 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Current State
 
-This repo is **spec-only**: it contains a single `README.md` that is a complete product specification. No source code, dependencies, build tooling, or tests exist yet. When asked to implement, you are building from scratch against the spec — there are no existing conventions to match beyond what the spec dictates below.
+This repo is **implemented** (not spec-only). It's a working Python CLI
+(`main.py`, Click) plus a uv/FastAPI + React web app (`webapp/`), with a test
+suite. When implementing, match the existing conventions.
+
+**Architecture authority:** `specs/constitution.md` (principles) → `specs/build-spec.md`
+(storage layout, scraping ladder, ATS adapters, fetching policy). The root
+`README.md` is the original product/domain spec and is **historical for storage &
+output** (it describes XLSX, which predates the Markdown store) — defer to
+`specs/build-spec.md` for anything about how data is stored or fetched.
 
 ## What This Builds
 
-A Python CLI that helps a single user find and track senior Product Management roles at a list of target companies. Two on-demand modes:
+A single-user tool to find and track senior Product Management roles at target
+companies. Two on-demand modes:
 
-- **Exploratory Mode** — enrich a company list (description, industry, HQ, funding, revenue, employees) into a Company Index XLSX.
-- **Job Seek Mode** — discover currently-open senior PM roles per company, filter/rank them, and output a Job Postings XLSX.
+- **Enrich (Exploratory)** — company facts (description, industry, HQ, funding,
+  employees) into canonical company Markdown + a derived `company_index.jsonl`.
+- **Seek (Job Seek)** — discover/rank currently-open senior PM roles per company.
 
-Input is an XLSX (company name in first column). Every run also emits a change diff (XLSX/CSV) and a console/TXT summary.
+Every run also emits a per-run change diff and a console/TXT summary.
 
-## Planned Architecture (from README §21–22)
+## Architecture (see `specs/build-spec.md` for detail)
 
-Hybrid design: **hardcoded logic for reliability + Claude API only for fuzzy parsing.** This split is deliberate — keep it.
+Hybrid: **hardcoded logic for reliability + Claude API only for fuzzy parsing** —
+this split is deliberate, keep it.
 
-- **Hardcoded** (no API): URL/careers-page discovery, employment-type & location keyword filters, validation/formatting, rate limiting, retries, dedup, seniority ranking.
-- **Claude API** (`services/claude_service.py`): job-title classification, salary/comp extraction from free text, company description summarization, requirement parsing. Always fall back to regex/heuristics if the API fails; cache successful extractions; validate every response against a JSON schema.
+- **Canonical store is Markdown with frontmatter** (`jobs/<company>/<role>--<id>.md`);
+  `data/jobs.jsonl` is a *derived* index. Never overwrite user-owned content
+  (`## My notes`, `status: applied`). Store paths resolve via `services/store.py`
+  (honours `JSA_ROOT`); writes go through `store.atomic_write_text` (temp+replace).
+- **Fetching = scraping ladder**: ATS JSON API → optional Playwright → static HTML,
+  with 7 ATS adapters (Greenhouse, Ashby, Lever, SmartRecruiters, Workday,
+  Talemetry, RevolutPeople). Talemetry uses `curl_cffi` (browser-free Cloudflare).
+- **Claude** (`services/claude_service.py`): title classification, salary/comp
+  extraction, company summarization. **Off by default**; always falls back to
+  regex/heuristics; responses are validated/projected to a known schema.
 
-Intended module layout: `main.py` (Click CLI, mode select, hardcoded config) · `data/` (pandas XLSX I/O, file storage) · `models/` (dataclasses for Company / JobPosting) · `scrapers/` (requests + BeautifulSoup, per-domain rate limiter, site-specific parsers) · `services/` (company_enricher, job_finder, title_normalizer, location_filter, claude_service, response_parser) · `outputs/` (report_generator, diff_calculator) · `prompts/`.
-
-Stack: Python 3.9+, pandas + openpyxl, requests + BeautifulSoup4, anthropic, click, python-dateutil. Target cost ~$15–30 for 300 companies (vs $150+ for pure-API), which is why most logic must stay hardcoded.
+Stack: Python 3.9+, requests + BeautifulSoup4, curl_cffi, anthropic, click,
+python-dateutil; web app is FastAPI + React (Vite). Most logic stays hardcoded to
+keep cost low (~$15–30 for 300 companies vs $150+ pure-API).
 
 ## Domain Rules That Are Easy To Get Wrong
 
@@ -42,6 +61,16 @@ These are the non-obvious rules the implementation must encode (README §11–15
 
 ## Operational Constraints
 
-Public HTML only — respect robots.txt, no login areas. Defaults: 20s request timeout, 1 req/sec per domain, 2 retries with exponential backoff, 45-day recency cutoff, 30-minute runtime budget per batch, 50 companies initial / 300 hard cap. API keys and file paths are hardcoded in config per the spec (single-user tool).
+Public data only, politely — see **`specs/constitution.md` §2** for the crawler
+policy (the single authority): public career pages + the public ATS JSON APIs
+browsers already call; `robots.txt` honoured for HTML/browser discovery rungs;
+documented ATS APIs not robots-gated; `curl_cffi` fingerprint impersonation only
+to reach public JSON behind a passive Cloudflare wall, never to bypass auth/login.
+Defaults: 20s request timeout, 1 req/sec per domain, 2 retries with exponential
+backoff, 45-day recency cutoff, 30-minute runtime budget per batch, 50 companies
+initial / 300 hard cap. Config + API keys are local (single-user tool;
+`anthropic_api_key` reads from env, never committed).
 
-When details are ambiguous, the README is the source of truth — check it before inventing behavior. Items marked ✅ in the README are confirmed decisions, not open questions.
+When details are ambiguous, **`specs/constitution.md` then `specs/build-spec.md`
+are the source of truth** for architecture/storage/fetching, and `README.md` for
+product/domain intent. Items marked ✅ in the README are confirmed decisions.

@@ -1,5 +1,14 @@
 # Job Search Assistant – Product Spec
 
+> **Status & authority.** This document is the original **product/domain spec** —
+> it defines *what* the tool does and the business rules (seniority, filters,
+> salary, lifecycle), and remains authoritative for those.
+> It is **historical for storage & fetching**: it predates the implementation and
+> describes XLSX outputs and an early module plan. For *how* data is stored and
+> fetched, the authority is **`specs/constitution.md`** (principles) and
+> **`specs/build-spec.md`** (storage layout, scraping ladder, ATS adapters,
+> crawler policy). The canonical store is **Markdown + a derived JSONL index**,
+> not XLSX. Where this README and `specs/` disagree, `specs/` wins.
 
 ## 1. Purpose
 

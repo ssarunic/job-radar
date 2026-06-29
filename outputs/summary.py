@@ -4,12 +4,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from services import store
+
 
 def write_diff(run_dir: Path, diff: list[dict]) -> None:
-    run_dir.mkdir(parents=True, exist_ok=True)
-    with open(run_dir / "diff.jsonl", "w", encoding="utf-8") as f:
-        for row in diff:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    store.atomic_write_text(
+        Path(run_dir) / "diff.jsonl",
+        "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in diff))
 
 
 def build_summary(stats: dict, diff: list[dict], failed_urls: list[str],
@@ -63,6 +64,5 @@ def build_summary(stats: dict, diff: list[dict], failed_urls: list[str],
 
 
 def emit(run_dir: Path, text: str) -> None:
-    run_dir.mkdir(parents=True, exist_ok=True)
-    (run_dir / "summary.txt").write_text(text, encoding="utf-8")
+    store.atomic_write_text(Path(run_dir) / "summary.txt", text)
     print(text)

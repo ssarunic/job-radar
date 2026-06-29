@@ -6,9 +6,29 @@ temp store in tests. Constitution §3: this owns location, not meaning."""
 from __future__ import annotations
 
 import os
+import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def atomic_write_text(path, text: str) -> None:
+    """Write text atomically (temp file in the same dir + os.replace), so a
+    concurrent reader never observes a half-written file — the canonical store
+    and derived index are shared across the web + scraper containers."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".tmp-", suffix=path.suffix or ".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(tmp, path)   # atomic on the same filesystem
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 def root() -> Path:

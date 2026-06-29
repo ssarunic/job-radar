@@ -25,10 +25,6 @@ from services.claude_service import ClaudeService
 from services.loader import (load_companies, load_profile, load_settings,
                              merged_profile)
 
-JOBS_DIR = store.jobs_dir()
-COMPANIES_DIR = store.companies_dir()
-
-
 @click.group()
 def cli():
     pass
@@ -60,7 +56,7 @@ def seek(only, limit):
     started = time.monotonic()
     budget_s = settings.get("runtime_budget_min", 30) * 60
 
-    existing = reconciler.load_existing(JOBS_DIR)
+    existing = reconciler.load_existing(store.jobs_dir())
     all_current: list = []
     processed_slugs: set = set()   # companies authoritatively checked this run (#1)
     stats = {"companies": 0, "ok": 0, "blocked": 0, "errors": 0,
@@ -113,13 +109,13 @@ def seek(only, limit):
         existing, all_current, today_iso, processed_slugs)
 
     for jp, fm, notes, prior_path in current_actions:
-        md_writer.write_posting(JOBS_DIR, jp.company_slug, jp.role_slug, jp.id,
+        md_writer.write_posting(store.jobs_dir(), jp.company_slug, jp.role_slug, jp.id,
                                 fm, jp.description, jp.requirements, notes,
                                 prior_path=prior_path)
     for path, fm in missing_actions:
         md_writer.update_frontmatter(path, fm)
 
-    n_index = index_builder.rebuild(JOBS_DIR, store.index_path())
+    n_index = index_builder.rebuild(store.jobs_dir(), store.index_path())
 
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H%M%SZ")
     run_dir = store.runs_dir() / ts
@@ -187,14 +183,14 @@ def enrich_cmd(only, limit):
             with open_company(company, profile, http) as (fetcher, result):
                 postings = result.postings if result.status not in (BLOCKED, ERROR) else []
             c = company_enricher.enrich(company, postings, claude, now_iso)
-            company_index.write_company(COMPANIES_DIR, c)
+            company_index.write_company(store.companies_dir(), c)
             n += 1
             click.echo(f"   {c.data_confidence:<6} HQ={c.hq_location or '?':<18} "
                        f"{(c.description or '(no description)')[:64]}")
         except Exception as e:  # noqa: BLE001 — keep the batch alive
             click.echo(f"   ✗ error: {e}")
 
-    n_idx = company_index.rebuild_index(COMPANIES_DIR, store.company_index_path())
+    n_idx = company_index.rebuild_index(store.companies_dir(), store.company_index_path())
     click.echo(f"Enriched {n} companies → {n_idx} rows in data/company_index.jsonl")
 
 

@@ -135,6 +135,4 @@ def read_seen(path) -> set:
 
 
 def write_seen(path, ids: set) -> None:
-    p = Path(path)
-    p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(sorted(ids)), encoding="utf-8")
+    store.atomic_write_text(path, json.dumps(sorted(ids)))

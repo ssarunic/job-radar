@@ -5,13 +5,13 @@ import csv
 from pathlib import Path
 
 from models.job_posting import canonical_url
-from services.loader import CONFIG
+from services import store
 
-CSV = CONFIG / "companies.csv"
 FIELDS = ["name", "slug", "careers_url", "ats_type", "ats_slug", "priority", "active"]
 
 
-def list_companies(path: Path = CSV) -> list[dict]:
+def list_companies(path: Path = None) -> list[dict]:
+    path = path or store.config_dir() / "companies.csv"
     rows = []
     with open(path, newline="") as f:
         for r in csv.DictReader(f):
@@ -43,15 +43,17 @@ def _same_company(a: dict, b: dict) -> bool:
     return bool(ua) and ua == ub
 
 
-def find_existing(row: dict, path: Path = CSV) -> dict | None:
+def find_existing(row: dict, path: Path = None) -> dict | None:
+    path = path or store.config_dir() / "companies.csv"
     for r in list_companies(path):
         if _same_company(row, r):
             return r
     return None
 
 
-def add_company(row: dict, path: Path = CSV) -> bool:
+def add_company(row: dict, path: Path = None) -> bool:
     """Append a company; return False if it's already tracked (slug / ATS / URL)."""
+    path = path or store.config_dir() / "companies.csv"
     if find_existing(row, path) is not None:
         return False
     rows = list_companies(path)
@@ -60,8 +62,9 @@ def add_company(row: dict, path: Path = CSV) -> bool:
     return True
 
 
-def set_active(slug: str, active: bool, path: Path = CSV) -> bool:
+def set_active(slug: str, active: bool, path: Path = None) -> bool:
     """Toggle a company's active flag; return False if slug not found."""
+    path = path or store.config_dir() / "companies.csv"
     rows = list_companies(path)
     found = False
     for r in rows:
