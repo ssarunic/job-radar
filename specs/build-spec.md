@@ -382,7 +382,7 @@ job-search-assistant/
 └── requirements.txt
 ```
 
-Stack: Python 3.9+, `click`, `pyyaml`, `requests`, `beautifulsoup4`, `playwright`,
+Stack: Python 3.12+, `click`, `pyyaml`, `requests`, `beautifulsoup4`, `playwright`,
 `anthropic`, `python-dateutil`, `pandas` (index reads only).
 
 ---

@@ -2,7 +2,7 @@
 # Browser-free image (Talemetry uses curl_cffi, not Playwright) — small + ARM-friendly for the RPi5.
 
 # --- stage 1: build the React frontend ---
-FROM node:22-bookworm-slim AS frontend
+FROM node:26-bookworm-slim AS frontend
 WORKDIR /ui
 COPY webapp/frontend/package*.json ./
 RUN npm install --no-audit --no-fund
@@ -10,7 +10,7 @@ COPY webapp/frontend/ ./
 RUN npm run build          # -> /ui/dist
 
 # --- stage 2: python runtime ---
-FROM python:3.13-slim-bookworm AS runtime
+FROM python:3.14-slim-bookworm AS runtime
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 JSA_ROOT=/data PORT=8765
 WORKDIR /app
 
