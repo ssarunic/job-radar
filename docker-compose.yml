@@ -1,0 +1,27 @@
+services:
+  web:
+    build: { context: ., dockerfile: Dockerfile }
+    image: job-radar:local
+    ports: ["8765:8765"]
+    environment:
+      JSA_ROOT: /data
+      # ANTHROPIC_API_KEY, web_base_url, notify_* — add here or via env_file for the Pi
+    volumes:
+      - jsa-data:/data
+    restart: unless-stopped
+
+  # Scheduler (opt-in: `docker compose --profile scheduler up -d`).
+  # Simple daily loop for now; on the Pi this can become ofelia/cron/systemd.
+  scraper:
+    image: job-radar:local
+    profiles: ["scheduler"]
+    depends_on: [web]
+    environment:
+      JSA_ROOT: /data
+    volumes:
+      - jsa-data:/data
+    restart: unless-stopped
+    entrypoint: ["sh", "-c", "while true; do python main.py seek || true; sleep 86400; done"]
+
+volumes:
+  jsa-data: {}
