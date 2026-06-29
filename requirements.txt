@@ -6,7 +6,7 @@ lxml>=4.9
 markdownify>=0.11    # HTML job descriptions -> Markdown
 curl-cffi>=0.7       # browser-TLS impersonation -> Cloudflare bypass without a browser
 anthropic>=0.39
-python-dateutil>=2.8
+python-dateutil>=2.9.0.post0
 
 # optional — only for `custom` sites needing a real browser; NOT installed by default
 # (keeps the deploy/Pi image browser-free). The ladder falls back to static HTML
