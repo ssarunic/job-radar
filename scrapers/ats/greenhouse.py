@@ -1,7 +1,7 @@
 """Greenhouse ATS adapter — Rung 1 JSON API (SPEC §4.1). No browser needed."""
 from __future__ import annotations
 
-from scrapers.htmltext import html_to_text as _text
+from scrapers.htmltext import html_to_markdown, html_to_text as _text
 
 API = "https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true"
 
@@ -17,7 +17,7 @@ def fetch_listing(ats_slug: str, http) -> list[dict]:
             "posted_date": j.get("first_published") or j.get("updated_at"),
             # recency tests freshness (live feed => still open), not first-publish
             "freshness_date": j.get("updated_at") or j.get("first_published"),
-            "description": _text(j.get("content", "")),
+            "description": html_to_markdown(j.get("content", "")),
             "employment_type": "",   # not in GH payload; inferred at normalisation
             "salary_text": _text(j.get("content", "")),  # salary parsed from body
             "source_type": "ATS",

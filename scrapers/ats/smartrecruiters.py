@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from urllib.parse import urlsplit
 
-from scrapers.htmltext import html_to_text
+from scrapers.htmltext import html_to_markdown
 
 API = "https://api.smartrecruiters.com/v1/companies/{slug}/postings"
 NEEDS_DETAIL = True
@@ -64,12 +64,12 @@ def fetch_detail(url: str, http) -> str:
     data = http.get_json(f"{API.format(slug=slug)}/{pid}")
     secs = (data.get("jobAd") or {}).get("sections") or {}
 
-    def text(key):
-        return html_to_text((secs.get(key) or {}).get("text", ""))
+    def md(key):
+        return html_to_markdown((secs.get(key) or {}).get("text", ""))
 
-    chunks = [text("companyDescription"), text("jobDescription")]
-    quals = text("qualifications")
+    chunks = [md("companyDescription"), md("jobDescription")]
+    quals = md("qualifications")
     if quals:                                   # labelled so requirements extraction finds it
-        chunks.append("Requirements\n" + quals)
-    chunks.append(text("additionalInformation"))
+        chunks.append("## Requirements\n\n" + quals)
+    chunks.append(md("additionalInformation"))
     return "\n\n".join(c for c in chunks if c)

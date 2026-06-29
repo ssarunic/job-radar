@@ -246,7 +246,9 @@ status: open            # open | suspected_filled | closed | applied
 ---
 
 ## Description
-<clean summary>
+<full ad as **Markdown** — headings/lists/bold preserved, converted from the ATS
+HTML field (Ashby descriptionHtml, Greenhouse content, Lever description+lists,
+SmartRecruiters/Workday section HTML) via `scrapers/htmltext.html_to_markdown`>
 
 ## Requirements
 - <merged bullets>
