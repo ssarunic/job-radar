@@ -50,3 +50,25 @@ def test_tenant_from_careers_url_when_no_ats_slug():
     f = RevolutPeopleFetcher(
         {"slug": "x", "careers_url": "https://revolutpeople.com/cleo/public/careers"}, None)
     assert f.tenant == "cleo"
+
+
+class _DetailHttp:
+    def get_json(self, url, **kw):
+        assert "/external/v2/postings/" in url        # uses the v2 by-id endpoint
+        return {"id": "abc", "title": "Head of Product",
+                "description": "<h3>About</h3><ul><li>Own the <strong>product</strong></li></ul>"}
+
+
+def test_detail_fetches_and_converts_to_markdown():
+    f = RevolutPeopleFetcher(
+        {"slug": "cleo-ai", "ats_slug": "cleo",
+         "careers_url": "https://revolutpeople.com/cleo/public/careers"}, _DetailHttp())
+    md = f.detail("https://revolutpeople.com/cleo/public/careers/position/abc")
+    assert "### About" in md
+    assert "- Own the **product**" in md
+
+
+def test_detail_empty_url():
+    f = RevolutPeopleFetcher({"slug": "x", "ats_slug": "cleo",
+                              "careers_url": "https://revolutpeople.com/cleo/public/careers"}, None)
+    assert f.detail("") == ""

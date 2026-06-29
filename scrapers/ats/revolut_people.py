@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from urllib.parse import urlsplit
 
+from scrapers.htmltext import html_to_markdown
 from scrapers.result import ListingResult, OK, EMPTY
 
 API = "https://revolutpeople.com/api/{tenant}/external/v3/postings"
@@ -29,7 +30,7 @@ def _location(job) -> str:
 
 
 class RevolutPeopleFetcher:
-    needs_detail = False
+    needs_detail = True           # description comes from the per-posting detail call
     check_robots = False          # documented JSON API
     rung_name = "revolutpeople"
 
@@ -68,4 +69,13 @@ class RevolutPeopleFetcher:
         return ListingResult(OK if out else EMPTY, out, self.rung_name)
 
     def detail(self, url):
-        return ""
+        """Fetch the posting's description (HTML) from the v2 detail endpoint and
+        convert to Markdown. The v3 listing omits it; v2 by-id includes it."""
+        if not url:
+            return ""
+        pid = urlsplit(url).path.rstrip("/").split("/")[-1]
+        if not pid:
+            return ""
+        data = self.http.get_json(
+            f"{self.base}/api/{self.tenant}/external/v2/postings/{pid}", headers=_HEADERS)
+        return html_to_markdown(data.get("description", ""))
