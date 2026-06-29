@@ -250,7 +250,7 @@ Python-based CLI tool with hybrid approach: hardcoded logic for reliability + Cl
 - Diff Calculator (`outputs/diff_calculator.py`) - change tracking
 
 ### 21.3 Technology Stack
-- Python 3.9+ (deployment simplicity)
+- Python 3.12+ (deployment simplicity)
 - pandas + openpyxl (Excel handling)
 - requests + BeautifulSoup4 (web scraping)
 - anthropic (Claude API client)

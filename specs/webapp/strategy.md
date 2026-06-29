@@ -80,6 +80,6 @@ closed=grey, applied=blue); seniority pills; salary emphasised; responsive.
   don't rot across scrapes.
 
 ## Tech stack
-Backend: Python 3.9+, FastAPI, uvicorn, uv (pyproject). Frontend: Vite, React, TypeScript,
+Backend: Python 3.12+, FastAPI, uvicorn, uv (pyproject). Frontend: Vite, React, TypeScript,
 react-router, @tanstack/react-query, react-markdown, Tailwind (minimal). Layout: `webapp/`
 (`backend/`, `frontend/`).

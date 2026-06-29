@@ -41,7 +41,7 @@ this split is deliberate, keep it.
   extraction, company summarization. **Off by default**; always falls back to
   regex/heuristics; responses are validated/projected to a known schema.
 
-Stack: Python 3.9+, requests + BeautifulSoup4, curl_cffi, anthropic, click,
+Stack: Python 3.12+, requests + BeautifulSoup4, curl_cffi, anthropic, click,
 python-dateutil; web app is FastAPI + React (Vite). Most logic stays hardcoded to
 keep cost low (~$15–30 for 300 companies vs $150+ pure-API).
 
