@@ -5,6 +5,12 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 
+# web app build artifacts
+webapp/frontend/node_modules/
+webapp/frontend/dist/
+webapp/backend/.venv/
+uv.lock
+
 # OS
 .DS_Store
 
