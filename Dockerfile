@@ -17,13 +17,14 @@ WORKDIR /app
 # curated runtime deps (no pandas, no playwright)
 RUN pip install --no-cache-dir \
       click pyyaml requests beautifulsoup4 lxml markdownify curl-cffi \
-      anthropic python-dateutil fastapi "uvicorn[standard]"
+      anthropic python-dateutil fastapi "uvicorn[standard]" tzdata
 
 COPY services/ services/
 COPY scrapers/ scrapers/
 COPY outputs/ outputs/
 COPY models/ models/
 COPY config/ config/
+COPY scripts/ scripts/
 COPY main.py ./
 COPY webapp/backend/ webapp/backend/
 COPY --from=frontend /ui/dist webapp/frontend/dist
