@@ -1,0 +1,48 @@
+# Production compose for the Raspberry Pi — pulls the published image from GHCR
+# (built by the Release workflow). Watchtower auto-updates the containers when a
+# new image is published, so a `git tag vX.Y.Z` deploys itself.
+#
+#   docker login ghcr.io                         # one-time (read:packages PAT)
+#   docker compose --profile scheduler up -d     # web + daily scraper + watchtower
+#
+# Requires a .env next to this file with SLACK_WEBHOOK_URL and WEB_BASE_URL.
+services:
+  web:
+    image: ghcr.io/ssarunic/job-search-assistant:latest
+    ports: ["8765:8765"]
+    environment:
+      JSA_ROOT: /data
+    volumes:
+      - jsa-data:/data
+    restart: unless-stopped
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  # Daily seek loop — the service that fires Slack notifications.
+  scraper:
+    image: ghcr.io/ssarunic/job-search-assistant:latest
+    profiles: ["scheduler"]
+    depends_on: [web]
+    environment:
+      JSA_ROOT: /data
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      WEB_BASE_URL: ${WEB_BASE_URL:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    volumes:
+      - jsa-data:/data
+    restart: unless-stopped
+    entrypoint: ["sh", "-c", "while true; do python main.py seek || true; sleep 86400; done"]
+    labels:
+      com.centurylinklabs.watchtower.enable: "true"
+
+  # Watches GHCR and recreates the labelled containers when a new image lands.
+  watchtower:
+    image: containrrr/watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${HOME}/.docker/config.json:/config.json:ro   # GHCR creds from `docker login`
+    command: --label-enable --cleanup --interval 300   # only labelled containers; poll 5 min
+
+volumes:
+  jsa-data: {}

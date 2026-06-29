@@ -1,0 +1,34 @@
+name: CI
+
+# Runs on every PR and on pushes to main. Make this a required status check in
+# branch protection so nothing merges to main unless it's green.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install Python deps
+        run: pip install -r requirements.txt fastapi "uvicorn[standard]" httpx pytest
+      - name: Run test suite
+        run: python -m pytest tests/ webapp/backend/tests/ -q
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build frontend
+        working-directory: webapp/frontend
+        # npm install (not ci): the lockfile is generated on macOS and omits
+        # Linux-only optional deps, so strict `npm ci` fails on the runner.
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
