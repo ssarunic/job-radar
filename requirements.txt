@@ -3,12 +3,17 @@ pyyaml>=6.0
 requests>=2.31
 beautifulsoup4>=4.12
 lxml>=4.9
-markdownify>=0.11   # HTML job descriptions -> Markdown
-playwright>=1.40
+markdownify>=0.11    # HTML job descriptions -> Markdown
+curl-cffi>=0.7       # browser-TLS impersonation -> Cloudflare bypass without a browser
 anthropic>=0.39
 python-dateutil>=2.8
 pandas>=2.0
-playwright-stealth>=2.0   # defeats Cloudflare managed challenge (NatWest/Talemetry)
+
+# optional — only for `custom` sites needing a real browser; NOT installed by default
+# (keeps the deploy/Pi image browser-free). The ladder falls back to static HTML
+# when these are absent.
+#   playwright>=1.40
+#   playwright-stealth>=2.0
 
 # dev / tests
 pytest>=8.0
