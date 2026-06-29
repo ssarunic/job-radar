@@ -1,6 +1,8 @@
 """Ashby ATS adapter — Rung 1 JSON API (SPEC §4.1). Rich listing incl. descriptions."""
 from __future__ import annotations
 
+from scrapers.htmltext import html_to_markdown
+
 API = "https://api.ashbyhq.com/posting-api/job-board/{slug}?includeCompensation=true"
 
 EMP = {"FullTime": "Full time", "PartTime": "Part time",
@@ -51,16 +53,16 @@ def fetch_listing(ats_slug: str, http) -> list[dict]:
     for j in http.get_json(API.format(slug=ats_slug)).get("jobs", []):
         if not j.get("isListed", True):
             continue
-        desc = j.get("descriptionPlain", "") or ""
+        plain = j.get("descriptionPlain", "") or ""
         out.append({
             "title": (j.get("title") or "").strip(),
             "location": _locations(j),
             "url": j.get("jobUrl") or j.get("applyUrl", ""),
             "posted_date": j.get("publishedAt"),
             "freshness_date": j.get("publishedAt"),
-            "description": desc,
+            "description": html_to_markdown(j.get("descriptionHtml", "")) or plain,
             "employment_type": EMP.get(j.get("employmentType"), ""),
-            "salary_text": desc,
+            "salary_text": plain,
             "salary": _salary(j),          # structured comp, preferred over regex
             "source_type": "ATS",
             "source_detail": "Ashby",

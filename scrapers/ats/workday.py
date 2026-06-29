@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from urllib.parse import urlsplit
 
-from scrapers.htmltext import html_to_text
+from scrapers.htmltext import html_to_markdown
 from scrapers.result import ListingResult, OK, EMPTY
 
 _JSON_HEADERS = {"Accept": "application/json"}
@@ -80,4 +80,4 @@ class WorkdayFetcher:
         header = (f"Employment type: {jpi.get('timeType','')}\n"
                   f"Date posted: {jpi.get('startDate','')}\n"
                   f"Location: {jpi.get('location','')}\n\n")
-        return header + html_to_text(jpi.get("jobDescription", ""))
+        return header + html_to_markdown(jpi.get("jobDescription", ""))
