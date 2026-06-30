@@ -40,7 +40,7 @@ the image **only on first run** (`if [ ! -f … ]`), never overwriting after. So
 
 ## Design
 
-### Backend — `webapp/backend/app.py` (3 endpoints)
+### Backend — `webapp/backend/app.py` (4 endpoints)
 
 A thin layer over `registry` + `discovery`, mirroring the read endpoints. Discovery
 needs an `HttpClient`; build one per request from settings (network only on the
@@ -49,12 +49,15 @@ auto-detect path).
 | Method & path | Body | Behaviour | Responses |
 |---|---|---|---|
 | `GET /api/companies` | — | List all (active + inactive) with open-role counts | `200 {count, companies:[…]}` |
+| `GET /api/companies/{slug}` | — | One company + its open role summaries (`queries.list_roles`, sort=seniority) | `200 {company, roles:[…]}` · `404` if unknown |
 | `POST /api/companies` | `{query}` **or** `{name, ats_type, careers_url, ats_slug?}`; `scan` (default `true`) | `query` → `discovery.discover()`; explicit fields → manual row (no network). `registry.add_company()`, then (if `scan`) a one-off `run_service.seek_run` for just this company so its roles show immediately | `201 {company, scanned}` · `409` if already tracked · `422` if not auto-detected |
 | `PATCH /api/companies/{slug}` | `{active: bool}` | `registry.set_active()` | `200 {slug, active}` · `404` if slug unknown |
 
 - Each `company` object: `{name, slug, ats_type, ats_slug, careers_url, active, open_roles}`.
-  `open_roles` computed by grouping the derived index (`queries.load_index`) by
-  `company_slug`, counting `status=="open"` — one index load per list call, no per-row queries.
+  `open_roles` must be counted over **grouped** roles (`queries.group_roles`), not raw
+  index rows — the index stores one row per location, so a multi-location role would
+  otherwise be over-counted (it showed "2 open" while the list showed 1). Same basis
+  as `queries.stats` / `list_roles`. One index load per call, no per-row queries.
 - The auto-detect path (`POST {query}`) runs `discovery.discover` synchronously
   (FastAPI offloads sync handlers to a threadpool); bounded by the existing 20s
   request timeout. Acceptable for an interactive add.
@@ -76,15 +79,20 @@ already uses). Pure refactor — no signature change.
 
 ### Frontend — `webapp/frontend/src`
 
-- New route `/companies` (`react-router`), nav link in `App.tsx` next to "Job Radar".
+- Routes `/companies` and `/companies/:slug` (`react-router`), nav link in `App.tsx`.
 - `pages/Companies.tsx`:
   - **List** of tracked companies (TanStack Query `["companies"]`): name, ATS badge,
-    open-role count, and an active toggle (Follow / Unfollow).
-  - **Add** row: one input (company name *or* careers URL) + "Follow". On submit,
-    `POST /api/companies {query}`; show the discovered ATS on success, a friendly
-    message on `409` (already tracked) / `422` (couldn't detect — link to add
-    manually with ATS + URL).
+    open-role count, and an active toggle (Follow / Unfollow). Rows are clickable →
+    the detail page; the toggle button `stopPropagation`s so it doesn't navigate.
+  - **Add** row: one input (company name *or* careers URL) + "Follow" (shows
+    "Scanning…"). On submit, `POST /api/companies {query}`; on success show the
+    discovered ATS + roles found; friendly message on `409` / `422`.
   - Mutations invalidate `["companies"]` (and `["stats"]`) so the list refreshes.
+- `pages/CompanyDetail.tsx` (`/companies/:slug`): company header (ATS badge, open
+  count, follow/unfollow), a **careers/ATS link out**, and the company's open roles
+  (each linking to the role detail). Empty-state links to the careers page.
+- `pages/JobsList.tsx`: a **sort toggle** (Seniority / Most recent) wired to the
+  backend's existing `sort=seniority|recent`.
 - `api.ts`: add a small `apiSend(path, method, body)` helper (the current `api()` is
   GET-only).
 

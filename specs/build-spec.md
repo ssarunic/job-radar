@@ -26,9 +26,12 @@ Build a **one-shot CLI** (`python main.py seek`) that, for a configured list of 
 canonical + `data/company_index.jsonl`) — see §14.
 
 **Built since:** Web company management — the web app gained a write surface over
-`services.registry` + `services.discovery` (`GET/POST /api/companies`,
-`PATCH /api/companies/{slug}`) and a Companies page, so the followed-company list is
-managed from the browser instead of SSH + `docker exec`. Tailnet-only, no auth. See
+`services.registry` + `services.discovery`: list/follow/unfollow
+(`GET/POST /api/companies`, `PATCH /api/companies/{slug}`), a **company detail page**
+(`GET /api/companies/{slug}` → open roles + careers link), **scan-on-follow** (a new
+company is seeked immediately, Slack suppressed), and a **Seniority / Most recent
+sort** toggle on the roles list. So the followed-company list is managed from the
+browser instead of SSH + `docker exec`. Tailnet-only, no auth. See
 `specs/company-management.md`.
 
 **Built since:** CI/CD + deploy — GitHub Actions (CI on PRs; `vX.Y.Z` tag → arm64 image → GHCR),

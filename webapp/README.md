@@ -1,12 +1,15 @@
 # Job Radar — web app
 
-Phase 1 (read-only): browse current/past roles and drill into a role's full
-Markdown ad. See [`../specs/webapp/`](../specs/webapp/) for the design.
+Browse current/past roles and drill into a role's full Markdown ad, **and manage the
+followed-company list** — follow/unfollow, open a company's detail page (its open
+roles + a link out to the careers/ATS page), and scan a newly-followed company on the
+spot. The roles list sorts by seniority or recency. See [`../specs/webapp/`](../specs/webapp/)
+and [`../specs/company-management.md`](../specs/company-management.md) for the design.
 
 ```
 webapp/
-├── backend/   FastAPI over the canonical store (reuses services.*/outputs.*)
-└── frontend/  Vite + React + TS SPA (react-markdown)
+├── backend/   FastAPI over the canonical store + a registry/discovery write surface
+└── frontend/  Vite + React + TS SPA (react-router, TanStack Query, react-markdown)
 ```
 
 The backend reads the store at `JSA_ROOT` (default: repo root): `data/jobs.jsonl`
