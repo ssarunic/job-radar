@@ -15,12 +15,20 @@ feature branch ─PR─▶ [CI: pytest + frontend build] ─(required, green)─
 git tag vX.Y.Z ─push─▶ Release workflow:  test ─▶ build-push (needs: test)    │
                        buildx linux/arm64 ─▶ ghcr.io/ssarunic/job-search-assistant
                                                   :X.Y.Z  :sha-…  :latest      │
-RPi: Watchtower polls GHCR ─▶ pulls :latest ─▶ recreates web + scraper ────────┘
+                          ─▶ deploy (needs: build-push): join tailnet ─▶ ssh   │
+RPi:                          Pi `docker compose pull && up -d`  ◀─────────────┘
+     Watchtower (maintained fork) also polls GHCR every 5 min as a fallback.
      (.env with secrets lives only on the Pi; never in git / never on a runner)
 ```
 
-**CI gate:** `build-push` `needs: test`, and `main` is branch-protected on the CI
-check — so only tested code reaches a tag, and a failing build is never published.
+**Primary deploy is push-based** (the `deploy` job): the instant the image is in
+GHCR, the runner joins the tailnet and SSHes into the Pi to `pull && up -d`, so a
+tag deploys within seconds with no poll lag. **Watchtower stays as a fallback
+poller** (e.g. if the Pi was offline when the tag built).
+
+**CI gate:** `build-push` `needs: test`, `deploy` `needs: build-push`, and `main`
+is branch-protected on the CI check — so only tested code reaches a tag, a failing
+build is never published, and only a published image is ever deployed.
 
 ## Cutting a release (from your laptop)
 
@@ -28,8 +36,38 @@ check — so only tested code reaches a tag, and a failing build is never publis
 git checkout main && git pull
 git tag v1.0.0 && git push origin v1.0.0      # triggers test -> build -> push to GHCR
 ```
-Watchtower on the Pi picks up the new `:latest` within its poll interval (5 min).
+The `deploy` job SSHes into the Pi and `pull && up -d` within seconds of the image
+being published; Watchtower also picks up `:latest` within 5 min as a fallback.
 Roll back by retagging an older image to `:latest`, or pin the Pi to `:vX.Y.Z`.
+
+## Push-based deploy (one-time secrets setup)
+
+The `deploy` job needs three repo secrets (Settings → Secrets and variables →
+Actions). Once set, every `vX.Y.Z` tag auto-deploys to the Pi.
+
+1. **Tailscale OAuth client** — at <https://login.tailscale.com/admin/settings/oauth>,
+   create a client with the **`devices:write`** scope (the GitHub Action joins an
+   ephemeral, tagged node). Add the tag `tag:ci` to your tailnet ACL and grant it
+   SSH/`:22` access to `dalstonserver`, e.g.:
+   ```jsonc
+   "tagOwners": { "tag:ci": ["autogroup:admin"] },
+   "acls": [ { "action": "accept", "src": ["tag:ci"], "dst": ["dalstonserver:22"] } ]
+   ```
+   Store the client id/secret as `TS_OAUTH_CLIENT_ID` / `TS_OAUTH_SECRET`.
+
+2. **Deploy SSH key** — generate a dedicated keypair, add the **public** key to the
+   Pi and the **private** key as the `PI_SSH_KEY` secret:
+   ```bash
+   ssh-keygen -t ed25519 -f deploy_key -N '' -C 'gh-actions-deploy'
+   ssh-copy-id -i deploy_key.pub ssarunic@dalstonserver   # or append to ~/.ssh/authorized_keys
+   gh secret set PI_SSH_KEY < deploy_key
+   gh secret set TS_OAUTH_CLIENT_ID   # paste when prompted
+   gh secret set TS_OAUTH_SECRET
+   rm deploy_key deploy_key.pub
+   ```
+
+If MagicDNS resolution flakes on the runner, replace `dalstonserver` in the
+`deploy` job with the Pi's stable tailnet IP (`100.64.162.62`).
 
 ## One-time Pi setup (`ssarunic@dalstonserver`)
 
@@ -53,7 +91,7 @@ EOF
 # 4. Seed the store QUIETLY first (the web service has no webhook env, so no Slack
 #    blast for the initial ~20 existing roles), then bring everything up.
 docker compose run --rm web seek
-docker compose --profile scheduler up -d        # web + daily scraper + watchtower
+docker compose --profile scheduler up -d        # web + daily scraper + watchtower (fork)
 ```
 
 Reachable on the tailnet at **http://dalstonserver.tail824f04.ts.net:8765**.

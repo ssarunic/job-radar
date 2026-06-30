@@ -51,3 +51,30 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Push-based deploy: the instant the image is in GHCR, join the tailnet and tell
+  # the Pi to pull + restart. Deterministic (fires on the tag, no 5-min poll); the
+  # Watchtower fork in deploy/docker-compose.yml stays only as a fallback poller.
+  # Requires three repo secrets — see specs/deploy.md "Push-based deploy":
+  #   TS_OAUTH_CLIENT_ID / TS_OAUTH_SECRET  (Tailscale OAuth client, tag:ci)
+  #   PI_SSH_KEY                            (private key; pubkey in the Pi's authorized_keys)
+  deploy:
+    needs: build-push                 # only deploy an image that was actually published
+    runs-on: ubuntu-latest
+    steps:
+      - name: Join the tailnet
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+      - name: Pull the new image and restart on the Pi
+        env:
+          PI_SSH_KEY: ${{ secrets.PI_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$PI_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new \
+            ssarunic@dalstonserver \
+            'cd ~/job-radar && docker compose pull && docker compose --profile scheduler up -d'
