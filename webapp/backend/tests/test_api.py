@@ -115,6 +115,21 @@ def test_list_companies(client):
     assert by_slug["capsa"]["ats_type"] == "ashby" and by_slug["capsa"]["active"] is True
 
 
+def test_open_count_dedupes_multilocation(client, tmp_path):
+    # A role open in two locations is stored as two index rows (one per location)
+    # but must count as ONE open role — the pill has to match the listed roles.
+    role = {**MONZO, "id": "ccc33333", "title_raw": "Group PM, Payments",
+            "title_normalised": "Group Product Manager", "seniority_rank": 4,
+            "locations": ["London", "Remote"], "status": "open"}
+    md_writer.write_posting(tmp_path / "jobs", "monzo", "gpm-payments", "ccc33333",
+                            role, "desc", "", "")
+    index_builder.rebuild(tmp_path / "jobs", tmp_path / "data" / "jobs.jsonl")
+    by_slug = {c["slug"]: c for c in client.get("/api/companies").json()["companies"]}
+    assert by_slug["monzo"]["open_roles"] == 1                 # 2 location-rows -> 1 role
+    d = client.get("/api/companies/monzo").json()
+    assert len(d["roles"]) == d["company"]["open_roles"]       # pill matches the list
+
+
 def test_company_detail(client):
     d = client.get("/api/companies/capsa").json()
     assert d["company"]["slug"] == "capsa" and d["company"]["open_roles"] == 1

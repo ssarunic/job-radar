@@ -52,9 +52,11 @@ def get_job(job_id: str):
 # --- company management (write surface over services.registry + discovery) ----
 
 def _open_role_counts() -> dict:
-    """Open-role count per company_slug, from one load of the derived index."""
+    """Open-role count per company_slug. Groups first (the index is one row per
+    location; `group_roles` collapses them to one role per id) so the count matches
+    the role list — same basis as `queries.stats` / `list_roles`."""
     counts: dict = {}
-    for r in queries.load_index(store.index_path()):
+    for r in queries.group_roles(queries.load_index(store.index_path())):
         if r.get("status") == "open":
             slug = r.get("company_slug")
             counts[slug] = counts.get(slug, 0) + 1
