@@ -1,7 +1,8 @@
 """Greenhouse ATS adapter — Rung 1 JSON API (SPEC §4.1). No browser needed."""
 from __future__ import annotations
 
-from scrapers.htmltext import html_to_markdown, html_to_text as _text
+from scrapers.htmltext import html_to_markdown
+from scrapers.htmltext import html_to_text as _text
 
 API = "https://boards-api.greenhouse.io/v1/boards/{slug}/jobs?content=true"
 

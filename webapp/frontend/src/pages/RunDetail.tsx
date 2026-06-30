@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "react-router-dom";
-import { api } from "../api";
-import { fmtRunTs } from "./Activity";
+import { api, fmtRunTs } from "../api";
 
 const GROUPS: [string, string][] = [
   ["added", "Added"],

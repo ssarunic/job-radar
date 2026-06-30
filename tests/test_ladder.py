@@ -1,6 +1,6 @@
 """Ladder attempt loop + rung planning (#1)."""
 from scrapers.ladder import _attempt, _build_rungs
-from scrapers.result import ListingResult, OK, EMPTY, BLOCKED, ERROR
+from scrapers.result import BLOCKED, EMPTY, ERROR, OK, ListingResult
 
 
 class FakeHttp:

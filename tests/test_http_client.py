@@ -1,6 +1,7 @@
 """Shared HTTP client: retry/backoff + robots (#8). Network-free via a fake session."""
 import pytest
-from requests import ConnectionError as ReqConnError, HTTPError
+from requests import ConnectionError as ReqConnError
+from requests import HTTPError
 
 from scrapers.http_client import HttpClient
 
@@ -14,7 +15,9 @@ class _Resp:
 
     def raise_for_status(self):
         if self.status_code >= 400:
-            e = HTTPError(str(self.status_code)); e.response = self; raise e
+            e = HTTPError(str(self.status_code))
+            e.response = self
+            raise e
 
 
 class _Session:

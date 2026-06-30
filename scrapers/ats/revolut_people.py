@@ -11,7 +11,7 @@ from __future__ import annotations
 from urllib.parse import urlsplit
 
 from scrapers.htmltext import html_to_markdown
-from scrapers.result import ListingResult, OK, EMPTY
+from scrapers.result import EMPTY, OK, ListingResult
 
 API = "https://revolutpeople.com/api/{tenant}/external/v3/postings"
 _HEADERS = {"Accept": "application/json"}

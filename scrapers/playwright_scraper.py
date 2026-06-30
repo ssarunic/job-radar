@@ -8,7 +8,6 @@ pages. If a managed challenge can't be cleared, the company is reported
 from __future__ import annotations
 
 import time
-from contextlib import contextmanager
 
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36")

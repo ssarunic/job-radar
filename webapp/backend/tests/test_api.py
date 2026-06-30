@@ -2,10 +2,10 @@
 import json
 from pathlib import Path
 
+import app as webapp
 import pytest
 from fastapi.testclient import TestClient
 
-import app as webapp
 from outputs import index_builder, md_writer
 
 CAPSA = {

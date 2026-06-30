@@ -21,10 +21,10 @@ from pydantic import BaseModel
 _BACKEND_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(_BACKEND_DIR.parents[1]))   # repo root -> services.*/outputs.*
 
-from models.job_posting import _slugify        # noqa: E402
-from scrapers.http_client import HttpClient     # noqa: E402
-from scrapers.rate_limiter import RateLimiter   # noqa: E402
-from services import discovery, loader, queries, registry, run_service, store   # noqa: E402
+from models.job_posting import _slugify  # noqa: E402
+from scrapers.http_client import HttpClient  # noqa: E402
+from scrapers.rate_limiter import RateLimiter  # noqa: E402
+from services import discovery, loader, queries, registry, run_service, store  # noqa: E402
 
 app = FastAPI(title="Job Search Assistant", version="1.0")
 

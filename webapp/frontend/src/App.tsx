@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Routes, Route, Link, NavLink } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, apiSend } from "./api";
@@ -11,39 +11,43 @@ import RunDetail from "./pages/RunDetail";
 
 function RefreshButton() {
   const qc = useQueryClient();
-  const [active, setActive] = useState(false);
-  const [msg, setMsg] = useState("");
 
-  // Poll seek status only while a refresh is in flight.
+  // One always-on query; it self-polls only while a seek is running (derived state,
+  // no setState-in-effect). A POST kicks it off; the interval stops itself at done.
   const status = useQuery({
     queryKey: ["seek"],
     queryFn: () => api("/seek"),
-    enabled: active,
-    refetchInterval: active ? 1500 : false,
+    refetchInterval: (q) => (q.state.data?.running ? 1500 : false),
   });
+  const running = !!status.data?.running;
 
   const start = useMutation({
     mutationFn: () => apiSend("/seek", "POST"),
-    onSuccess: () => { setMsg(""); setActive(true); },
-    onError: () => setActive(true),   // already running (409) → just track it to completion
+    onSettled: () => status.refetch(),   // success → start polling; 409 → just sync state
   });
 
+  // On the running→done transition, refresh the lists so they reflect the new data.
+  // Only invalidateQueries here (no setState) — keeps react-hooks/set-state-in-effect happy.
+  const wasRunning = useRef(false);
   useEffect(() => {
-    if (active && status.data && status.data.running === false) {
-      setActive(false);
+    if (wasRunning.current && !running) {
       ["jobs", "stats", "companies", "runs"].forEach((k) =>
         qc.invalidateQueries({ queryKey: [k] }));
-      if (status.data.error) setMsg("refresh failed");
-      else if (typeof status.data.added === "number")
-        setMsg(status.data.added > 0 ? `+${status.data.added} new` : "up to date");
     }
-  }, [active, status.data, qc]);
+    wasRunning.current = running;
+  }, [running, qc]);
 
-  const running = active || status.data?.running;
   const total = status.data?.total ?? 0;
   const done = status.data?.done ?? 0;
   const current = status.data?.current as string | undefined;
   const pct = total ? Math.min(100, Math.round((done / total) * 100)) : 8; // 8% = indeterminate
+  const msg = running
+    ? ""
+    : status.data?.error
+      ? "refresh failed"
+      : typeof status.data?.added === "number"
+        ? status.data.added > 0 ? `+${status.data.added} new` : "up to date"
+        : "";
 
   return (
     <>

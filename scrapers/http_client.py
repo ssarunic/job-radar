@@ -44,10 +44,14 @@ class HttpClient:
             except requests.RequestException as e:
                 last_exc = e
                 if attempt < self.retries:
-                    self._sleep(backoff); backoff *= 2; continue
+                    self._sleep(backoff)
+                    backoff *= 2
+                    continue
                 raise
             if resp.status_code in _RETRY_STATUS and attempt < self.retries:
-                self._sleep(backoff); backoff *= 2; continue
+                self._sleep(backoff)
+                backoff *= 2
+                continue
             resp.raise_for_status()
             return resp
         raise last_exc  # pragma: no cover

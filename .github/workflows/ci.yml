@@ -18,17 +18,20 @@ jobs:
           python-version: "3.12"
           cache: pip
       - name: Install Python deps
-        run: pip install -r requirements.txt fastapi "uvicorn[standard]" httpx pytest
+        run: pip install -r requirements.txt fastapi "uvicorn[standard]" httpx pytest ruff==0.15.20
+      - name: Lint Python (ruff)
+        run: ruff check .
       - name: Run test suite
         run: python -m pytest tests/ webapp/backend/tests/ -q
 
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Build frontend
+      - name: Lint + build frontend
         working-directory: webapp/frontend
         # npm install (not ci): the lockfile is generated on macOS and omits
         # Linux-only optional deps, so strict `npm ci` fails on the runner.
         run: |
           npm install --no-audit --no-fund
+          npm run lint
           npm run build

@@ -19,7 +19,7 @@ from bs4 import BeautifulSoup
 from curl_cffi import requests as creq
 
 from scrapers.htmltext import html_to_markdown
-from scrapers.result import ListingResult, OK, EMPTY, BLOCKED, ERROR
+from scrapers.result import BLOCKED, EMPTY, ERROR, OK, ListingResult
 
 _IMPERSONATE = "safari"   # Safari fingerprint clears NatWest's Cloudflare; chrome does not
 _EMP = {"FULL_TIME": "Full time", "PART_TIME": "Part time",

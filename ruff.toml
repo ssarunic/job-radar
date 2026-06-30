@@ -1,0 +1,14 @@
+# Ruff — Python linting for the whole repo.  Run:  ruff check .   (auto-fix: ruff check --fix .)
+# Codebase already used ruff codes via `# noqa` (BLE001, E402), so ruff is the established tool.
+line-length = 100
+target-version = "py312"
+extend-exclude = [".venv", "webapp/frontend", "outputs/__pycache__"]
+
+[lint]
+select = ["E", "F", "W", "I", "B"]   # pycodestyle, pyflakes, warnings, import-sort, bugbear
+ignore = [
+  "E741",   # ambiguous name `l`: used deliberately for location/line in tight loops
+]
+
+# Broad `except Exception` is an intentional pattern here (keep the batch alive — README §16),
+# so flake8-blind-except (BLE) is left out of `select` rather than annotated at every site.
