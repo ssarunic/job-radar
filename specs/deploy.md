@@ -36,8 +36,10 @@ build is never published, and only a published image is ever deployed.
 git checkout main && git pull
 git tag v1.0.0 && git push origin v1.0.0      # triggers test -> build -> push to GHCR
 ```
-The `deploy` job SSHes into the Pi and `pull && up -d` within seconds of the image
-being published; Watchtower also picks up `:latest` within 5 min as a fallback.
+The `deploy` job copies the current `deploy/docker-compose.yml` to the Pi, then
+SSHes in to `pull && up -d` within seconds of the image being published — so both
+image changes and compose-level changes (new services, image swaps) deploy.
+Watchtower also picks up `:latest` within 5 min as a fallback.
 Roll back by retagging an older image to `:latest`, or pin the Pi to `:vX.Y.Z`.
 
 ## Push-based deploy (one-time secrets setup)
