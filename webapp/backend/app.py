@@ -161,7 +161,10 @@ _DIST = _BACKEND_DIR.parent / "frontend" / "dist"
 def spa(full_path: str):
     if not _DIST.exists():
         raise HTTPException(status_code=404, detail="frontend not built")
-    candidate = _DIST / full_path
-    if full_path and candidate.is_file():
-        return FileResponse(candidate)
+    if full_path:
+        # Resolve and confine to dist — encoded dot segments (e.g. %2e%2e) decode to
+        # ".." and would otherwise escape the static root and serve repo / /data files.
+        candidate = (_DIST / full_path).resolve()
+        if candidate.is_file() and candidate.is_relative_to(_DIST.resolve()):
+            return FileResponse(candidate)
     return FileResponse(_DIST / "index.html")   # client-side routes -> index.html
