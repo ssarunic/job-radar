@@ -6,15 +6,16 @@ import { api, RANK_LABEL, fmtSalary } from "../api";
 export default function JobsList() {
   const [status, setStatus] = useState("open");
   const [minRank, setMinRank] = useState(0);
+  const [sort, setSort] = useState("seniority");
   const [q, setQ] = useState("");
 
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => api("/stats") });
 
-  const params = new URLSearchParams({ status, sort: "seniority" });
+  const params = new URLSearchParams({ status, sort });
   if (minRank) params.set("min_rank", String(minRank));
   if (q) params.set("q", q);
   const jobs = useQuery({
-    queryKey: ["jobs", status, minRank, q],
+    queryKey: ["jobs", status, minRank, sort, q],
     queryFn: () => api(`/jobs?${params.toString()}`),
   });
 
@@ -44,6 +45,10 @@ export default function JobsList() {
           <option value={5}>Principal+</option>
           <option value={6}>Head+</option>
           <option value={7}>Director+</option>
+        </select>
+        <select value={sort} onChange={(e) => setSort(e.target.value)}>
+          <option value="seniority">Sort: Seniority</option>
+          <option value="recent">Sort: Most recent</option>
         </select>
         <input
           placeholder="Search company or title…"

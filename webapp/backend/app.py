@@ -12,11 +12,15 @@ from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 _BACKEND_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(_BACKEND_DIR.parents[1]))   # repo root -> services.*/outputs.*
 
-from services import queries, store   # noqa: E402
+from models.job_posting import _slugify        # noqa: E402
+from scrapers.http_client import HttpClient     # noqa: E402
+from scrapers.rate_limiter import RateLimiter   # noqa: E402
+from services import discovery, loader, queries, registry, run_service, store   # noqa: E402
 
 app = FastAPI(title="Job Search Assistant", version="1.0")
 
@@ -43,6 +47,110 @@ def get_job(job_id: str):
     if not role:
         raise HTTPException(status_code=404, detail="job not found")
     return role
+
+
+# --- company management (write surface over services.registry + discovery) ----
+
+def _open_role_counts() -> dict:
+    """Open-role count per company_slug. Groups first (the index is one row per
+    location; `group_roles` collapses them to one role per id) so the count matches
+    the role list — same basis as `queries.stats` / `list_roles`."""
+    counts: dict = {}
+    for r in queries.group_roles(queries.load_index(store.index_path())):
+        if r.get("status") == "open":
+            slug = r.get("company_slug")
+            counts[slug] = counts.get(slug, 0) + 1
+    return counts
+
+
+def _company_view(c: dict, counts: dict) -> dict:
+    return {"name": c.get("name"), "slug": c.get("slug"),
+            "ats_type": c.get("ats_type"), "ats_slug": c.get("ats_slug"),
+            "careers_url": c.get("careers_url"), "active": bool(c.get("active")),
+            "open_roles": counts.get(c.get("slug"), 0)}
+
+
+@app.get("/api/companies")
+def list_companies():
+    counts = _open_role_counts()
+    companies = [_company_view(c, counts) for c in registry.list_companies()]
+    return {"count": len(companies), "companies": companies}
+
+
+@app.get("/api/companies/{slug}")
+def company_detail(slug: str):
+    match = next((c for c in registry.list_companies() if c["slug"] == slug), None)
+    if not match:
+        raise HTTPException(status_code=404, detail=f"no company with slug {slug!r}")
+    counts = _open_role_counts()
+    roles = queries.list_roles(queries.load_index(store.index_path()),
+                               status="open", company=slug, sort="seniority")
+    return {"company": _company_view(match, counts),
+            "roles": [queries.role_summary(r) for r in roles]}
+
+
+class AddCompany(BaseModel):
+    query: Optional[str] = None          # company name or careers URL (auto-detect)
+    name: Optional[str] = None           # explicit manual entry (below) — no network
+    ats_type: Optional[str] = None
+    ats_slug: Optional[str] = None
+    careers_url: Optional[str] = None
+    priority: Optional[str] = None
+    scan: bool = True                    # immediately seek this company's roles
+
+
+def _scan_company(slug: str, settings: dict) -> bool:
+    """Run a one-off seek for just this company so its roles show up immediately,
+    instead of waiting for the daily run. Slack is suppressed (you're in the UI),
+    and a scan failure is non-fatal — the follow already succeeded."""
+    try:
+        rows = [c for c in registry.list_companies() if c["slug"] == slug]
+        if not rows:
+            return False
+        quiet = {**settings, "notify": {**(settings.get("notify") or {}), "enabled": False}}
+        run_service.seek_run(quiet, loader.load_profile(), rows)
+        return True
+    except Exception:                                # noqa: BLE001 — never fail the follow
+        return False
+
+
+@app.post("/api/companies", status_code=201)
+def follow_company(body: AddCompany):
+    settings = loader.load_settings()
+    if body.ats_type and body.careers_url:           # manual entry, no discovery
+        name = (body.name or body.careers_url).strip()
+        info = {"name": name, "slug": _slugify(body.name or name),
+                "careers_url": body.careers_url.strip(), "ats_type": body.ats_type.strip(),
+                "ats_slug": (body.ats_slug or "").strip(), "priority": body.priority or "",
+                "active": True}
+    else:                                            # auto-detect by name/URL
+        query = (body.query or "").strip()
+        if not query:
+            raise HTTPException(422, "provide `query` (name or URL), or `ats_type` + `careers_url`")
+        http = HttpClient(settings, RateLimiter(settings.get("rate_limit_per_sec", 1)))
+        info = discovery.discover(query, http)
+        if not info:
+            raise HTTPException(422, f"couldn't auto-detect an ATS for {query!r} — "
+                                     "add manually with ats_type + careers_url")
+        info["active"] = True
+    if not registry.add_company(info):
+        existing = registry.find_existing(info)
+        who = (existing or {}).get("name") or (existing or {}).get("slug") or info["slug"]
+        raise HTTPException(409, f"already tracking {who}")
+    scanned = _scan_company(info["slug"], settings) if body.scan else False
+    counts = _open_role_counts()                     # reflects roles just scanned in
+    return {"company": _company_view(info, counts), "scanned": scanned}
+
+
+class ActivePatch(BaseModel):
+    active: bool
+
+
+@app.patch("/api/companies/{slug}")
+def set_company_active(slug: str, body: ActivePatch):
+    if not registry.set_active(slug, body.active):
+        raise HTTPException(404, f"no company with slug {slug!r}")
+    return {"slug": slug, "active": body.active}
 
 
 # --- serve built frontend (prod); SPA fallback for client routes -------------

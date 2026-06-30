@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+import io
 from pathlib import Path
 
 from models.job_posting import canonical_url
@@ -21,14 +22,21 @@ def list_companies(path: Path = None) -> list[dict]:
     return rows
 
 
+def _render(rows: list[dict]) -> str:
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=FIELDS, lineterminator="\n")  # unix EOL, clean diffs
+    w.writeheader()
+    for r in rows:
+        out = {k: r.get(k, "") for k in FIELDS}
+        out["active"] = "true" if r.get("active") in (True, "true", "True", "1") else "false"
+        w.writerow(out)
+    return buf.getvalue()
+
+
 def _write(rows: list[dict], path: Path) -> None:
-    with open(path, "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=FIELDS, lineterminator="\n")  # unix EOL, clean diffs
-        w.writeheader()
-        for r in rows:
-            out = {k: r.get(k, "") for k in FIELDS}
-            out["active"] = "true" if r.get("active") in (True, "true", "True", "1") else "false"
-            w.writerow(out)
+    # Atomic (temp + os.replace): the web container writes this while the scraper
+    # container may be reading it on the shared volume — never expose a half-written CSV.
+    store.atomic_write_text(path, _render(rows))
 
 
 def _same_company(a: dict, b: dict) -> bool:
