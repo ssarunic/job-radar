@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { api, apiSend } from "../api";
 
 type Company = {
@@ -101,23 +102,25 @@ function CompanyRow({
   onToggle: (v: { slug: string; active: boolean }) => void;
   busy: boolean;
 }) {
+  const navigate = useNavigate();
   return (
-    <div className="row" style={{ opacity: c.active ? 1 : 0.55 }}>
+    <div
+      className="row clickable"
+      style={{ opacity: c.active ? 1 : 0.55 }}
+      onClick={() => navigate(`/companies/${c.slug}`)}
+    >
       <div className="row-main">
         <span className="company">{c.name}</span>
-        {c.careers_url ? (
-          <a className="title" href={c.careers_url} target="_blank" rel="noreferrer">
-            {c.ats_type}
-          </a>
-        ) : (
-          <span className="title">{c.ats_type}</span>
-        )}
+        <span className="title muted">{c.ats_type}</span>
       </div>
       <div className="row-meta">
         <span className="pill">{c.open_roles} open</span>
         <button
           disabled={busy}
-          onClick={() => onToggle({ slug: c.slug, active: !c.active })}
+          onClick={(e) => {
+            e.stopPropagation();          // don't navigate when toggling
+            onToggle({ slug: c.slug, active: !c.active });
+          }}
         >
           {c.active ? "Unfollow" : "Re-follow"}
         </button>

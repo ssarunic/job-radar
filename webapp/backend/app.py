@@ -75,6 +75,18 @@ def list_companies():
     return {"count": len(companies), "companies": companies}
 
 
+@app.get("/api/companies/{slug}")
+def company_detail(slug: str):
+    match = next((c for c in registry.list_companies() if c["slug"] == slug), None)
+    if not match:
+        raise HTTPException(status_code=404, detail=f"no company with slug {slug!r}")
+    counts = _open_role_counts()
+    roles = queries.list_roles(queries.load_index(store.index_path()),
+                               status="open", company=slug, sort="seniority")
+    return {"company": _company_view(match, counts),
+            "roles": [queries.role_summary(r) for r in roles]}
+
+
 class AddCompany(BaseModel):
     query: Optional[str] = None          # company name or careers URL (auto-detect)
     name: Optional[str] = None           # explicit manual entry (below) — no network

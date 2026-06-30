@@ -115,6 +115,16 @@ def test_list_companies(client):
     assert by_slug["capsa"]["ats_type"] == "ashby" and by_slug["capsa"]["active"] is True
 
 
+def test_company_detail(client):
+    d = client.get("/api/companies/capsa").json()
+    assert d["company"]["slug"] == "capsa" and d["company"]["open_roles"] == 1
+    assert [r["id"] for r in d["roles"]] == ["aaa11111"]   # Capsa's one open role
+
+
+def test_company_detail_404(client):
+    assert client.get("/api/companies/nope").status_code == 404
+
+
 def test_follow_manual_no_network(client):
     r = client.post("/api/companies", json={
         "name": "Wise", "ats_type": "smartrecruiters",
