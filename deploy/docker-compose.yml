@@ -38,9 +38,15 @@ services:
     labels:
       com.centurylinklabs.watchtower.enable: "true"
 
-  # Watches GHCR and recreates the labelled containers when a new image lands.
+  # Fallback poller: watches GHCR and recreates the labelled containers when a new
+  # image lands. The push-based deploy job in .github/workflows/release.yml is the
+  # primary path (deploys the instant a tag's image is built); this is the safety net.
+  #
+  # NOTE: uses the maintained fork `nickfedor/watchtower`, not the abandoned
+  # `containrrr/watchtower` — the latter's bundled Docker API client (v1.25) is too
+  # old for modern Docker Engine (min API 1.40), so it crash-loops against the daemon.
   watchtower:
-    image: containrrr/watchtower
+    image: ghcr.io/nicholas-fedor/watchtower
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
