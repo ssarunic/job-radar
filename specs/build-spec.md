@@ -36,7 +36,9 @@ browser instead of SSH + `docker exec`. Tailnet-only, no auth. See
 
 **Built since:** Web "Refresh now" + Activity — a global **`POST /api/seek`** runs a
 full seek in the background (in-process lock, `GET /api/seek` status, Slack
-suppressed) behind a topbar **↻ Refresh** button; an **Activity** page reads run
+suppressed) behind a topbar **↻ Refresh** button with a **top loading bar +
+per-company progress** ("Scanning {company} k/N", from `seek_run`'s progress
+callback); an **Activity** page reads run
 history (`GET /api/runs`, `GET /api/runs/{ts}` over `data/runs/*/diff.jsonl` +
 `summary.txt`, timestamp-validated) and shows each run's added/reopened/updated/closed
 roles. See `specs/webapp/tactical.md` (Phases 3–4).

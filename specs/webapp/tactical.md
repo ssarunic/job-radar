@@ -40,7 +40,7 @@
 ## Phase 4 — Live & linked
 - [x] `web_base_url` in `config/settings.yaml`; Slack/ntfy notifier emits `{web_base_url}/jobs/{id}` per new role. *(`/runs/{ts}` summary link not built.)*
 - [x] Tailscale: bind/serve so the tailnet hostname reaches the app from phone; one-time setup documented in `webapp/README.md` + `specs/deploy.md`.
-- [x] `POST /api/seek` — background full seek (in-process lock, `GET /api/seek` status) + global "↻ Refresh" button in the topbar with a "Refreshing…" / result indicator (polls `/api/seek`). Slack suppressed for the manual run.
+- [x] `POST /api/seek` — background full seek (in-process lock, `GET /api/seek` status reports `done/total/current`) + global "↻ Refresh" button in the topbar with a **top loading bar + "Scanning {company} (k/N)" progress** and a result indicator (polls `/api/seek`). Slack suppressed for the manual run.
 - [x] Heartbeat + failure alert in the notifier (so silence ≠ broken) — daily "all quiet" + failed-company flag.
 - [x] **Acceptance:** new role found by scheduled `seek` → Slack message → tap on phone → role detail over Tailscale.
 
