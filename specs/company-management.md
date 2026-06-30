@@ -35,8 +35,6 @@ the image **only on first run** (`if [ ! -f … ]`), never overwriting after. So
   constitution §2); the network boundary is the access control. Do not add login.
 - **No hard delete.** Unfollow = `active:false` (keeps the company's data), matching
   the CLI. Hard delete is out of scope.
-- **No "scan now"** on add (v1). New companies are picked up by the next daily run;
-  a per-company seek trigger is a future enhancement.
 - **No MCP** yet — see Future. The HTTP API below is the shared substrate an MCP
   server (or the existing `job-tracker` skill, repointed at the Pi) would wrap later.
 
@@ -51,7 +49,7 @@ auto-detect path).
 | Method & path | Body | Behaviour | Responses |
 |---|---|---|---|
 | `GET /api/companies` | — | List all (active + inactive) with open-role counts | `200 {count, companies:[…]}` |
-| `POST /api/companies` | `{query}` **or** `{name, ats_type, careers_url, ats_slug?}` | `query` → `discovery.discover()`; explicit fields → manual row (no network). Then `registry.add_company()` | `201 {company}` · `409 {existing}` if already tracked · `422` if not auto-detected |
+| `POST /api/companies` | `{query}` **or** `{name, ats_type, careers_url, ats_slug?}`; `scan` (default `true`) | `query` → `discovery.discover()`; explicit fields → manual row (no network). `registry.add_company()`, then (if `scan`) a one-off `run_service.seek_run` for just this company so its roles show immediately | `201 {company, scanned}` · `409` if already tracked · `422` if not auto-detected |
 | `PATCH /api/companies/{slug}` | `{active: bool}` | `registry.set_active()` | `200 {slug, active}` · `404` if slug unknown |
 
 - Each `company` object: `{name, slug, ats_type, ats_slug, careers_url, active, open_roles}`.
@@ -60,6 +58,13 @@ auto-detect path).
 - The auto-detect path (`POST {query}`) runs `discovery.discover` synchronously
   (FastAPI offloads sync handlers to a threadpool); bounded by the existing 20s
   request timeout. Acceptable for an interactive add.
+- **Scan-on-follow** (`scan: true`, default): after a successful add, run
+  `run_service.seek_run` scoped to *just* the new company (one ATS fetch + pipeline,
+  reconcile only ages that slug), so its roles appear in the UI immediately rather
+  than at the next 08:00 run. **Slack is suppressed** for this interactive scan
+  (settings copied with `notify.enabled=false`); the scan is **non-fatal** (a fetch
+  error/timeout still returns `201` with `scanned:false`). Synchronous so the
+  response's `open_roles` reflects what was found.
 
 ### Backend — registry write hardening
 

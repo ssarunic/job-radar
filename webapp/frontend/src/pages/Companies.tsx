@@ -28,7 +28,10 @@ export default function Companies() {
     mutationFn: (q: string) => apiSend("/companies", "POST", { query: q }),
     onSuccess: (data) => {
       const c = data.company;
-      setMsg({ kind: "ok", text: `Following ${c.name} via ${c.ats_type}.` });
+      const found = data.scanned
+        ? ` — ${c.open_roles} open role${c.open_roles === 1 ? "" : "s"} found`
+        : "";
+      setMsg({ kind: "ok", text: `Following ${c.name} via ${c.ats_type}${found}.` });
       setQuery("");
       refresh();
     },
@@ -62,7 +65,7 @@ export default function Companies() {
           style={{ flex: 1 }}
         />
         <button type="submit" disabled={follow.isPending || !query.trim()}>
-          {follow.isPending ? "Checking…" : "Follow"}
+          {follow.isPending ? "Scanning…" : "Follow"}
         </button>
       </form>
 

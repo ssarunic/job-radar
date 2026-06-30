@@ -20,7 +20,7 @@ sys.path.insert(0, str(_BACKEND_DIR.parents[1]))   # repo root -> services.*/out
 from models.job_posting import _slugify        # noqa: E402
 from scrapers.http_client import HttpClient     # noqa: E402
 from scrapers.rate_limiter import RateLimiter   # noqa: E402
-from services import discovery, loader, queries, registry, store   # noqa: E402
+from services import discovery, loader, queries, registry, run_service, store   # noqa: E402
 
 app = FastAPI(title="Job Search Assistant", version="1.0")
 
@@ -82,10 +82,27 @@ class AddCompany(BaseModel):
     ats_slug: Optional[str] = None
     careers_url: Optional[str] = None
     priority: Optional[str] = None
+    scan: bool = True                    # immediately seek this company's roles
+
+
+def _scan_company(slug: str, settings: dict) -> bool:
+    """Run a one-off seek for just this company so its roles show up immediately,
+    instead of waiting for the daily run. Slack is suppressed (you're in the UI),
+    and a scan failure is non-fatal — the follow already succeeded."""
+    try:
+        rows = [c for c in registry.list_companies() if c["slug"] == slug]
+        if not rows:
+            return False
+        quiet = {**settings, "notify": {**(settings.get("notify") or {}), "enabled": False}}
+        run_service.seek_run(quiet, loader.load_profile(), rows)
+        return True
+    except Exception:                                # noqa: BLE001 — never fail the follow
+        return False
 
 
 @app.post("/api/companies", status_code=201)
 def follow_company(body: AddCompany):
+    settings = loader.load_settings()
     if body.ats_type and body.careers_url:           # manual entry, no discovery
         name = (body.name or body.careers_url).strip()
         info = {"name": name, "slug": _slugify(body.name or name),
@@ -96,7 +113,6 @@ def follow_company(body: AddCompany):
         query = (body.query or "").strip()
         if not query:
             raise HTTPException(422, "provide `query` (name or URL), or `ats_type` + `careers_url`")
-        settings = loader.load_settings()
         http = HttpClient(settings, RateLimiter(settings.get("rate_limit_per_sec", 1)))
         info = discovery.discover(query, http)
         if not info:
@@ -107,8 +123,9 @@ def follow_company(body: AddCompany):
         existing = registry.find_existing(info)
         who = (existing or {}).get("name") or (existing or {}).get("slug") or info["slug"]
         raise HTTPException(409, f"already tracking {who}")
-    counts = _open_role_counts()
-    return {"company": _company_view(info, counts)}
+    scanned = _scan_company(info["slug"], settings) if body.scan else False
+    counts = _open_role_counts()                     # reflects roles just scanned in
+    return {"company": _company_view(info, counts), "scanned": scanned}
 
 
 class ActivePatch(BaseModel):

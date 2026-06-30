@@ -52,6 +52,8 @@ def client(tmp_path, monkeypatch):
         "Capsa,capsa,,ashby,capsa,,true\n"
         "Monzo,monzo,,greenhouse,monzo,,true\n")
     monkeypatch.setenv("JSA_ROOT", str(tmp_path))
+    # follow scans the new company by default — stub the seek so POSTs stay network-free.
+    monkeypatch.setattr("services.run_service.seek_run", lambda *a, **k: None)
     return TestClient(webapp.app)
 
 
@@ -145,6 +147,40 @@ def test_follow_empty_is_422(client):
 def test_follow_query_undetected_is_422(client, monkeypatch):
     monkeypatch.setattr("services.discovery.discover", lambda query, http: None)
     assert client.post("/api/companies", json={"query": "Nope Inc"}).status_code == 422
+
+
+def test_follow_scans_new_company_by_default(client, monkeypatch):
+    seen = {}
+
+    def fake_seek(settings, profile, companies, **kw):
+        seen["slugs"] = [c["slug"] for c in companies]
+        seen["notify_enabled"] = (settings.get("notify") or {}).get("enabled")
+
+    monkeypatch.setattr("services.run_service.seek_run", fake_seek)
+    r = client.post("/api/companies", json={
+        "name": "Wise", "ats_type": "smartrecruiters", "careers_url": "https://x"})
+    assert r.status_code == 201 and r.json()["scanned"] is True
+    assert seen["slugs"] == ["wise"]                  # scoped to just the new company
+    assert seen["notify_enabled"] is False            # Slack suppressed for the interactive scan
+
+
+def test_follow_scan_false_skips_seek(client, monkeypatch):
+    def boom(*a, **k):
+        raise AssertionError("seek_run must not be called when scan=false")
+
+    monkeypatch.setattr("services.run_service.seek_run", boom)
+    r = client.post("/api/companies", json={
+        "name": "Wise", "ats_type": "smartrecruiters", "careers_url": "https://x", "scan": False})
+    assert r.status_code == 201 and r.json()["scanned"] is False
+
+
+def test_follow_scan_failure_is_non_fatal(client, monkeypatch):
+    monkeypatch.setattr("services.run_service.seek_run",
+                        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("network down")))
+    r = client.post("/api/companies", json={
+        "name": "Wise", "ats_type": "smartrecruiters", "careers_url": "https://x"})
+    assert r.status_code == 201                        # follow still succeeds
+    assert r.json()["scanned"] is False                # but scan reported as not done
 
 
 def test_unfollow_toggles_active(client):
