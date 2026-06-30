@@ -6,7 +6,11 @@ two can't diverge). Constitution §3: this owns only *how it's invoked*.
 """
 from __future__ import annotations
 
+import json
+import re
 import sys
+import threading
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -151,6 +155,99 @@ def set_company_active(slug: str, body: ActivePatch):
     if not registry.set_active(slug, body.active):
         raise HTTPException(404, f"no company with slug {slug!r}")
     return {"slug": slug, "active": body.active}
+
+
+# --- manual "Refresh now" — run a full seek in the background ------------------
+# The web container shares the image + volume with the scraper, so it can run the
+# same pipeline. In-process lock guards against double-clicks and reports status;
+# Slack is suppressed (you're in the UI). A web run and the 08:00 scheduler run could
+# in principle overlap — atomic store/index writes keep that safe, just not pretty.
+
+_seek_lock = threading.Lock()
+_seek_state: dict = {"running": False, "started_at": None, "finished_at": None,
+                     "added": None, "summary": None, "error": None}
+
+
+def _run_seek() -> None:
+    try:
+        settings = loader.load_settings()
+        companies = run_service.select_companies(
+            loader.load_companies(), max_companies=settings.get("max_companies", 300))
+        quiet = {**settings, "notify": {**(settings.get("notify") or {}), "enabled": False}}
+        result = run_service.seek_run(quiet, loader.load_profile(), companies)
+        added = sum(1 for d in result.diff if d.get("change") in ("added", "reopened"))
+        _seek_state.update(added=added, summary=result.summary_text, error=None)
+    except Exception as e:                           # noqa: BLE001 — report, don't crash
+        _seek_state.update(error=str(e))
+    finally:
+        _seek_state.update(running=False,
+                           finished_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+
+
+@app.post("/api/seek", status_code=202)
+def start_seek():
+    with _seek_lock:
+        if _seek_state["running"]:
+            raise HTTPException(status_code=409, detail="a refresh is already running")
+        _seek_state.update(running=True, error=None, summary=None, added=None,
+                           finished_at=None,
+                           started_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
+    threading.Thread(target=_run_seek, daemon=True).start()
+    return {"started": True}
+
+
+@app.get("/api/seek")
+def seek_status():
+    return dict(_seek_state)
+
+
+# --- run history (Activity) ----------------------------------------------------
+_TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{6}Z$")    # also blocks path traversal via {ts}
+
+
+def _run_counts(changes: list) -> dict:
+    counts: dict = {}
+    for c in changes:
+        k = c.get("change")
+        counts[k] = counts.get(k, 0) + 1
+    return counts
+
+
+def _read_run(ts: str) -> Optional[dict]:
+    run_dir = store.runs_dir() / ts
+    diff_path = run_dir / "diff.jsonl"
+    if not diff_path.exists():
+        return None
+    changes = [json.loads(ln) for ln in diff_path.read_text().splitlines() if ln.strip()]
+    summary_path = run_dir / "summary.txt"
+    summary = summary_path.read_text() if summary_path.exists() else ""
+    return {"ts": ts, "changes": changes, "summary": summary}
+
+
+@app.get("/api/runs")
+def list_runs(limit: int = 50):
+    rd = store.runs_dir()
+    if not rd.exists():
+        return {"count": 0, "runs": []}
+    names = sorted((p.name for p in rd.iterdir() if p.is_dir() and _TS_RE.match(p.name)),
+                   reverse=True)[:limit]
+    runs = []
+    for ts in names:
+        run = _read_run(ts)
+        if run is not None:
+            runs.append({"ts": ts, "counts": _run_counts(run["changes"]),
+                         "total": len(run["changes"])})
+    return {"count": len(runs), "runs": runs}
+
+
+@app.get("/api/runs/{ts}")
+def get_run(ts: str):
+    if not _TS_RE.match(ts):
+        raise HTTPException(status_code=404, detail="no such run")
+    run = _read_run(ts)
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"no run {ts!r}")
+    return {**run, "counts": _run_counts(run["changes"])}
 
 
 # --- serve built frontend (prod); SPA fallback for client routes -------------

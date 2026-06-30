@@ -1,4 +1,5 @@
 """Web API tests — network-free, against a temp canonical store."""
+import json
 from pathlib import Path
 
 import pytest
@@ -234,3 +235,64 @@ def test_unfollow_toggles_active(client):
 
 def test_set_active_unknown_slug_404(client):
     assert client.patch("/api/companies/nope", json={"active": False}).status_code == 404
+
+
+# --- manual refresh (POST /api/seek) ------------------------------------------
+
+class _SyncThread:                       # run the spawned thread inline → deterministic
+    def __init__(self, target, daemon=None):
+        self._target = target
+
+    def start(self):
+        self._target()
+
+
+def test_manual_seek_runs_and_reports(client, monkeypatch):
+    class FakeResult:
+        diff = [{"change": "added"}, {"change": "added"}, {"change": "updated"}]
+        summary_text = "seek done"
+
+    seen = {}
+
+    def fake_seek(settings, profile, companies, **kw):
+        seen["notify_enabled"] = (settings.get("notify") or {}).get("enabled")
+        return FakeResult()
+
+    monkeypatch.setattr("services.run_service.seek_run", fake_seek)
+    monkeypatch.setattr(webapp.threading, "Thread", _SyncThread)
+    assert client.post("/api/seek").json()["started"] is True
+    s = client.get("/api/seek").json()
+    assert s["running"] is False and s["error"] is None
+    assert s["added"] == 2                                # added/reopened counted
+    assert seen["notify_enabled"] is False               # Slack suppressed for manual refresh
+
+
+def test_seek_conflict_when_running(client, monkeypatch):
+    monkeypatch.setitem(webapp._seek_state, "running", True)
+    assert client.post("/api/seek").status_code == 409
+
+
+# --- run history (Activity) ---------------------------------------------------
+
+def _write_run(tmp_path, ts, lines, summary="RUN SUMMARY"):
+    rd = tmp_path / "data" / "runs" / ts
+    rd.mkdir(parents=True)
+    (rd / "diff.jsonl").write_text("".join(json.dumps(x) + "\n" for x in lines))
+    (rd / "summary.txt").write_text(summary)
+
+
+def test_runs_list_and_detail(client, tmp_path):
+    _write_run(tmp_path, "2026-06-30T120000Z", [
+        {"change": "added", "id": "x1", "company": "Monzo", "title": "PM", "location": "London"},
+        {"change": "closed", "id": "x2", "company": "Wise", "title": "PD", "location": "London"},
+    ])
+    lst = client.get("/api/runs").json()
+    assert lst["count"] == 1 and lst["runs"][0]["ts"] == "2026-06-30T120000Z"
+    assert lst["runs"][0]["counts"] == {"added": 1, "closed": 1}
+    d = client.get("/api/runs/2026-06-30T120000Z").json()
+    assert len(d["changes"]) == 2 and "RUN SUMMARY" in d["summary"]
+
+
+def test_run_detail_404_and_bad_ts(client):
+    assert client.get("/api/runs/2026-01-01T000000Z").status_code == 404   # well-formed, absent
+    assert client.get("/api/runs/not-a-ts").status_code == 404             # rejected by ts regex

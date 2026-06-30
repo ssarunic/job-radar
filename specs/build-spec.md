@@ -34,6 +34,13 @@ sort** toggle on the roles list. So the followed-company list is managed from th
 browser instead of SSH + `docker exec`. Tailnet-only, no auth. See
 `specs/company-management.md`.
 
+**Built since:** Web "Refresh now" + Activity — a global **`POST /api/seek`** runs a
+full seek in the background (in-process lock, `GET /api/seek` status, Slack
+suppressed) behind a topbar **↻ Refresh** button; an **Activity** page reads run
+history (`GET /api/runs`, `GET /api/runs/{ts}` over `data/runs/*/diff.jsonl` +
+`summary.txt`, timestamp-validated) and shows each run's added/reopened/updated/closed
+roles. See `specs/webapp/tactical.md` (Phases 3–4).
+
 **Built since:** CI/CD + deploy — GitHub Actions (CI on PRs; `vX.Y.Z` tag → arm64 image → GHCR),
 multi-stage Docker + Compose, push-deploy over Tailscale SSH to the Raspberry Pi, in-container 08:00
 daily scheduler (`scripts/scheduler.py`), and a Workday UK location facet — see `specs/deploy.md`.
