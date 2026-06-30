@@ -256,6 +256,11 @@ def test_manual_seek_runs_and_reports(client, monkeypatch):
 
     def fake_seek(settings, profile, companies, **kw):
         seen["notify_enabled"] = (settings.get("notify") or {}).get("enabled")
+        prog = kw.get("progress")                         # exercise per-company progress
+        if prog:
+            prog("→ Capsa (ashby) …")
+            prog("   ✓ 1 kept via ashby")                 # non-"→" line: ignored
+            prog("→ Monzo (greenhouse) …")
         return FakeResult()
 
     monkeypatch.setattr("services.run_service.seek_run", fake_seek)
@@ -265,6 +270,8 @@ def test_manual_seek_runs_and_reports(client, monkeypatch):
     assert s["running"] is False and s["error"] is None
     assert s["added"] == 2                                # added/reopened counted
     assert seen["notify_enabled"] is False               # Slack suppressed for manual refresh
+    assert s["total"] == 2 and s["done"] == 2            # both companies counted
+    assert s["current"] is None                          # cleared on success
 
 
 def test_seek_conflict_when_running(client, monkeypatch):

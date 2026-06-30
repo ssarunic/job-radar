@@ -19,7 +19,7 @@ function RefreshButton() {
     queryKey: ["seek"],
     queryFn: () => api("/seek"),
     enabled: active,
-    refetchInterval: active ? 2000 : false,
+    refetchInterval: active ? 1500 : false,
   });
 
   const start = useMutation({
@@ -40,13 +40,29 @@ function RefreshButton() {
   }, [active, status.data, qc]);
 
   const running = active || status.data?.running;
+  const total = status.data?.total ?? 0;
+  const done = status.data?.done ?? 0;
+  const current = status.data?.current as string | undefined;
+  const pct = total ? Math.min(100, Math.round((done / total) * 100)) : 8; // 8% = indeterminate
+
   return (
-    <span className="refresh">
-      {msg && !running && <span className="muted refresh-msg">{msg}</span>}
-      <button onClick={() => start.mutate()} disabled={running}>
-        {running ? "Refreshing…" : "↻ Refresh"}
-      </button>
-    </span>
+    <>
+      <span className="refresh">
+        {running && (
+          <span className="muted refresh-msg">
+            {current ? `Scanning ${current}…` : "Starting…"}
+            {total ? ` ${done}/${total}` : ""}
+          </span>
+        )}
+        {msg && !running && <span className="muted refresh-msg">{msg}</span>}
+        <button onClick={() => start.mutate()} disabled={running}>
+          {running ? "Refreshing…" : "↻ Refresh"}
+        </button>
+      </span>
+      {running && (
+        <div className="topbar-progress" style={{ width: `${pct}%` }} aria-hidden />
+      )}
+    </>
   );
 }
 

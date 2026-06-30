@@ -165,7 +165,16 @@ def set_company_active(slug: str, body: ActivePatch):
 
 _seek_lock = threading.Lock()
 _seek_state: dict = {"running": False, "started_at": None, "finished_at": None,
-                     "added": None, "summary": None, "error": None}
+                     "added": None, "summary": None, "error": None,
+                     "total": None, "done": 0, "current": None}
+
+
+def _seek_progress(msg: str) -> None:
+    # seek_run emits "→ {name} ({ats}) …" as it starts each company — count those for
+    # per-company progress. Other narration lines (✓/⚠/✗) are ignored.
+    if msg.startswith("→ "):                    # "→ "
+        _seek_state["current"] = msg[2:].split(" (")[0].strip()
+        _seek_state["done"] = (_seek_state.get("done") or 0) + 1
 
 
 def _run_seek() -> None:
@@ -173,10 +182,12 @@ def _run_seek() -> None:
         settings = loader.load_settings()
         companies = run_service.select_companies(
             loader.load_companies(), max_companies=settings.get("max_companies", 300))
+        _seek_state.update(total=len(companies), done=0, current=None)
         quiet = {**settings, "notify": {**(settings.get("notify") or {}), "enabled": False}}
-        result = run_service.seek_run(quiet, loader.load_profile(), companies)
+        result = run_service.seek_run(quiet, loader.load_profile(), companies,
+                                      progress=_seek_progress)
         added = sum(1 for d in result.diff if d.get("change") in ("added", "reopened"))
-        _seek_state.update(added=added, summary=result.summary_text, error=None)
+        _seek_state.update(added=added, summary=result.summary_text, error=None, current=None)
     except Exception as e:                           # noqa: BLE001 — report, don't crash
         _seek_state.update(error=str(e))
     finally:
@@ -190,7 +201,7 @@ def start_seek():
         if _seek_state["running"]:
             raise HTTPException(status_code=409, detail="a refresh is already running")
         _seek_state.update(running=True, error=None, summary=None, added=None,
-                           finished_at=None,
+                           finished_at=None, total=None, done=0, current=None,
                            started_at=datetime.now(timezone.utc).isoformat(timespec="seconds"))
     threading.Thread(target=_run_seek, daemon=True).start()
     return {"started": True}
