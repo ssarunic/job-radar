@@ -15,6 +15,10 @@ services:
     volumes:
       - jsa-data:/data
     restart: unless-stopped
+    labels:
+      # Opt OUT of the host's Pi-wide Watchtower — job-radar self-deploys via the
+      # release.yml push-deploy job, so Watchtower must not also update it.
+      com.centurylinklabs.watchtower.enable: "false"
 
   # Daily seek — the service that fires Slack notifications. Runs at a fixed local
   # time (default 08:00 Europe/London), not 24h after start.
@@ -33,6 +37,8 @@ services:
       - jsa-data:/data
     restart: unless-stopped
     command: ["schedule"]
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"   # excluded from the Pi-wide Watchtower
 
 volumes:
   jsa-data: {}
