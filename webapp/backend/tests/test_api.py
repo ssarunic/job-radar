@@ -104,6 +104,24 @@ def test_job_detail_404(client):
     assert client.get("/api/jobs/nope").status_code == 404
 
 
+def test_spa_blocks_path_traversal(client, tmp_path, monkeypatch):
+    # The SPA fallback must not serve files outside the built dist, even via encoded
+    # dot segments (%2e%2e) that decode to "..". Regression for a P1 traversal.
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("<html>app</html>")
+    (dist / "ok.js").write_text("console.log(1)")
+    secret = tmp_path / "secret.txt"
+    secret.write_text("TOPSECRET")
+    monkeypatch.setattr(webapp, "_DIST", dist)
+
+    assert client.get("/ok.js").text == "console.log(1)"          # real asset still served
+    for p in ["/%2e%2e/secret.txt", "/..%2fsecret.txt", "/%2e%2e%2fsecret.txt"]:
+        r = client.get(p)
+        assert "TOPSECRET" not in r.text                          # never escapes dist
+        assert "<html>app</html>" in r.text                       # falls back to index.html
+
+
 # --- company management -------------------------------------------------------
 
 def test_list_companies(client):
