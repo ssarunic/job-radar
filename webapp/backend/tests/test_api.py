@@ -1,4 +1,6 @@
 """Web API tests — network-free, against a temp canonical store."""
+from pathlib import Path
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -38,6 +40,17 @@ def client(tmp_path, monkeypatch):
     md_writer.write_posting(jobs, "monzo", "spm-legacy", "bbb22222", MONZO,
                             "Old role.", "", "")
     index_builder.rebuild(jobs, tmp_path / "data" / "jobs.jsonl")
+    # Seed config so the company-management endpoints have a registry + settings.
+    import shutil
+    cfg = tmp_path / "config"
+    cfg.mkdir()
+    repo_cfg = Path(__file__).resolve().parents[3] / "config"
+    for f in ("settings.yaml", "search_profile.yaml"):
+        shutil.copy(repo_cfg / f, cfg / f)
+    (cfg / "companies.csv").write_text(
+        "name,slug,careers_url,ats_type,ats_slug,priority,active\n"
+        "Capsa,capsa,,ashby,capsa,,true\n"
+        "Monzo,monzo,,greenhouse,monzo,,true\n")
     monkeypatch.setenv("JSA_ROOT", str(tmp_path))
     return TestClient(webapp.app)
 
@@ -87,3 +100,58 @@ def test_job_detail(client):
 
 def test_job_detail_404(client):
     assert client.get("/api/jobs/nope").status_code == 404
+
+
+# --- company management -------------------------------------------------------
+
+def test_list_companies(client):
+    r = client.get("/api/companies").json()
+    assert r["count"] == 2
+    by_slug = {c["slug"]: c for c in r["companies"]}
+    assert by_slug["capsa"]["open_roles"] == 1        # Capsa's role is open
+    assert by_slug["monzo"]["open_roles"] == 0        # Monzo's role is closed
+    assert by_slug["capsa"]["ats_type"] == "ashby" and by_slug["capsa"]["active"] is True
+
+
+def test_follow_manual_no_network(client):
+    r = client.post("/api/companies", json={
+        "name": "Wise", "ats_type": "smartrecruiters",
+        "careers_url": "https://www.smartrecruiters.com/Wise"})
+    assert r.status_code == 201
+    assert r.json()["company"]["slug"] == "wise"
+    assert {c["slug"] for c in client.get("/api/companies").json()["companies"]} >= {"wise"}
+
+
+def test_follow_dedupe_409(client):
+    r = client.post("/api/companies", json={
+        "name": "Capsa", "ats_type": "ashby", "careers_url": "https://jobs.ashbyhq.com/capsa"})
+    assert r.status_code == 409
+    assert "already tracking" in r.json()["detail"].lower()
+
+
+def test_follow_by_query_uses_discovery(client, monkeypatch):
+    monkeypatch.setattr("services.discovery.discover",
+                        lambda query, http: {"name": "Granola", "slug": "granola",
+                                             "careers_url": "", "ats_type": "ashby",
+                                             "ats_slug": "granola"})
+    r = client.post("/api/companies", json={"query": "Granola"})
+    assert r.status_code == 201 and r.json()["company"]["ats_type"] == "ashby"
+
+
+def test_follow_empty_is_422(client):
+    assert client.post("/api/companies", json={}).status_code == 422
+
+
+def test_follow_query_undetected_is_422(client, monkeypatch):
+    monkeypatch.setattr("services.discovery.discover", lambda query, http: None)
+    assert client.post("/api/companies", json={"query": "Nope Inc"}).status_code == 422
+
+
+def test_unfollow_toggles_active(client):
+    assert client.patch("/api/companies/monzo", json={"active": False}).status_code == 200
+    by_slug = {c["slug"]: c for c in client.get("/api/companies").json()["companies"]}
+    assert by_slug["monzo"]["active"] is False
+
+
+def test_set_active_unknown_slug_404(client):
+    assert client.patch("/api/companies/nope", json={"active": False}).status_code == 404

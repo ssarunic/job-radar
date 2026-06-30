@@ -25,6 +25,12 @@ Build a **one-shot CLI** (`python main.py seek`) that, for a configured list of 
 **Built since:** Exploratory/company-enrichment mode (`enrich` command, `companies/<slug>.md`
 canonical + `data/company_index.jsonl`) — see §14.
 
+**Built since:** Web company management — the web app gained a write surface over
+`services.registry` + `services.discovery` (`GET/POST /api/companies`,
+`PATCH /api/companies/{slug}`) and a Companies page, so the followed-company list is
+managed from the browser instead of SSH + `docker exec`. Tailnet-only, no auth. See
+`specs/company-management.md`.
+
 **Built since:** CI/CD + deploy — GitHub Actions (CI on PRs; `vX.Y.Z` tag → arm64 image → GHCR),
 multi-stage Docker + Compose, push-deploy over Tailscale SSH to the Raspberry Pi, in-container 08:00
 daily scheduler (`scripts/scheduler.py`), and a Workday UK location facet — see `specs/deploy.md`.
