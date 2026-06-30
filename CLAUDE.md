@@ -9,8 +9,8 @@ This repo is **implemented** (not spec-only). It's a working Python CLI
 suite. When implementing, match the existing conventions.
 
 It's also **deployed**: CI/CD via GitHub Actions (CI on PRs; a `vX.Y.Z` tag builds
-an arm64 image to GHCR) auto-updates a Raspberry Pi (`dalstonserver`) over Tailscale
-via Watchtower. The scraper runs **daily at 08:00 Europe/London** and posts new
+an arm64 image to GHCR) deploys to a Raspberry Pi (`dalstonserver`) by SSHing over
+Tailscale on each tag. The scraper runs **daily at 08:00 Europe/London** and posts new
 senior PM roles to Slack, deep-linked to the web app. Runbook: `specs/deploy.md`.
 
 **Architecture authority:** `specs/constitution.md` (principles) → `specs/build-spec.md`

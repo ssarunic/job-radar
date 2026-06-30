@@ -13,8 +13,8 @@
 > **Project status (2026-06-29) — implemented & deployed.** Working Python CLI
 > (`seek` + `enrich`) + a FastAPI/React web app, 216 tests. Fetches via a 7-adapter
 > scraping ladder (browser-free — Talemetry uses `curl_cffi`). Ships via CI/CD:
-> push a `vX.Y.Z` tag → GitHub Actions builds an arm64 image → GHCR → Watchtower
-> auto-deploys to a Raspberry Pi over Tailscale. The scraper runs **daily at 08:00
+> push a `vX.Y.Z` tag → GitHub Actions builds an arm64 image → GHCR → push-deploys
+> to a Raspberry Pi over Tailscale SSH. The scraper runs **daily at 08:00
 > Europe/London** and posts new senior PM roles to **Slack**, deep-linked to the
 > web app. Runbook: **`specs/deploy.md`**.
 

@@ -53,8 +53,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   # Push-based deploy: the instant the image is in GHCR, join the tailnet and tell
-  # the Pi to pull + restart. Deterministic (fires on the tag, no 5-min poll); the
-  # Watchtower fork in deploy/docker-compose.yml stays only as a fallback poller.
+  # the Pi to pull + restart. Deterministic — fires on the tag, the only deploy path.
   # Requires three repo secrets — see specs/deploy.md "Push-based deploy":
   #   TS_OAUTH_CLIENT_ID / TS_OAUTH_SECRET  (Tailscale OAuth client, tag:ci)
   #   PI_SSH_KEY                            (private key; pubkey in the Pi's authorized_keys)

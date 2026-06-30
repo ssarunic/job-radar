@@ -1,9 +1,9 @@
 # Production compose for the Raspberry Pi — pulls the published image from GHCR
-# (built by the Release workflow). Watchtower auto-updates the containers when a
-# new image is published, so a `git tag vX.Y.Z` deploys itself.
+# (built by the Release workflow). Deploys are push-based: the `deploy` job in
+# .github/workflows/release.yml SSHes in on a tag and runs `pull && up -d`.
 #
 #   docker login ghcr.io                         # one-time (read:packages PAT)
-#   docker compose --profile scheduler up -d     # web + daily scraper + watchtower
+#   docker compose --profile scheduler up -d     # web + daily scraper
 #
 # Requires a .env next to this file with SLACK_WEBHOOK_URL and WEB_BASE_URL.
 services:
@@ -15,8 +15,6 @@ services:
     volumes:
       - jsa-data:/data
     restart: unless-stopped
-    labels:
-      com.centurylinklabs.watchtower.enable: "true"
 
   # Daily seek — the service that fires Slack notifications. Runs at a fixed local
   # time (default 08:00 Europe/London), not 24h after start.
@@ -35,23 +33,6 @@ services:
       - jsa-data:/data
     restart: unless-stopped
     command: ["schedule"]
-    labels:
-      com.centurylinklabs.watchtower.enable: "true"
-
-  # Fallback poller: watches GHCR and recreates the labelled containers when a new
-  # image lands. The push-based deploy job in .github/workflows/release.yml is the
-  # primary path (deploys the instant a tag's image is built); this is the safety net.
-  #
-  # NOTE: uses the maintained fork `nickfedor/watchtower`, not the abandoned
-  # `containrrr/watchtower` — the latter's bundled Docker API client (v1.25) is too
-  # old for modern Docker Engine (min API 1.40), so it crash-loops against the daemon.
-  watchtower:
-    image: ghcr.io/nicholas-fedor/watchtower
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ${HOME}/.docker/config.json:/config.json:ro   # GHCR creds from `docker login`
-    command: --label-enable --cleanup --interval 300   # only labelled containers; poll 5 min
 
 volumes:
   jsa-data: {}

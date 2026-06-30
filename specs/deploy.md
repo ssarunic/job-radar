@@ -4,8 +4,9 @@
 > **v1.1.0**. Daily 08:00 Europe/London scrape → Slack. Reachable on the tailnet at
 > http://dalstonserver.tail824f04.ts.net:8765.
 
-Trunk-based + tag-to-release + GHCR image + pull-based (Watchtower) deploy.
-Defers to `constitution.md` for principles; this is the operational runbook.
+Trunk-based + tag-to-release + GHCR image + push-based (GitHub Actions over
+Tailscale SSH) deploy. Defers to `constitution.md` for principles; this is the
+operational runbook.
 
 ## Pipeline
 
@@ -17,14 +18,14 @@ git tag vX.Y.Z ─push─▶ Release workflow:  test ─▶ build-push (needs: t
                                                   :X.Y.Z  :sha-…  :latest      │
                           ─▶ deploy (needs: build-push): join tailnet ─▶ ssh   │
 RPi:                          Pi `docker compose pull && up -d`  ◀─────────────┘
-     Watchtower (maintained fork) also polls GHCR every 5 min as a fallback.
      (.env with secrets lives only on the Pi; never in git / never on a runner)
 ```
 
-**Primary deploy is push-based** (the `deploy` job): the instant the image is in
-GHCR, the runner joins the tailnet and SSHes into the Pi to `pull && up -d`, so a
-tag deploys within seconds with no poll lag. **Watchtower stays as a fallback
-poller** (e.g. if the Pi was offline when the tag built).
+**Deploy is push-based** (the `deploy` job): the instant the image is in GHCR, the
+runner joins the tailnet and SSHes into the Pi to `pull && up -d`, so a tag deploys
+within seconds with no poll lag. There is **no Watchtower** — if the Pi is offline
+when a tag builds, the `deploy` job fails; re-run it once the Pi is back
+(`gh run rerun <run-id> --failed`) or push a new tag.
 
 **CI gate:** `build-push` `needs: test`, `deploy` `needs: build-push`, and `main`
 is branch-protected on the CI check — so only tested code reaches a tag, a failing
@@ -39,7 +40,6 @@ git tag v1.0.0 && git push origin v1.0.0      # triggers test -> build -> push t
 The `deploy` job copies the current `deploy/docker-compose.yml` to the Pi, then
 SSHes in to `pull && up -d` within seconds of the image being published — so both
 image changes and compose-level changes (new services, image swaps) deploy.
-Watchtower also picks up `:latest` within 5 min as a fallback.
 Roll back by retagging an older image to `:latest`, or pin the Pi to `:vX.Y.Z`.
 
 ## Push-based deploy (one-time secrets setup)
@@ -93,7 +93,7 @@ EOF
 # 4. Seed the store QUIETLY first (the web service has no webhook env, so no Slack
 #    blast for the initial ~20 existing roles), then bring everything up.
 docker compose run --rm web seek
-docker compose --profile scheduler up -d        # web + daily scraper + watchtower (fork)
+docker compose --profile scheduler up -d        # web + daily scraper
 ```
 
 Reachable on the tailnet at **http://dalstonserver.tail824f04.ts.net:8765**.
