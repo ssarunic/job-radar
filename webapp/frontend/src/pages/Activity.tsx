@@ -1,17 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { api } from "../api";
+import { api, fmtRunTs } from "../api";
 
 const CHANGE_ORDER = ["added", "reopened", "updated", "suspected_filled", "closed"];
 const CHANGE_LABEL: Record<string, string> = {
   added: "added", reopened: "reopened", updated: "updated",
   suspected_filled: "susp. filled", closed: "closed",
 };
-
-export function fmtRunTs(ts: string): string {
-  const m = ts.match(/^(\d{4}-\d{2}-\d{2})T(\d{2})(\d{2})(\d{2})Z$/);
-  return m ? `${m[1]} ${m[2]}:${m[3]} UTC` : ts;
-}
 
 export default function Activity() {
   const runs = useQuery({ queryKey: ["runs"], queryFn: () => api("/runs") });

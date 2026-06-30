@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-
 # status values
 OK = "ok"          # postings fetched successfully (may still be 0 PM matches later)
 EMPTY = "empty"    # source reachable but returned no postings at all

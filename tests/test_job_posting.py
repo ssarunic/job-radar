@@ -1,5 +1,5 @@
 """Stable IDs, URL canonicalisation, slug generation (SPEC §6.2)."""
-from models.job_posting import JobPosting, canonical_url, _slugify
+from models.job_posting import JobPosting, _slugify, canonical_url
 
 
 def _jp(**kw):

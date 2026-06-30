@@ -1,5 +1,5 @@
 """Claude trust-boundary validation (review P2) — no network; _ask_json faked."""
-from services.claude_service import ClaudeService, _COMPANY_KEYS
+from services.claude_service import _COMPANY_KEYS, ClaudeService
 
 
 def _svc(resp):

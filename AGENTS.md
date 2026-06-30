@@ -32,3 +32,7 @@ fallback. Store paths resolve through `services/store.py` (honours `JSA_ROOT`).
 **Deployed** via CI/CD (push a `vX.Y.Z` tag → GitHub Actions → arm64 image → GHCR →
 push-deploy over Tailscale SSH) to a Raspberry Pi; the scraper runs daily at 08:00 and
 posts new roles to Slack. See `specs/deploy.md` (and `[[deploy-pipeline]]` memory).
+
+**Lint/test (CI-gated, run before pushing):** `ruff check .` (config in `ruff.toml`;
+broad `except` is an intentional pattern so `BLE` is off), `python -m pytest tests/
+webapp/backend/tests/ -q`, and in `webapp/frontend/`: `npm run lint` (ESLint) + `npm run build`.

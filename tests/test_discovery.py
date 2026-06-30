@@ -13,7 +13,9 @@ class FakeHttp:
         for needle, val in self.mapping.items():
             if needle in url:
                 return val
-        e = HTTPError("404"); e.response = None; raise e
+        e = HTTPError("404")
+        e.response = None
+        raise e
 
 
 class _Resp:

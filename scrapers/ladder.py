@@ -14,7 +14,7 @@ from scrapers.ats.revolut_people import RevolutPeopleFetcher
 from scrapers.ats.talemetry import TalemetryFetcher
 from scrapers.ats.workday import WorkdayFetcher
 from scrapers.playwright_scraper import PlaywrightSession
-from scrapers.result import ListingResult, OK, EMPTY, BLOCKED, ERROR
+from scrapers.result import BLOCKED, EMPTY, ERROR, OK, ListingResult
 
 _API_MODULES = {"greenhouse": greenhouse, "ashby": ashby,
                 "lever": lever, "smartrecruiters": smartrecruiters}

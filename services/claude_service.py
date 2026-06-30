@@ -70,11 +70,13 @@ class ClaudeService:
             "year_founded (YYYY or null). Use '' / null when not stated; do not invent.\n\n"
             + text[:6000])
         data = self._ask_json(prompt)
-        if not data or not isinstance(data.get("description"), str) or not data["description"].strip():
+        if (not data or not isinstance(data.get("description"), str)
+                or not data["description"].strip()):
             return None
         # project to the known schema (drop hallucinated keys; coerce to str/null)
         out = {k: ("" if data.get(k) is None else str(data.get(k, ""))) for k in _COMPANY_KEYS}
-        out["year_founded"] = data.get("year_founded") if isinstance(data.get("year_founded"), int) else None
+        yf = data.get("year_founded")
+        out["year_founded"] = yf if isinstance(yf, int) else None
         return out
 
     def extract_salary(self, text: str) -> dict | None:

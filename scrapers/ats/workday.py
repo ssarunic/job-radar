@@ -15,7 +15,7 @@ import re
 from urllib.parse import urlsplit
 
 from scrapers.htmltext import html_to_markdown
-from scrapers.result import ListingResult, OK, EMPTY
+from scrapers.result import EMPTY, OK, ListingResult
 
 _JSON_HEADERS = {"Accept": "application/json"}
 
