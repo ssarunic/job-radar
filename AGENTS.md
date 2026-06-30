@@ -30,5 +30,5 @@ JSON API → optional Playwright → static HTML) with 7 ATS adapters. Claude is
 fallback. Store paths resolve through `services/store.py` (honours `JSA_ROOT`).
 
 **Deployed** via CI/CD (push a `vX.Y.Z` tag → GitHub Actions → arm64 image → GHCR →
-Watchtower) to a Raspberry Pi over Tailscale; the scraper runs daily at 08:00 and
+push-deploy over Tailscale SSH) to a Raspberry Pi; the scraper runs daily at 08:00 and
 posts new roles to Slack. See `specs/deploy.md` (and `[[deploy-pipeline]]` memory).
