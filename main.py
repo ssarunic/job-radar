@@ -33,7 +33,10 @@ def cli():
 @cli.command()
 @click.option("--only", default=None, help="Process a single company by slug.")
 @click.option("--limit", default=None, type=int, help="Process first N active companies.")
-def seek(only, limit):
+@click.option("--notify-empty/--no-notify-empty", default=False,
+              help="Send an 'all quiet' heartbeat even when no new roles "
+                   "(the daily scheduler passes this).")
+def seek(only, limit, notify_empty):
     """Discover open senior PM roles across the configured companies."""
     settings = load_settings()
     companies = run_service.select_companies(
@@ -42,7 +45,8 @@ def seek(only, limit):
     if not companies:
         click.echo("No active companies match. Check config/companies.csv.")
         return
-    run_service.seek_run(settings, load_profile(), companies, progress=click.echo)
+    run_service.seek_run(settings, load_profile(), companies, progress=click.echo,
+                         notify_empty=notify_empty)
 
 
 def _http():

@@ -64,6 +64,31 @@ def test_notify_no_send_when_no_new_rows():
     assert s.calls == []
 
 
+def test_notify_empty_sends_heartbeat_ntfy():
+    s = _sender()
+    settings = {"notify": {"enabled": True, "provider": "ntfy", "ntfy_topic": "t"}}
+    only_updates = [{"change": "updated", "company": "X", "title": "PM", "location": ""}]
+    sent = notify.notify(only_updates, settings, http=None, sender=s, notify_empty=True,
+                         summary={"companies": 34, "open_total": 28})
+    assert sent is True
+    assert s.calls[0]["title"] == "No new PM roles"
+    assert "No new senior PM roles since yesterday." in s.calls[0]["body"]
+    assert "checked 34 companies" in s.calls[0]["body"]
+
+
+def test_notify_empty_flags_failed_companies():
+    msg = notify.build_heartbeat_message({"companies": 34, "failed": 3})
+    assert "⚠️ 3 failed to load" in msg
+
+
+def test_notify_no_heartbeat_when_notify_empty_false():
+    s = _sender()
+    settings = {"notify": {"enabled": True, "provider": "ntfy", "ntfy_topic": "t"}}
+    only_updates = [{"change": "updated", "company": "X", "title": "PM", "location": ""}]
+    assert notify.notify(only_updates, settings, http=None, sender=s) is False
+    assert s.calls == []
+
+
 def test_notify_requires_topic():
     s = _sender()
     settings = {"notify": {"enabled": True, "provider": "ntfy", "ntfy_topic": ""}}
@@ -136,3 +161,16 @@ def test_notify_slack_requires_webhook(monkeypatch):
     s = _slack_sender()
     settings = {"notify": {"enabled": True, "provider": "slack", "slack_webhook": ""}}
     assert notify.notify(SLACK_DIFF, settings, http=None, sender=s) is False
+
+
+def test_notify_empty_sends_slack_heartbeat():
+    s = _slack_sender()
+    settings = {"notify": {"enabled": True, "provider": "slack",
+                           "slack_webhook": "https://hooks.slack.com/services/XXX"}}
+    only_updates = [{"change": "closed", "company": "Y", "title": "PM", "location": ""}]
+    sent = notify.notify(only_updates, settings, http=None, sender=s, notify_empty=True,
+                         summary={"companies": 34, "open_total": 28})
+    assert sent is True
+    assert s.calls[0]["text"] == "No new senior PM roles since yesterday"
+    assert "All quiet" in s.calls[0]["blocks"][0]["text"]["text"]
+    assert "checked 34 companies" in s.calls[0]["blocks"][1]["text"]["text"]

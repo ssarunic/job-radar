@@ -10,7 +10,9 @@ user_agent: "JobSeekAssistant/0.1 (+personal job search; contact ssarunic@gmail.
 headless: true               # Playwright headless mode
 stealth: true                # playwright-stealth: defeats Cloudflare even headless
 
-# Push notifications — fire only when a run finds new/reopened roles.
+# Push notifications — fire when a run finds new/reopened roles. The daily
+# scheduler also sends an "all quiet" heartbeat on a no-new-roles run (via
+# `seek --notify-empty`), so a silent morning means broken, not nothing-to-report.
 notify:
   enabled: true              # slack provider configured (webhook via $SLACK_WEBHOOK_URL)
   provider: slack            # ntfy | slack

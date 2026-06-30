@@ -63,7 +63,7 @@ def _noop(_msg):
 
 
 def seek_run(settings, base_profile, companies, *, http=None, claude=None,
-             today=None, progress=_noop) -> RunResult:
+             today=None, progress=_noop, notify_empty=False) -> RunResult:
     """Run ladder → pipeline → reconcile → write → index → summary → notify for
     `companies`. `progress(msg)` receives live narration lines (CLI passes
     `click.echo`; web can log or ignore). Returns a `RunResult`."""
@@ -152,7 +152,10 @@ def seek_run(settings, base_profile, companies, *, http=None, claude=None,
 
     notified = False
     try:
-        notified = bool(notify.notify(diff, settings, http))
+        notify_summary = {"companies": stats["companies"], "open_total": n_index,
+                          "failed": stats["blocked"] + stats["errors"]}
+        notified = bool(notify.notify(diff, settings, http,
+                                      notify_empty=notify_empty, summary=notify_summary))
         if notified:
             progress("📲 notification sent")
     except Exception as e:  # noqa: BLE001 — never let notify failure fail the run

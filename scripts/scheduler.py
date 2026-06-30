@@ -41,7 +41,9 @@ def main() -> None:
         print(f"[scheduler] next run {target.isoformat()} (in {wait / 3600:.1f}h)", flush=True)
         time.sleep(max(1.0, wait))
         print(f"[scheduler] running seek {datetime.now(tz).isoformat()}", flush=True)
-        rc = subprocess.run([sys.executable, "main.py", "seek"]).returncode
+        # --notify-empty: the daily run reports "all quiet" when nothing is new,
+        # so a silent morning means broken, not just nothing-to-report.
+        rc = subprocess.run([sys.executable, "main.py", "seek", "--notify-empty"]).returncode
         # Keep the daily cadence on a transient failure, but make a bad run loud
         # (visible in `docker logs`) instead of looking like a normal scheduled run.
         if rc != 0:

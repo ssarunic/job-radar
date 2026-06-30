@@ -1,7 +1,10 @@
 """Push notifications for genuinely-new roles (README §20 / deferred feature).
 
-Fires only when the run's diff contains `added`/`reopened` rows — never for routine
-updates or closures. Providers:
+Fires when the run's diff contains `added`/`reopened` rows — never for routine
+updates or closures. The daily scheduler additionally passes `notify_empty=True`
+so a quiet run still sends an **"all quiet" heartbeat** (so a silent morning means
+"checked, nothing new" rather than "maybe broken"); manual/web seeks stay silent
+when there's nothing new. Providers:
 - **ntfy** (https://ntfy.sh/<topic>): zero setup, plain-text body.
 - **slack**: Incoming Webhook, Block Kit message where each role title **deep-links
   to its web-app detail page** (`web_base_url/jobs/<id>`) so you can open it in the
@@ -80,12 +83,55 @@ def _send_slack(webhook: str, text: str, blocks: list, http) -> None:
     http.post(webhook, json={"text": text, "blocks": blocks})
 
 
-def notify(diff: list[dict], settings: dict, http, sender=None) -> bool:
+# --- "All quiet" heartbeat (no new roles; daily scheduler only) -----------------
+
+def _heartbeat_tail(summary: dict | None) -> str:
+    """Shared trailer: 'checked N companies' plus a failure flag if any failed."""
+    s = summary or {}
+    bits = []
+    if s.get("companies"):
+        bits.append(f"checked {s['companies']} companies")
+    if s.get("open_total"):
+        bits.append(f"{s['open_total']} roles tracked")
+    line = ", ".join(bits)
+    if s.get("failed"):                                   # don't disguise a broken scrape
+        line += (" — " if line else "") + f"⚠️ {s['failed']} failed to load"
+    return line
+
+
+def build_heartbeat_message(summary: dict | None = None) -> str:
+    tail = _heartbeat_tail(summary)
+    return "No new senior PM roles since yesterday." + (f" ({tail})" if tail else "")
+
+
+def build_slack_heartbeat(summary: dict | None = None):
+    """Return (fallback_text, Block Kit blocks) for a no-new-roles heartbeat."""
+    text = "No new senior PM roles since yesterday"
+    body = "No new or reopened roles since yesterday."
+    tail = _heartbeat_tail(summary)
+    if tail:
+        body += f"\n_{tail}._"
+    blocks = [
+        {"type": "header",
+         "text": {"type": "plain_text", "text": "✅ All quiet — no new roles", "emoji": True}},
+        {"type": "section", "text": {"type": "mrkdwn", "text": body}},
+    ]
+    return text, blocks
+
+
+def notify(diff: list[dict], settings: dict, http, sender=None,
+           *, notify_empty: bool = False, summary: dict | None = None) -> bool:
     """Send a notification if enabled and there are new/reopened roles.
+
+    With `notify_empty=True` (the daily scheduler), also send an "all quiet"
+    heartbeat when there are no new roles. `summary` supplies the heartbeat's
+    counts (companies checked, roles tracked, companies that failed to load).
     Returns True if a notification was sent."""
     cfg = settings.get("notify") or {}
     rows = new_rows(diff)
-    if not cfg.get("enabled") or not rows:
+    if not cfg.get("enabled"):
+        return False
+    if not rows and not notify_empty:
         return False
     provider = (cfg.get("provider") or "ntfy").lower()
 
@@ -93,8 +139,11 @@ def notify(diff: list[dict], settings: dict, http, sender=None) -> bool:
         topic = cfg.get("ntfy_topic")
         if not topic:
             return False
-        title = f"{len(rows)} new PM role(s)"
-        (sender or _send_ntfy)(_ntfy_url(topic), title, build_message(diff), http)
+        if rows:
+            title, body = f"{len(rows)} new PM role(s)", build_message(diff)
+        else:
+            title, body = "No new PM roles", build_heartbeat_message(summary)
+        (sender or _send_ntfy)(_ntfy_url(topic), title, body, http)
         return True
 
     if provider == "slack":
@@ -102,7 +151,10 @@ def notify(diff: list[dict], settings: dict, http, sender=None) -> bool:
         if not webhook:
             return False
         web_base_url = settings.get("web_base_url") or os.environ.get("WEB_BASE_URL", "")
-        text, blocks = build_slack_blocks(diff, web_base_url)
+        if rows:
+            text, blocks = build_slack_blocks(diff, web_base_url)
+        else:
+            text, blocks = build_slack_heartbeat(summary)
         (sender or _send_slack)(webhook, text, blocks, http)
         return True
 
