@@ -1,6 +1,6 @@
 # Activity search (content search over run history)
 
-**Status**: 🚧 Active development
+**Status**: ✅ Complete
 **Created**: 2026-07-01
 **Updated**: 2026-07-01
 **Priority**: Low (small UX gain; completes the "search-first list pages" theme)
@@ -112,3 +112,17 @@ server (search "monzo" → only matching runs).
 
 Fully revertable — additive `q` param (default `None` = today's behaviour) + one frontend
 page. No schema/data changes. Revert the commit(s) to restore.
+
+## Outcome
+
+Built as planned, no deviations.
+- **Backend** ([`webapp/backend/app.py`](../webapp/backend/app.py)): `list_runs(limit, q=None)`
+  + `_run_matches()` — server-side filter (reuses `_read_run`'s changes) returning ≤5
+  `Company: Title` snippets. Additive; `q` absent = prior behaviour.
+- **Frontend** ([`Activity.tsx`](../webapp/frontend/src/pages/Activity.tsx)): search box
+  (queryKey `["runs", q]`), matched-snippet line per run, "No runs match." empty state.
+- **Tests:** `test_runs_content_search` (company + title match, snippets, no-match, no-q).
+  268 tests pass; ruff + eslint clean. Live-verified: `?q=monzo` → 1 run w/ snippets.
+
+Branch `feature/activity-search`; anchor commit `959b69b`, implementation `7addbc9`.
+No follow-ups except the deferred RunDetail highlight (Non-goals).
