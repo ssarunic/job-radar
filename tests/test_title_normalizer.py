@@ -28,6 +28,12 @@ PROFILE = {
     ("Staff Product Manager", 5, "Staff Product Manager"),          # Staff = Principal tier
     ("Staff Product Manager - AI - Remote EMEA", 5, "Staff Product Manager"),
     ("Group Product Manager", 4, "Group Product Manager"),
+    ("Product Lead, EMEA Payments", 4, "Product Lead"),             # bare Lead = Group tier
+    ("Product Leader - Payments", 4, "Product Lead"),
+    ("Principal Product Lead", 5, "Principal Product Manager"),
+    # seniority word not adjacent to "product" — still caught by prefix
+    ("Executive Director, Product Lead – Merchant Services", 7, "Director of Product"),
+    ("Payments - Product Lead - Merchant services EMEA - Vice President", 8, "VP Product"),
     ("Senior Product Manager", 3, "Senior Product Manager"),
     ("Sr. Product Manager", 3, "Senior Product Manager"),
 ])
