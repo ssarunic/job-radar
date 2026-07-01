@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { api, apiSend } from "../api";
+import Modal from "../components/Modal";
 
 type Company = {
   name: string;
@@ -15,62 +16,39 @@ type Company = {
 
 export default function Companies() {
   const qc = useQueryClient();
-  const [query, setQuery] = useState("");
-  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+  const [search, setSearch] = useState("");
+  const [adding, setAdding] = useState(false);
 
   const companies = useQuery({ queryKey: ["companies"], queryFn: () => api("/companies") });
-
-  const refresh = () => {
-    qc.invalidateQueries({ queryKey: ["companies"] });
-    qc.invalidateQueries({ queryKey: ["stats"] });
-  };
-
-  const follow = useMutation({
-    mutationFn: (q: string) => apiSend("/companies", "POST", { query: q }),
-    onSuccess: (data) => {
-      const c = data.company;
-      const found = data.scanned
-        ? ` — ${c.open_roles} open role${c.open_roles === 1 ? "" : "s"} found`
-        : "";
-      setMsg({ kind: "ok", text: `Following ${c.name} via ${c.ats_type}${found}.` });
-      setQuery("");
-      refresh();
-    },
-    onError: (e: Error) => setMsg({ kind: "err", text: e.message }),
-  });
 
   const toggle = useMutation({
     mutationFn: (v: { slug: string; active: boolean }) =>
       apiSend(`/companies/${v.slug}`, "PATCH", { active: v.active }),
-    onSuccess: () => refresh(),
-    onError: (e: Error) => setMsg({ kind: "err", text: e.message }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["companies"] }),
   });
 
-  const rows: Company[] = companies.data?.companies ?? [];
+  const q = search.trim().toLowerCase();
+  const rows: Company[] = (companies.data?.companies ?? []).filter(
+    (c) =>
+      !q ||
+      c.name.toLowerCase().includes(q) ||
+      (c.ats_type ?? "").toLowerCase().includes(q) ||
+      c.slug.toLowerCase().includes(q),
+  );
   const active = rows.filter((c) => c.active);
   const inactive = rows.filter((c) => !c.active);
 
   return (
     <div className="page">
-      <form
-        className="filters"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (query.trim()) follow.mutate(query.trim());
-        }}
-      >
+      <div className="filters">
         <input
-          placeholder="Add a company — name or careers URL…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search companies…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
           style={{ flex: 1 }}
         />
-        <button type="submit" disabled={follow.isPending || !query.trim()}>
-          {follow.isPending ? "Scanning…" : "Follow"}
-        </button>
-      </form>
-
-      {msg && <p className={msg.kind === "ok" ? "muted" : "error"}>{msg.text}</p>}
+        <button onClick={() => setAdding(true)}>+ Follow</button>
+      </div>
 
       {companies.isLoading && <p className="muted">Loading…</p>}
       {companies.data && (
@@ -86,10 +64,62 @@ export default function Companies() {
           {inactive.map((c) => (
             <CompanyRow key={c.slug} c={c} onToggle={toggle.mutate} busy={toggle.isPending} />
           ))}
-          {rows.length === 0 && <p className="muted empty">No companies tracked yet.</p>}
+          {rows.length === 0 && (
+            <p className="muted empty">{q ? "No companies match." : "No companies tracked yet."}</p>
+          )}
         </div>
       )}
+
+      {adding && <FollowModal onClose={() => setAdding(false)} />}
     </div>
+  );
+}
+
+function FollowModal({ onClose }: { onClose: () => void }) {
+  const qc = useQueryClient();
+  const [query, setQuery] = useState("");
+  const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
+
+  const follow = useMutation({
+    mutationFn: (val: string) => apiSend("/companies", "POST", { query: val }),
+    onSuccess: (data) => {
+      const c = data.company;
+      const found = data.scanned
+        ? ` — ${c.open_roles} open role${c.open_roles === 1 ? "" : "s"} found`
+        : "";
+      setMsg({ kind: "ok", text: `Following ${c.name} via ${c.ats_type}${found}.` });
+      setQuery("");
+      qc.invalidateQueries({ queryKey: ["companies"] });
+      qc.invalidateQueries({ queryKey: ["stats"] });
+    },
+    onError: (e: Error) => setMsg({ kind: "err", text: e.message }),
+  });
+
+  return (
+    <Modal title="Follow a company" onClose={onClose}>
+      <form
+        className="filters"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (query.trim()) follow.mutate(query.trim());
+        }}
+      >
+        <input
+          autoFocus
+          placeholder="Company name or careers URL…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          style={{ flex: 1 }}
+        />
+        <button type="submit" disabled={follow.isPending || !query.trim()}>
+          {follow.isPending ? "Scanning…" : "Follow"}
+        </button>
+      </form>
+      {msg && <p className={msg.kind === "ok" ? "muted" : "error"}>{msg.text}</p>}
+      <p className="muted" style={{ fontSize: 13, marginTop: 4 }}>
+        Name auto-detects the ATS; for Workday/Oracle/Recruitee, paste the careers URL.
+      </p>
+    </Modal>
   );
 }
 
@@ -118,7 +148,7 @@ function CompanyRow({
         <button
           disabled={busy}
           onClick={(e) => {
-            e.stopPropagation();          // don't navigate when toggling
+            e.stopPropagation();
             onToggle({ slug: c.slug, active: !c.active });
           }}
         >
