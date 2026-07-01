@@ -56,7 +56,7 @@ keep cost low (~$15–30 for 300 companies vs $150+ pure-API).
 
 These are the non-obvious rules the implementation must encode (README §11–15). They drive most of the business logic:
 
-- **Seniority ranking** (numeric): CPO 9, VP 8, Director 7, Head 6, EIR ~6, Principal 5, Group 4, Senior 3, Product Manager/Mid 2, Product Owner 2 (→3 if title contains senior/lead). **Keep a role only if rank ≥ 3**, OR it's a Product Owner and `include product owner` is true.
+- **Seniority ranking** (numeric): CPO 9, VP 8, Director 7, Head 6, EIR ~6, Principal 5, Staff 5, Group 4, Product Lead(er) 4, Senior 3, Product Manager/Mid 2, Product Owner 2 (→3 if title contains senior/lead). "Product Lead" ranks Group-tier bare, but VP/Director-prefixed forms rank up even when the seniority word isn't adjacent to "product" (e.g. "…Product Lead… Vice President" → VP). **Keep a role only if rank ≥ 3**, OR it's a Product Owner and `include product owner` is true.
 - **Title exclusions**: drop titles containing marketing/growth marketing/brand (unless a second distinct title matches a PM pattern exactly), and people-ops/HR/talent/design-only roles.
 - **Employment type**: exclude Contract — keep only Full time / Part time.
 - **Salary**: never convert currency. Detect symbol/code, extract min/max (single number → both), always preserve the original text in `SalaryOriginalText`. Bonus mentioned → `CompensationType = Base+Bonus`.

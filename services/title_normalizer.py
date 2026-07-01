@@ -9,15 +9,22 @@ from typing import Optional
 # Order matters: first match wins, so seniority descends and Principal precedes Group.
 PATTERNS = [
     (r"\b(cpo|chief product officer)\b", "Chief Product Officer", "C Level", 9),
-    (r"\b(?:svp|vp|vice president)\b,?\s+(?:of\s+)?product\b", "VP Product", "VP", 8),
-    (r"\bdirector of product\b|\bproduct director\b|\bdirector\b,?\s+product management\b",
+    (r"\b(?:svp|vp|vice president)\b,?\s+(?:of\s+)?product\b"
+     r"|\b(?:svp|vp|vice president)\b.*\bproduct (?:lead|leader)\b"
+     r"|\bproduct (?:lead|leader)\b.*\b(?:svp|vp|vice president)\b", "VP Product", "VP", 8),
+    (r"\bdirector of product\b|\bproduct director\b|\bdirector\b,?\s+product management\b"
+     r"|\bdirector\b.*\bproduct (?:lead|leader)\b|\bproduct (?:lead|leader)\b.*\bdirector\b",
      "Director of Product", "Director", 7),
     (r"\bhead of product\b|\bhead\b,?\s+product\b", "Head of Product", "Head", 6),
     (r"\b(entrepreneur in residence|eir)\b", "Entrepreneur in Residence", "Head", 6),
-    (r"\bprincipal\b.*\bproduct (?:manager|management|owner)\b",
+    (r"\bprincipal\b.*\bproduct (?:manager|management|owner|lead|leader)\b",
      "Principal Product Manager", "Principal", 5),
-    (r"\bstaff\b.*\bproduct manager\b", "Staff Product Manager", "Staff", 5),
+    (r"\bstaff\b.*\bproduct (?:manager|lead|leader)\b", "Staff Product Manager", "Staff", 5),
     (r"\bgroup\b.*\bproduct manager\b", "Group Product Manager", "Group", 4),
+    # "Product Lead(er)" — a senior area owner. Bare form ranks Group-tier (4); VP/
+    # Director-prefixed forms are caught above even when the seniority word isn't
+    # adjacent to "product" (e.g. "…Product Lead… Vice President").
+    (r"\bproduct (?:lead|leader)\b", "Product Lead", "Lead", 4),
     (r"\bsenior\b.*\bproduct manager\b|\bsr\.?\s+product manager\b",
      "Senior Product Manager", "Senior", 3),
     (r"\bproduct manager\b", "Product Manager", "Mid", 2),
