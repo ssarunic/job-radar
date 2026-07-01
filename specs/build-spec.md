@@ -47,6 +47,12 @@ roles. See `specs/webapp/tactical.md` (Phases 3–4).
 multi-stage Docker + Compose, push-deploy over Tailscale SSH to the Raspberry Pi, in-container 08:00
 daily scheduler (`scripts/scheduler.py`), and a Workday UK location facet — see `specs/deploy.md`.
 
+**Built since:** Oracle Recruiting Cloud adapter (8th ATS) — `scrapers/ats/oracle.py`
+for Oracle Fusion HCM "Candidate Experience" (`*.fa.*.oraclecloud.com`, e.g. JP
+Morgan), verified live (JPMC 7005 global → UK facet → 10 senior-PM roles kept). Plus
+repo-wide linting: Ruff (Python) + ESLint (frontend), CI-gated. See
+`specs/oracle-adapter.md`.
+
 **Still out of scope** (deferred): Telegram/email notifiers, XLSX export, fit scoring,
 web-app write-back (edit notes / mark applied), GitHub branch protection (needs Pro on private repos).
 
@@ -94,7 +100,7 @@ One row per company. CSV is fine here (flat, hand-edited).
 | `name` | yes | NatWest | display name |
 | `slug` | yes | natwest | folder name under `jobs/`; lowercase, kebab |
 | `careers_url` | yes | https://jobs.natwestgroup.com/search/searchjobs | listing/search page |
-| `ats_type` | no | greenhouse \| lever \| ashby \| workday \| smartrecruiters \| custom \| auto | `auto` ⇒ detect (§4.1) |
+| `ats_type` | no | greenhouse \| lever \| ashby \| workday \| smartrecruiters \| talemetry \| revolutpeople \| oracle \| custom \| auto | `auto` ⇒ detect (§4.1) |
 | `ats_slug` | no | natwest | the org identifier the ATS API expects, if different from `slug` |
 | `priority` | no | high | ordering only |
 | `active` | no | true | `false` ⇒ skipped without deleting the row |
@@ -175,6 +181,7 @@ Detection (`ats_type: auto`): fetch `careers_url`, inspect final URL/host and pa
 | SmartRecruiters | `careers/jobs.smartrecruiters.com` | `https://api.smartrecruiters.com/v1/companies/{ats_slug}/postings?q=product` + per-posting detail (`/postings/{id}` sections) |
 | Workday | host contains `myworkdayjobs.com` | `POST {tenant}.wdN.myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs` (limit≤20) + per-posting detail (`GET cxs{externalPath}` → description, real date, employment type) |
 | Talemetry (Jobvite/Radancy) | `Talemetry` in 404 page / `search_type=talemetry` XHR | `{origin}/search/jobs.json?search_type=talemetry&q=...&per_page=100&page=N` |
+| Oracle ORC (Fusion CE) | host `*.fa.*.oraclecloud.com` + `/hcmUI/CandidateExperience/…/sites/{SITE}/` | `GET {host}/hcmRestApi/resources/latest/recruitingCEJobRequisitions?expand=requisitionList&finder=findReqs;siteNumber={SITE},selectedLocationsFacet={UK},limit=100,offset=N` + per-posting detail (`recruitingCEJobRequisitionDetails` → `ExternalDescriptionStr`). Country-level UK location facet discovered first to collapse volume — see `oracle-adapter.md` |
 
 This rung handles most companies and is immune to HTML redesigns. Prefer it whenever possible.
 **Empirically, of 30 target companies: 10 Greenhouse, 14 Ashby, 1 Lever, 1 SmartRecruiters, 2 Workday, 1 Talemetry, 1 needs work (Google).** Ashby is the modern AI-startup default. `scratchpad/probe_ats.py` detects a company's ATS by trying each API against candidate slugs.

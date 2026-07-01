@@ -40,8 +40,9 @@ this split is deliberate, keep it.
   (`## My notes`, `status: applied`). Store paths resolve via `services/store.py`
   (honours `JSA_ROOT`); writes go through `store.atomic_write_text` (temp+replace).
 - **Fetching = scraping ladder**: ATS JSON API → optional Playwright → static HTML,
-  with 7 ATS adapters (Greenhouse, Ashby, Lever, SmartRecruiters, Workday,
-  Talemetry, RevolutPeople). Talemetry uses `curl_cffi` (browser-free Cloudflare).
+  with 8 ATS adapters (Greenhouse, Ashby, Lever, SmartRecruiters, Workday,
+  Talemetry, RevolutPeople, Oracle). Talemetry uses `curl_cffi` (browser-free Cloudflare);
+  Oracle Recruiting Cloud (`*.fa.*.oraclecloud.com`) — see `specs/oracle-adapter.md`.
 - **Claude** (`services/claude_service.py`): title classification, salary/comp
   extraction, company summarization. **Off by default**; always falls back to
   regex/heuristics; responses are validated/projected to a known schema.

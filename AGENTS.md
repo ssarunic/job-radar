@@ -25,7 +25,7 @@ Python CLI (`main.py`, Click) + a uv/FastAPI + React web app (`webapp/`). Two
 modes: **seek** (find/rank senior PM roles) and **enrich** (company facts).
 Canonical store is **Markdown with frontmatter** (`jobs/<company>/<role>--<id>.md`);
 `data/jobs.jsonl` is a derived index. Fetching uses a **scraping ladder** (ATS
-JSON API → optional Playwright → static HTML) with 7 ATS adapters. Claude is used
+JSON API → optional Playwright → static HTML) with 8 ATS adapters. Claude is used
 **only** for fuzzy parsing and is **off by default**, always with a heuristic
 fallback. Store paths resolve through `services/store.py` (honours `JSA_ROOT`).
 
