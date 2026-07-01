@@ -16,6 +16,7 @@ PATTERNS = [
     (r"\b(entrepreneur in residence|eir)\b", "Entrepreneur in Residence", "Head", 6),
     (r"\bprincipal\b.*\bproduct (?:manager|management|owner)\b",
      "Principal Product Manager", "Principal", 5),
+    (r"\bstaff\b.*\bproduct manager\b", "Staff Product Manager", "Staff", 5),
     (r"\bgroup\b.*\bproduct manager\b", "Group Product Manager", "Group", 4),
     (r"\bsenior\b.*\bproduct manager\b|\bsr\.?\s+product manager\b",
      "Senior Product Manager", "Senior", 3),
