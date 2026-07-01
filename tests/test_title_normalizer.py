@@ -25,6 +25,8 @@ PROFILE = {
     ("Head, Product", 6, "Head of Product"),                  # #6: was missed
     ("Head of Product Management", 6, "Head of Product"),
     ("Principal Product Manager", 5, "Principal Product Manager"),
+    ("Staff Product Manager", 5, "Staff Product Manager"),          # Staff = Principal tier
+    ("Staff Product Manager - AI - Remote EMEA", 5, "Staff Product Manager"),
     ("Group Product Manager", 4, "Group Product Manager"),
     ("Senior Product Manager", 3, "Senior Product Manager"),
     ("Sr. Product Manager", 3, "Senior Product Manager"),

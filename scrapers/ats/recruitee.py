@@ -41,6 +41,19 @@ def _location(o: dict) -> str:
     return composed or (o.get("location") or "").strip()
 
 
+def _salary_text(sal) -> str:
+    """Recruitee's `salary` is a dict {min,max,period,currency} (often all null), not
+    a string — coerce so the downstream salary parser gets text, never a dict."""
+    if isinstance(sal, str):
+        return sal
+    if isinstance(sal, dict):
+        lo, hi, cur = sal.get("min"), sal.get("max"), (sal.get("currency") or "")
+        if lo or hi:
+            rng = f"{lo}" if lo == hi else f"{lo}–{hi}"
+            return f"{cur} {rng}".strip()
+    return ""
+
+
 def _markdown(o: dict) -> str:
     parts = [html_to_markdown(o.get("description", ""))]
     req = html_to_markdown(o.get("requirements", ""))
@@ -57,7 +70,7 @@ def _map(o: dict) -> dict:
         "posted_date": o.get("published_at") or o.get("created_at"),
         "description": _markdown(o),
         "employment_type": _employment(o.get("employment_type_code")),
-        "salary_text": o.get("salary") or "",
+        "salary_text": _salary_text(o.get("salary")),
         "source_type": "ATS",
         "source_detail": "Recruitee",
     }

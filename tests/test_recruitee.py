@@ -1,5 +1,10 @@
 """Recruitee adapter — network-free, against a canned JSON client."""
-from scrapers.ats.recruitee import RecruiteeFetcher, _employment, _location
+from scrapers.ats.recruitee import (
+    RecruiteeFetcher,
+    _employment,
+    _location,
+    _salary_text,
+)
 from scrapers.ladder import detect_ats
 from scrapers.result import EMPTY, OK
 from services import discovery
@@ -64,6 +69,12 @@ def test_remote_location_keeps_country():
 
 def test_onsite_location_composed_from_city_country():
     assert _location(LONDON_ROLE) == "London, United Kingdom"
+
+
+def test_salary_dict_coerced_to_string():
+    assert _salary_text({"max": None, "min": None, "period": None, "currency": None}) == ""
+    assert _salary_text({"min": 50000, "max": 70000, "currency": "EUR"}) == "EUR 50000–70000"
+    assert _salary_text("£90k") == "£90k"
 
 
 def test_employment_code_mapping():
