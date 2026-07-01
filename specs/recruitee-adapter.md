@@ -18,10 +18,13 @@ Each offer carries everything inline — **no detail call needed**:
 description (HTML), requirements (HTML), employment_type_code, published_at,
 created_at, department, status}`.
 
-## Mapping (`scrapers/ats/recruitee.py`, mirrors `lever.py`)
+## Adapter (`scrapers/ats/recruitee.py`)
 
-A module with `fetch_listing(ats_slug, http)` (registered in `_API_MODULES`; inline
-descriptions ⇒ no `NEEDS_DETAIL`):
+A dedicated **`RecruiteeFetcher`** class (its own rung, like Workday/Oracle — *not* an
+`_API_MODULES` module, because it derives the API base from the careers URL rather than
+an ATS slug). Custom domains **proxy** `/api/offers/`, so the fetcher hits
+**`{careers_origin}/api/offers/`** — no tenant-slug resolution. Inline descriptions ⇒
+`needs_detail = False`. Per offer:
 
 - **description** = markdownified `description` + `## Requirements` from `requirements`.
 - **location** — Recruitee's `location` is often the generic "Remote job"; compose a
@@ -30,24 +33,29 @@ descriptions ⇒ no `NEEDS_DETAIL`):
 - **employment_type** — map `employment_type_code` (`fulltime_permanent → Full time`,
   `parttime* → Part time`, `contract`/`temporary`/`internship`/`freelance → Contract`)
   so the Contract exclusion works.
+- **salary** — Recruitee's `salary` is a **dict** `{min,max,period,currency}` (often all
+  null), *not* a string; coerced to text via `_salary_text` so the salary parser never
+  gets a dict.
 - **posted_date** = `published_at` or `created_at`. **url** = `careers_url`.
 - Skip offers whose `status` is set and not `published`.
 
 ## Detection & discovery
 
-- **Direct** `{slug}.recruitee.com`: `detect_ats` marker + `discovery._from_url`
-  (`slug = host.split(".")[0]`).
-- **Custom domains** (`careers.hostaway.com`): the host has no `recruitee` marker, but
-  the page **body does** — `detect_ats` already body-probes (like Talemetry). The real
-  Recruitee tenant slug isn't in the custom URL, so `discovery._from_url` fetches the
-  page and extracts it via `([a-z0-9-]+)\.recruitee\.com` → sets `ats_slug`. (Name-probe
-  can't find Recruitee; add via the careers URL.)
+- **Direct** `{slug}.recruitee.com`: `detect_ats` marker + `discovery._from_url`.
+- **Custom domains** (`careers.hostaway.com`): the host has no `recruitee` marker, but the
+  page **body does** — `detect_ats` / `discovery` body-probe for it (like Talemetry). **No
+  tenant-slug resolution** is needed (the slug isn't even on custom-domain pages — only a
+  `careers-analytics` tracking subdomain); the fetcher uses the careers-URL origin, and the
+  discovered name is the domain's SLD (`careers.hostaway.com` → "Hostaway"). Name-probe
+  can't find Recruitee — add via the careers URL.
 
 ## Wiring
 
-- `scrapers/ladder.py`: import + add `recruitee` to `_API_MODULES`; add
-  `("recruitee", "recruitee")` to `detect_ats` markers.
-- `services/discovery.py`: `_from_url` recruitee branches (direct host + body-extract).
+- `scrapers/ladder.py`: import `RecruiteeFetcher`; add `("recruitee", "recruitee")` to
+  `detect_ats` markers; add an `if ats == "recruitee": [(True, RecruiteeFetcher), …]` rung
+  (**not** `_API_MODULES` — it's a class fetcher).
+- `services/discovery.py`: `_from_url` recruitee branches (direct host + custom-domain
+  body-probe → `mk("recruitee", "", careers=url)`, SLD-derived name).
 
 ## Tests
 

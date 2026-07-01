@@ -20,7 +20,8 @@ deliberately rather than letting code drift from it.
   spec for the `seek`/`enrich` pipeline (predates this structure; treated as the core
   feature's combined strategy+tactical). Domain rules still live in the root `README.md`.
 - **Web app:** [`webapp/outcomes.md`](webapp/outcomes.md) · [`webapp/strategy.md`](webapp/strategy.md) · [`webapp/tactical.md`](webapp/tactical.md)
-- **Feature specs:** [`company-management.md`](company-management.md) · [`oracle-adapter.md`](oracle-adapter.md) · [`recruitee-adapter.md`](recruitee-adapter.md) · [`activity-search.md`](activity-search.md) ✅
+- **Web features:** [`company-management.md`](company-management.md) · [`web-refresh-and-activity.md`](web-refresh-and-activity.md) · [`activity-search.md`](activity-search.md) · [`notifications.md`](notifications.md)
+- **ATS adapters:** [`oracle-adapter.md`](oracle-adapter.md) · [`recruitee-adapter.md`](recruitee-adapter.md) · [`revolut-people-adapter.md`](revolut-people-adapter.md)  (the JSON-API adapters — greenhouse/ashby/lever/smartrecruiters/workday/talemetry — are covered in `build-spec.md` §4.1)
 
 ## Conventions
 - New design/spec docs **always** go under `specs/` (never the repo root).

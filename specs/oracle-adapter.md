@@ -7,8 +7,9 @@
 
 ## Why
 
-The scraping ladder supports 7 ATS (Greenhouse, Ashby, Lever, SmartRecruiters,
-Workday, Talemetry, RevolutPeople) — **not Oracle**. JP Morgan's careers site
+At the time this was written the scraping ladder supported 7 ATS (Greenhouse, Ashby,
+Lever, SmartRecruiters, Workday, Talemetry, RevolutPeople) — **not Oracle** (Recruitee
+was added after). JP Morgan's careers site
 (`https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/jobs`)
 is Oracle ORC, so today `follow` can't detect it and nothing can fetch it.
 

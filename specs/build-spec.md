@@ -186,6 +186,7 @@ Detection (`ats_type: auto`): fetch `careers_url`, inspect final URL/host and pa
 | SmartRecruiters | `careers/jobs.smartrecruiters.com` | `https://api.smartrecruiters.com/v1/companies/{ats_slug}/postings?q=product` + per-posting detail (`/postings/{id}` sections) |
 | Workday | host contains `myworkdayjobs.com` | `POST {tenant}.wdN.myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs` (limit≤20) + per-posting detail (`GET cxs{externalPath}` → description, real date, employment type) |
 | Talemetry (Jobvite/Radancy) | `Talemetry` in 404 page / `search_type=talemetry` XHR | `{origin}/search/jobs.json?search_type=talemetry&q=...&per_page=100&page=N` |
+| RevolutPeople | host contains `revolutpeople.com` | `GET https://revolutpeople.com/api/{tenant}/external/v3/postings?page=N` (structured `locations[]`) + per-posting detail (`…/v2/postings/{id}` → description). e.g. Cleo — see `revolut-people-adapter.md` |
 | Oracle ORC (Fusion CE) | host `*.fa.*.oraclecloud.com` + `/hcmUI/CandidateExperience/…/sites/{SITE}/` | `GET {host}/hcmRestApi/resources/latest/recruitingCEJobRequisitions?expand=requisitionList&finder=findReqs;siteNumber={SITE},selectedLocationsFacet={UK},limit=100,offset=N` + per-posting detail (`recruitingCEJobRequisitionDetails` → `ExternalDescriptionStr`). Country-level UK location facet discovered first to collapse volume — see `oracle-adapter.md` |
 | Recruitee | host `{slug}.recruitee.com`, or `recruitee` in the page body (custom domain) | `GET {careers_origin}/api/offers/` — descriptions inline (custom domains proxy the API, so no tenant-slug resolution) — see `recruitee-adapter.md` |
 
@@ -401,7 +402,7 @@ job-search-assistant/
 ├── models/                        # JobPosting dataclass
 ├── scrapers/
 │   ├── ladder.py                  # orchestrates rungs 1–3
-│   ├── ats/{greenhouse,lever,ashby,workday,smartrecruiters}.py
+│   ├── ats/{greenhouse,lever,ashby,workday,smartrecruiters,talemetry,revolut_people,oracle,recruitee}.py
 │   ├── playwright_scraper.py
 │   ├── static_scraper.py
 │   └── rate_limiter.py
@@ -449,9 +450,12 @@ The one-shot is driven on a schedule by the OS (no long-running Python loop):
 
 **Notifications** (`outputs/notify.py`): after a run, if `notify.enabled` and the diff contains
 `added`/`reopened` rows, push a message listing the new roles. Never fires for routine
-updates/closures; never fails the run (wrapped). Configure under `notify:` in
-`config/settings.yaml`. The send is injectable, so providers are unit-tested without network.
-Providers:
+updates/closures; never fails the run (wrapped). **The daily scheduler additionally passes
+`notify_empty=True`, so a no-new-roles run still sends an "all quiet" heartbeat** ("No new
+senior PM roles since yesterday", with companies-checked/tracked counts and a "⚠️ N failed
+to load" flag) — a silent morning means broken, not nothing-new. Manual/web seeks stay quiet
+on empty. Configure under `notify:` in `config/settings.yaml`. The send is injectable, so
+providers are unit-tested without network. See `notifications.md`. Providers:
 - **ntfy** (`https://ntfy.sh/<topic>` — zero setup, install the app, subscribe to the topic):
   plain-text body.
 - **slack** — Incoming Webhook (`notify.slack_webhook`, or `$SLACK_WEBHOOK_URL` if blank).
