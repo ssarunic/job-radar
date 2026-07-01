@@ -235,19 +235,39 @@ def _read_run(ts: str) -> Optional[dict]:
     return {"ts": ts, "changes": changes, "summary": summary}
 
 
+def _run_matches(changes: list, q: str) -> list:
+    """Deduped 'Company: Title' snippets whose company+title contains q (max 5)."""
+    out, seen = [], set()
+    for c in changes:
+        blob = f"{c.get('company', '')} {c.get('title', '')}".lower()
+        if q in blob:
+            snip = f"{c.get('company', '')}: {c.get('title', '')}".strip(": ")
+            if snip and snip not in seen:
+                seen.add(snip)
+                out.append(snip)
+    return out[:5]
+
+
 @app.get("/api/runs")
-def list_runs(limit: int = 50):
+def list_runs(limit: int = 50, q: Optional[str] = None):
     rd = store.runs_dir()
     if not rd.exists():
         return {"count": 0, "runs": []}
+    ql = (q or "").strip().lower()
     names = sorted((p.name for p in rd.iterdir() if p.is_dir() and _TS_RE.match(p.name)),
                    reverse=True)[:limit]
     runs = []
     for ts in names:
         run = _read_run(ts)
-        if run is not None:
-            runs.append({"ts": ts, "counts": _run_counts(run["changes"]),
-                         "total": len(run["changes"])})
+        if run is None:
+            continue
+        row = {"ts": ts, "counts": _run_counts(run["changes"]), "total": len(run["changes"])}
+        if ql:                                   # content search: keep only matching runs
+            matched = _run_matches(run["changes"], ql)
+            if not matched:
+                continue
+            row["matched"] = matched
+        runs.append(row)
     return {"count": len(runs), "runs": runs}
 
 

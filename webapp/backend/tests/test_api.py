@@ -303,3 +303,21 @@ def test_runs_list_and_detail(client, tmp_path):
 def test_run_detail_404_and_bad_ts(client):
     assert client.get("/api/runs/2026-01-01T000000Z").status_code == 404   # well-formed, absent
     assert client.get("/api/runs/not-a-ts").status_code == 404             # rejected by ts regex
+
+
+def test_runs_content_search(client, tmp_path):
+    _write_run(tmp_path, "2026-06-30T120000Z", [
+        {"change": "added", "company": "Monzo", "title": "Senior Product Manager", "location": "L"},
+    ])
+    _write_run(tmp_path, "2026-06-29T120000Z", [
+        {"change": "added", "company": "Wise", "title": "Principal PM", "location": "London"},
+    ])
+    # q filters to the matching run (case-insensitive, company or title) + returns snippets
+    r = client.get("/api/runs?q=monzo").json()
+    assert r["count"] == 1 and r["runs"][0]["ts"] == "2026-06-30T120000Z"
+    assert r["runs"][0]["matched"] == ["Monzo: Senior Product Manager"]
+    # title match works too
+    assert client.get("/api/runs?q=principal").json()["runs"][0]["ts"] == "2026-06-29T120000Z"
+    # no match → empty; no q → all runs, no `matched` key
+    assert client.get("/api/runs?q=nope").json()["count"] == 0
+    assert "matched" not in client.get("/api/runs").json()["runs"][0]
