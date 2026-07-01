@@ -83,6 +83,8 @@ def _from_url(url: str, http=None) -> dict | None:
         return mk("workday", "", careers=url, name=host.split(".")[0].title())
     if "oraclecloud" in host:   # Oracle ORC — tenant subdomain is the name hint
         return mk("oracle", "", careers=url, name=host.split(".")[0].upper())
+    if "recruitee.com" in host:                 # {slug}.recruitee.com (origin proxies the API)
+        return mk("recruitee", "", careers=url, name=host.split(".")[0].title())
 
     # Unrecognised host: body-probe for an embedded ATS (esp. Talemetry, which has
     # no host marker). Cloudflare-protected sites (e.g. NatWest) will 403 here and
@@ -96,6 +98,10 @@ def _from_url(url: str, http=None) -> dict | None:
                 return mk("talemetry", "", careers=origin, name=nm)
             if "myworkdayjobs" in body:
                 return mk("workday", "", careers=url, name=nm)
+            if "recruitee" in body:   # custom domain (careers.hostaway.com) proxies the API
+                labels = host.replace("www.", "").split(".")
+                sld = (labels[-2] if len(labels) >= 2 else labels[0]).title()
+                return mk("recruitee", "", careers=url, name=sld)
         except Exception:
             pass
     return mk("custom", "", careers=url, name=nm)

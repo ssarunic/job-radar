@@ -53,6 +53,11 @@ Morgan), verified live (JPMC 7005 global → UK facet → 10 senior-PM roles kep
 repo-wide linting: Ruff (Python) + ESLint (frontend), CI-gated. See
 `specs/oracle-adapter.md`.
 
+**Built since:** Recruitee adapter (9th ATS) — `scrapers/ats/recruitee.py` for
+Recruitee boards incl. custom domains (`careers.hostaway.com`), which proxy the public
+`/api/offers/` endpoint so no tenant-slug resolution is needed. See
+`specs/recruitee-adapter.md`.
+
 **Still out of scope** (deferred): Telegram/email notifiers, XLSX export, fit scoring,
 web-app write-back (edit notes / mark applied), GitHub branch protection (needs Pro on private repos).
 
@@ -100,7 +105,7 @@ One row per company. CSV is fine here (flat, hand-edited).
 | `name` | yes | NatWest | display name |
 | `slug` | yes | natwest | folder name under `jobs/`; lowercase, kebab |
 | `careers_url` | yes | https://jobs.natwestgroup.com/search/searchjobs | listing/search page |
-| `ats_type` | no | greenhouse \| lever \| ashby \| workday \| smartrecruiters \| talemetry \| revolutpeople \| oracle \| custom \| auto | `auto` ⇒ detect (§4.1) |
+| `ats_type` | no | greenhouse \| lever \| ashby \| workday \| smartrecruiters \| talemetry \| revolutpeople \| oracle \| recruitee \| custom \| auto | `auto` ⇒ detect (§4.1) |
 | `ats_slug` | no | natwest | the org identifier the ATS API expects, if different from `slug` |
 | `priority` | no | high | ordering only |
 | `active` | no | true | `false` ⇒ skipped without deleting the row |
@@ -182,6 +187,7 @@ Detection (`ats_type: auto`): fetch `careers_url`, inspect final URL/host and pa
 | Workday | host contains `myworkdayjobs.com` | `POST {tenant}.wdN.myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs` (limit≤20) + per-posting detail (`GET cxs{externalPath}` → description, real date, employment type) |
 | Talemetry (Jobvite/Radancy) | `Talemetry` in 404 page / `search_type=talemetry` XHR | `{origin}/search/jobs.json?search_type=talemetry&q=...&per_page=100&page=N` |
 | Oracle ORC (Fusion CE) | host `*.fa.*.oraclecloud.com` + `/hcmUI/CandidateExperience/…/sites/{SITE}/` | `GET {host}/hcmRestApi/resources/latest/recruitingCEJobRequisitions?expand=requisitionList&finder=findReqs;siteNumber={SITE},selectedLocationsFacet={UK},limit=100,offset=N` + per-posting detail (`recruitingCEJobRequisitionDetails` → `ExternalDescriptionStr`). Country-level UK location facet discovered first to collapse volume — see `oracle-adapter.md` |
+| Recruitee | host `{slug}.recruitee.com`, or `recruitee` in the page body (custom domain) | `GET {careers_origin}/api/offers/` — descriptions inline (custom domains proxy the API, so no tenant-slug resolution) — see `recruitee-adapter.md` |
 
 This rung handles most companies and is immune to HTML redesigns. Prefer it whenever possible.
 **Empirically, of 30 target companies: 10 Greenhouse, 14 Ashby, 1 Lever, 1 SmartRecruiters, 2 Workday, 1 Talemetry, 1 needs work (Google).** Ashby is the modern AI-startup default. `scratchpad/probe_ats.py` detects a company's ATS by trying each API against candidate slugs.
