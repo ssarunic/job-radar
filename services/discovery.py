@@ -81,6 +81,8 @@ def _from_url(url: str, http=None) -> dict | None:
         return mk("smartrecruiters", seg0)
     if "myworkdayjobs" in host:
         return mk("workday", "", careers=url, name=host.split(".")[0].title())
+    if "oraclecloud" in host:   # Oracle ORC — tenant subdomain is the name hint
+        return mk("oracle", "", careers=url, name=host.split(".")[0].upper())
 
     # Unrecognised host: body-probe for an embedded ATS (esp. Talemetry, which has
     # no host marker). Cloudflare-protected sites (e.g. NatWest) will 403 here and
