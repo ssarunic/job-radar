@@ -11,7 +11,7 @@ operational runbook.
 ## Pipeline
 
 ```
-feature branch ─PR─▶ [CI: pytest + frontend build] ─(required, green)─▶ squash to main
+feature branch ─PR─▶ [CI: ruff + pytest + eslint + frontend build] ─(required, green)─▶ squash to main
                                                                               │
 git tag vX.Y.Z ─push─▶ Release workflow:  test ─▶ build-push (needs: test)    │
                        buildx linux/arm64 ─▶ ghcr.io/ssarunic/job-search-assistant

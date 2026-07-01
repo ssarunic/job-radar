@@ -81,10 +81,14 @@ already uses). Pure refactor — no signature change.
 
 - Routes `/companies` and `/companies/:slug` (`react-router`), nav link in `App.tsx`.
 - `pages/Companies.tsx`:
+  - **Top box is a search filter** over the tracked list (client-side, matches name /
+    ATS / slug) — following is rare, so it shouldn't own the top box (updated per UX
+    feedback, PR #45). Active companies list first, then an "Unfollowed (n)" section.
   - **List** of tracked companies (TanStack Query `["companies"]`): name, ATS badge,
     open-role count, and an active toggle (Follow / Unfollow). Rows are clickable →
     the detail page; the toggle button `stopPropagation`s so it doesn't navigate.
-  - **Add** row: one input (company name *or* careers URL) + "Follow" (shows
+  - **`+ Follow` button → `FollowModal`** (a reusable `components/Modal.tsx`; Esc /
+    backdrop / × to close): one input (company name *or* careers URL) + "Follow" (shows
     "Scanning…"). On submit, `POST /api/companies {query}`; on success show the
     discovered ATS + roles found; friendly message on `409` / `422`.
   - Mutations invalidate `["companies"]` (and `["stats"]`) so the list refreshes.
