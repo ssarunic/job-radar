@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api, fmtRunTs } from "../api";
@@ -9,10 +10,23 @@ const CHANGE_LABEL: Record<string, string> = {
 };
 
 export default function Activity() {
-  const runs = useQuery({ queryKey: ["runs"], queryFn: () => api("/runs") });
+  const [q, setQ] = useState("");
+  const runs = useQuery({
+    queryKey: ["runs", q],
+    queryFn: () => api(`/runs${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`),
+  });
 
   return (
     <div className="page">
+      <div className="filters">
+        <input
+          placeholder="Search runs by company or role…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          style={{ flex: 1 }}
+        />
+      </div>
+
       {runs.isLoading && <p className="muted">Loading…</p>}
       {runs.data && (
         <div className="list">
@@ -29,9 +43,16 @@ export default function Activity() {
                 ))}
                 {r.total === 0 && <span className="muted">no changes</span>}
               </div>
+              {r.matched && (
+                <div className="muted" style={{ marginTop: 6, fontSize: 13 }}>
+                  {r.matched.join(" · ")}
+                </div>
+              )}
             </Link>
           ))}
-          {runs.data.count === 0 && <p className="muted empty">No runs yet.</p>}
+          {runs.data.count === 0 && (
+            <p className="muted empty">{q.trim() ? "No runs match." : "No runs yet."}</p>
+          )}
         </div>
       )}
     </div>

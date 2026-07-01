@@ -35,7 +35,7 @@
 - [x] `GET /api/companies`, `GET /api/companies/{slug}` — that company's open roles. Plus **write** endpoints (`POST` follow + scan, `PATCH` active) beyond the original read-only scope — see [`../company-management.md`](../company-management.md). *(Enrichment fields — description / HQ / industry / confidence — not surfaced yet.)*
 - [x] **Companies page** (name · ATS · # open roles · follow/unfollow; add-by-name/URL with scan-on-follow) + **company detail** (open roles list + careers/ATS link). *(Enrichment cards deferred.)*
 - [x] `GET /api/runs`, `GET /api/runs/{ts}` from `data/runs/*/diff.jsonl` + `summary.txt` (timestamp-validated to block traversal).
-- [x] **Activity page** — run feed (counts per run) → run detail grouping added/reopened/updated/closed, each linking to its role.
+- [x] **Activity page** — run feed (counts per run) → run detail grouping added/reopened/updated/closed, each linking to its role. **Content search** (`/api/runs?q=`) filters runs by company/role and shows matched snippets — see `specs/activity-search.md`.
 
 ## Phase 4 — Live & linked
 - [x] `web_base_url` in `config/settings.yaml`; Slack/ntfy notifier emits `{web_base_url}/jobs/{id}` per new role. *(`/runs/{ts}` summary link not built.)*
