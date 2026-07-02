@@ -126,20 +126,29 @@ authoritative for their wording. Rules:
 ### Auth — OAuth 2.1 (single-user)
 Remote MCP connectors authenticate via the **MCP Authorization spec** (OAuth 2.1): the MCP
 server is an OAuth-protected **resource server**, with an **authorization server** (same app).
-Implement the minimum the connector needs:
-- **Dynamic Client Registration** (RFC 7591) — Claude registers a client.
+Implemented (`webapp/backend/mcp_auth.py`) as the minimum the connector needs:
+- **Dynamic Client Registration** (RFC 7591) — Claude registers a client (`/register`).
 - **Authorization Code + PKCE** flow. A single **shared-secret login** gates the consent step
-  (it's just you); auto-approve after login.
-- **Token** issue + validate (JWT or opaque + introspection); reject unauthenticated `/mcp` calls.
-- Use the **MCP SDK's auth support** (or `authlib`) — do **not** hand-roll the full protocol.
-- Secrets (signing key, login password, client secret) live in the Pi's `.env` (like the rest).
-- **Risk:** OAuth is the heaviest part — isolate it in Phase B behind a clear gate.
+  (`/mcp/login`, it's just you); auto-approve after login. PKCE (S256), redirect-uri and
+  code-expiry checks are the SDK's, not ours.
+- **Tokens**: opaque, sha256-hashed at rest in `<JSA_ROOT>/data/mcp_auth.json` (clients +
+  tokens survive redeploys; pending logins and auth codes are in-memory, minutes-lived).
+  Access tokens 1h; refresh rotation; `/revoke` enabled. Unauthenticated `/mcp` → 401.
+- **Enablement is env-gated**: OAuth is ON iff `JSA_MCP_LOGIN_SECRET` + `JSA_MCP_ISSUER`
+  are set (the Pi's `.env`, passed through compose) — unset means unauthenticated `/mcp`,
+  correct while tailnet-only. The SDK requires an **https** issuer (localhost excepted),
+  so enabling in prod implies the ts.net URL — which Phase C provides.
+- Google (or any IdP) is deliberately not in the loop: Google can't be the connector-facing
+  AS (no open DCR), it could only sit behind our login step — cosmetic for one user.
 
-### Exposure — Tailscale Funnel (only `/mcp` public)
-- `tailscale funnel` exposes **only the `/mcp` path** on `https://dalstonserver.<tailnet>.ts.net/mcp`
-  (valid `ts.net` cert, ports 443/8443/10000). The web UI + other `/api/*` routes stay **tailnet-only**
-  (`tailscale serve`, not funnel). Funnel makes `/mcp` reachable from the public internet ⇒ OAuth is
-  **mandatory**, which is why it gates that path.
+### Exposure — Tailscale Funnel (only the MCP + OAuth paths public)
+- `tailscale funnel` exposes `https://dalstonserver.<tailnet>.ts.net/mcp` (valid `ts.net`
+  cert, ports 443/8443/10000) **plus the OAuth endpoints the connector needs** — `/authorize`,
+  `/token`, `/register`, `/revoke`, `/.well-known/oauth-authorization-server` (RFC 8414 pins
+  well-known to the root, so path-scoping can't be `/mcp`-only). The login page is under
+  `/mcp/login`. The web UI + `/api/*` routes stay **tailnet-only** (`tailscale serve`, not
+  funnel). Funnel makes `/mcp` reachable from the public internet ⇒ OAuth is **mandatory**:
+  set `JSA_MCP_LOGIN_SECRET`/`JSA_MCP_ISSUER` in the Pi's `.env` *before* enabling Funnel.
 - One-time Pi setup documented in `deploy.md`.
 - The SDK's DNS-rebinding guard validates the `Host` header (unknown → 421). Defaults
   allow local + test hosts only; **`JSA_MCP_ALLOWED_HOSTS`** (comma list, `host:*`
@@ -179,8 +188,12 @@ resolved to `greenhouse/gocardless`, wrote the registry, and ran the scoped scan
 35 listed, 0 kept — no matching senior-PM roles that day); re-follow deduped; unfollow set
 `active=false` keeping data; unknown slug returned the guided error.
 
-### Phase B — OAuth 2.1 + protect `/mcp`
-Add the auth/authorization server; require a valid token on `/mcp`.
+### Phase B — OAuth 2.1 + protect `/mcp` ✅
+`mcp_auth.py`: single-user provider (file-persisted clients + hashed tokens) + shared-secret
+login route; `mcp_app.create_mcp()` assembles with or without auth (env-gated — see Design/Auth).
+Tests in `test_mcp_auth.py` drive the full connector flow over HTTP: DCR → authorize →
+login → code+PKCE → token → Bearer tool call; plus 401-when-unauthenticated, wrong secret,
+bad/replayed code, refresh rotation, hashed-at-rest persistence, and metadata discovery.
 **Gate:** a client can register + PKCE-auth + call a tool; unauthenticated → 401; secrets from `.env`.
 
 ### Phase C — Funnel exposure + real client
