@@ -16,6 +16,10 @@ services:
       # Tailnet name + ts.net name (with and without port, for Funnel later) —
       # see specs/mcp-server.md "Exposure".
       JSA_MCP_ALLOWED_HOSTS: ${JSA_MCP_ALLOWED_HOSTS:-dalstonserver:*,dalstonserver.tail824f04.ts.net:*,dalstonserver.tail824f04.ts.net}
+      # OAuth 2.1 on /mcp (Phase B) — ON only when both are set in .env. Required
+      # before Funnel exposure (Phase C). ISSUER must be https (the ts.net URL).
+      JSA_MCP_LOGIN_SECRET: ${JSA_MCP_LOGIN_SECRET:-}
+      JSA_MCP_ISSUER: ${JSA_MCP_ISSUER:-}
     volumes:
       - jsa-data:/data
     restart: unless-stopped
