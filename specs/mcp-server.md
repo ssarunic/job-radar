@@ -1,6 +1,7 @@
-# JobRadar MCP server (remote, OAuth) — Phase 1 (read-only)
+# JobRadar MCP server (remote, OAuth)
 
-**Status**: 📋 Planned
+**Status**: 🔨 In progress — Phase A (read tools) + Phase 2 management tools implemented
+and tested; OAuth (Phase B) and Funnel exposure (Phase C) pending
 **Created**: 2026-07-02
 **Priority**: Medium (unlocks conversational access from Claude Desktop + mobile)
 
@@ -9,8 +10,8 @@
 Expose JobRadar as a **remote MCP server** so Claude (Desktop + mobile / claude.ai) can
 query the tracked-role repository conversationally — "what's new today", "search product
 lead roles", "show me role X so I can judge fit". **Phase 1 is read-only**: list / search
-jobs and return an individual job's full ad text. Management (follow/unfollow/seek) is
-Phase 2.
+jobs and return an individual job's full ad text. **Phase 2 adds management**:
+follow/unfollow a company (the client finds the ATS URL; the server consumes it).
 
 The server is a thin layer over the **existing read API** (`services/queries.py`) —
 the same store the web app and CLI use — mounted into the existing FastAPI app, so it
@@ -31,9 +32,13 @@ project CV — the server has no CV and no fit tool.
 
 ## Non-goals
 
-- **Writes / management** (follow, unfollow, run seek) — Phase 2.
+- **Full-fleet seek from MCP** ("re-scan all companies") — the daily run and the web UI's
+  Refresh cover it; follow's scoped single-company scan is the only MCP-triggered scrape.
+- **Server-side ATS discovery by company name** — probing slug variants against four ATS
+  APIs is slow and unreliable inside a tool call; the *client* (Claude) web-searches for
+  the board and passes a clean ATS URL. The server never searches the web.
 - **Fetching un-tracked/arbitrary ads** (`get_job_by_url`) — deferred; for a role not in the
-  DB, paste the ad into chat or follow the company in Phase 2.
+  DB, paste the ad into chat or follow the company.
 - **Server-side CV / a fit tool** — CV lives in the Claude project; fit is Claude-side.
 - Multi-user. OAuth is single-user (one login).
 
@@ -67,10 +72,56 @@ project CV — the server has no CV and no fit tool.
 | `get_job` | `id` | **full role**: frontmatter fields + **Markdown ad text** + notes + external URL (the text Claude reasons over for fit) | `queries.get_role` |
 | `list_companies` | — | tracked companies + open-role counts | `registry` + counts (as `/api/companies`) |
 | `company_roles` | `slug` | a company's open roles | `list_roles(company=slug)` |
-| `stats` | — | open / new-7d / companies / last-run | `queries.stats` |
+| `stats` | — | open / new-7d / companies (distinct with ≥1 tracked role, not the registry) / last-run | `queries.stats` |
 
 Results are structured JSON reusing `role_summary` / `get_role` shapes; each role carries its
 web deep-link (`web_base_url/jobs/<id>`) so Claude can cite/link.
+
+### Tools (Phase 2 — management)
+
+Write tools over the same registry the web app manages (`config/companies.csv`, atomic
+writes via `registry`). **Division of labour:** the *client* (Claude) resolves a company
+name to its ATS job-board URL (web search → follow through to the board); the *server*
+consumes only a clean ATS URL — it parses it with `discovery._from_url` and never
+searches the web.
+
+| Tool | Args | Side effects / returns | Backed by |
+|---|---|---|---|
+| `follow_company` | `ats_url, name?, scan=true` | appends to the registry; `scan=true` runs a **scoped one-company seek** (Slack suppressed, failure non-fatal — same semantics as web `POST /api/companies`) so roles are queryable immediately; the return includes the `open_roles` count the scan kept (0 = board live, no senior-PM matches — not a failure). Unrecognised ATS / already-active → `{"error": …}`; a previously-unfollowed company is **re-activated** instead of erroring | `discovery` + `registry.add_company` + `run_service.seek_run` |
+| `unfollow_company` | `slug` | sets `active=false` (data kept, daily scrape skips it); unknown slug → `{"error": …}` | `registry.set_active` |
+
+Accepted `ats_url` forms: the seven adapter boards (`(job-)boards.greenhouse.io/<slug>`,
+`jobs.ashbyhq.com/<slug>`, `jobs.lever.co/<slug>`, `jobs.smartrecruiters.com/<Company>`,
+`<tenant>.myworkdayjobs.com/<site>`, Oracle `…oraclecloud.com…`, `<slug>.recruitee.com`)
+plus careers pages that embed a detectable ATS (Talemetry/Workday/Recruitee body probe).
+Anything resolving to `custom` is rejected with an error that tells the model what to
+pass instead. Because discovery body-probes unrecognised hosts with a real GET, the
+model-supplied URL passes an **SSRF guard first**: non-http(s) schemes, loopback /
+private / link-local addresses, and non-public hostnames (`localhost`, bare intranet
+names, `.local`/`.internal`/…) are refused before any fetch.
+
+### Tool descriptions are the model-facing contract
+
+The client model never reads this spec. What it reads — and all it reads — is the
+**server `instructions`**, the **tool docstrings**, and the **parameter schemas** in
+`webapp/backend/mcp_app.py`. Those are prompt text, not documentation; the code is
+authoritative for their wording. Rules:
+
+- **Server `instructions`** (FastMCP's `instructions=`) carry the cross-tool guidance:
+  the which-tool-when decision tree and the result-field glossary (`first_seen` vs
+  `posted_date`, status lifecycle, seniority-rank ladder, salary semantics). Anything
+  that applies to more than one tool lives here, not repeated per docstring.
+- **Every tool docstring** must say *when to use it* (especially vs overlapping tools —
+  e.g. `search_jobs` is a subset of `list_jobs`) and *how to read its output*, including
+  its not-found shape (`[]` vs `{"error": …}`).
+- **Enum-like params use `Literal`** (`status`, `sort`) so the schema constrains values
+  instead of prose listing them.
+- Field-semantics traps get called out where the model will trip on them: `stats.companies`
+  counts companies *with tracked roles*, `new_jobs` filters on `first_seen` (scraper
+  discovery), not `posted_date`.
+- Write-tools follow the same rules, plus must state their side effects (what is
+  written, what network activity happens, what the failure modes are) — see
+  `follow_company`'s docstring for the pattern.
 
 ### Auth — OAuth 2.1 (single-user)
 Remote MCP connectors authenticate via the **MCP Authorization spec** (OAuth 2.1): the MCP
@@ -90,15 +141,20 @@ Implement the minimum the connector needs:
   (`tailscale serve`, not funnel). Funnel makes `/mcp` reachable from the public internet ⇒ OAuth is
   **mandatory**, which is why it gates that path.
 - One-time Pi setup documented in `deploy.md`.
+- The SDK's DNS-rebinding guard validates the `Host` header (unknown → 421). Defaults
+  allow local + test hosts only; the Pi must set **`JSA_MCP_ALLOWED_HOSTS`** (comma list,
+  `host:*` wildcards ports) to its tailnet + `ts.net` names — part of the Phase C checklist.
 
 ### Client setup
 Claude Desktop / claude.ai → **Add custom connector** → URL `https://dalstonserver.<tailnet>.ts.net/mcp`
 → complete the OAuth login → tools appear. Then ask: *"what senior PM roles are new today?"*,
-*"show me the Kraken product roles"*, *"get role <id> and tell me how I fit given my CV"*.
+*"show me the Kraken product roles"*, *"get role <id> and tell me how I fit given my CV"*,
+*"start tracking Attio"* (Claude web-searches for Attio's ATS board, then calls
+`follow_company` with the clean URL).
 
 ## Execution plan
 
-### Phase A — MCP server + read tools (no auth, tailnet-local)
+### Phase A — MCP server + read tools (no auth, tailnet-local) ✅
 Mount FastMCP `/mcp` into the FastAPI app; implement the seven read tools over `queries`.
 | # | File | Change |
 |---|---|---|
@@ -108,6 +164,19 @@ Mount FastMCP `/mcp` into the FastAPI app; implement the seven read tools over `
 | 4 | `webapp/backend/tests/test_mcp.py` (new) | tool calls against a temp store (network-free) |
 
 **Gate:** tests green; a local MCP client lists tools and `list_jobs`/`get_job`/`search_jobs` return correct data; `ruff` clean.
+
+### Phase 2 — management tools (follow / unfollow) ✅
+`follow_company` + `unfollow_company` in `mcp_app.py` (see Tools Phase 2 above), reusing
+`discovery` / `registry` / the web follow's scoped-scan semantics. Tests in `test_mcp.py`
+cover the clean-URL path, scan on/off, scan-failure non-fatality, non-URL and
+unrecognised-ATS rejection, dedupe, re-activation, and unfollow.
+
+**Gate:** tests green; from an MCP client, `follow_company` with a clean ATS URL adds the
+company and its roles are queryable; `unfollow_company` deactivates it; `ruff` clean.
+**Gate verified 2026-07-02** live over Streamable HTTP: `follow_company("https://boards.greenhouse.io/gocardless")`
+resolved to `greenhouse/gocardless`, wrote the registry, and ran the scoped scan (board ok,
+35 listed, 0 kept — no matching senior-PM roles that day); re-follow deduped; unfollow set
+`active=false` keeping data; unknown slug returned the guided error.
 
 ### Phase B — OAuth 2.1 + protect `/mcp`
 Add the auth/authorization server; require a valid token on `/mcp`.

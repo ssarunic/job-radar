@@ -10,6 +10,7 @@ import json
 import re
 import sys
 import threading
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -20,13 +21,30 @@ from pydantic import BaseModel
 
 _BACKEND_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(_BACKEND_DIR.parents[1]))   # repo root -> services.*/outputs.*
+sys.path.insert(0, str(_BACKEND_DIR))              # -> mcp_app when imported as a package
+
+import mcp_app  # noqa: E402
 
 from models.job_posting import _slugify  # noqa: E402
 from scrapers.http_client import HttpClient  # noqa: E402
 from scrapers.rate_limiter import RateLimiter  # noqa: E402
 from services import discovery, loader, queries, registry, run_service, store  # noqa: E402
 
-app = FastAPI(title="Job Search Assistant", version="1.0")
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    # The MCP session manager must be running for /mcp requests to be served.
+    async with mcp_app.mcp.session_manager.run():
+        yield
+
+
+app = FastAPI(title="Job Search Assistant", version="1.0", lifespan=_lifespan)
+
+# MCP server at /mcp (spec: mounted into this app — one server, one deploy). Lifting
+# the FastMCP sub-app's routes (rather than app.mount) keeps the exact path `/mcp`
+# working — Starlette's Mount only matches `/mcp/…` — and must precede the SPA
+# catch-all below so GET /mcp (the SSE stream) isn't swallowed by it.
+app.router.routes.extend(mcp_app.mcp.streamable_http_app().routes)
 
 
 @app.get("/api/stats")
