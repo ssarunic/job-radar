@@ -13,6 +13,8 @@ dependencies = [
   "lxml>=4.9",
   "markdownify>=0.11",
   "requests>=2.31",
+  # MCP server (mcp_app.py) — FastMCP over Streamable HTTP
+  "mcp>=1.0",
 ]
 
 [project.optional-dependencies]

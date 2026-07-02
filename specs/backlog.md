@@ -40,8 +40,9 @@ Two gaps block Founding-PM roles from showing up:
 - **Activity run-detail highlight** — highlight the matched changes inside a run when arriving
   via Activity search (non-goal deferred in `activity-search.md`).
 - **`/runs/{ts}` Slack summary link** — the notifier deep-links per role but not to a run summary.
-- **MCP server** wrapping the web API (follow/unfollow/seek) so companies can be managed by
-  chatting to Claude from mobile; repoint the `job-tracker` skill at the Pi's API.
+- **MCP server** — read-only Phase 1 is now specced (`mcp-server.md`, Planned). This backlog
+  item is the **Phase 2** write side (follow/unfollow/seek from Claude); repoint the
+  `job-tracker` skill at the Pi's API.
 
 ## Ops / data
 
