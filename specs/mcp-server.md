@@ -142,8 +142,9 @@ Implement the minimum the connector needs:
   **mandatory**, which is why it gates that path.
 - One-time Pi setup documented in `deploy.md`.
 - The SDK's DNS-rebinding guard validates the `Host` header (unknown → 421). Defaults
-  allow local + test hosts only; the Pi must set **`JSA_MCP_ALLOWED_HOSTS`** (comma list,
-  `host:*` wildcards ports) to its tailnet + `ts.net` names — part of the Phase C checklist.
+  allow local + test hosts only; **`JSA_MCP_ALLOWED_HOSTS`** (comma list, `host:*`
+  wildcards ports) extends it — `deploy/docker-compose.yml` sets the Pi's tailnet +
+  `ts.net` names (verified: without it the deployed `/mcp` 421s tailnet clients).
 
 ### Client setup
 Claude Desktop / claude.ai → **Add custom connector** → URL `https://dalstonserver.<tailnet>.ts.net/mcp`

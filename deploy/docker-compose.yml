@@ -12,6 +12,10 @@ services:
     ports: ["8765:8765"]
     environment:
       JSA_ROOT: /data
+      # /mcp Host allowlist (the MCP SDK's DNS-rebinding guard 421s unknown Hosts).
+      # Tailnet name + ts.net name (with and without port, for Funnel later) —
+      # see specs/mcp-server.md "Exposure".
+      JSA_MCP_ALLOWED_HOSTS: ${JSA_MCP_ALLOWED_HOSTS:-dalstonserver:*,dalstonserver.tail824f04.ts.net:*,dalstonserver.tail824f04.ts.net}
     volumes:
       - jsa-data:/data
     restart: unless-stopped
