@@ -1,9 +1,11 @@
-# JobRadar MCP server (remote, OAuth)
+# JobRadar MCP server (tailnet-only)
 
-**Status**: 🔨 In progress — Phase A (read tools) + Phase 2 management tools implemented
-and tested; OAuth (Phase B) and Funnel exposure (Phase C) pending
+**Status**: ✅ Done (tailnet-only) — Phase A (read tools) + Phase 2 (management tools)
+implemented and tested. OAuth (Phase B) and Funnel exposure (Phase C) **dropped**: the
+owner decided the server must not be reachable from the public internet. Phase B was
+built (#53) and then reverted; Funnel was never enabled.
 **Created**: 2026-07-02
-**Priority**: Medium (unlocks conversational access from Claude Desktop + mobile)
+**Priority**: Medium (unlocks conversational access from tailnet devices)
 
 ## Overview
 
@@ -15,8 +17,8 @@ follow/unfollow a company (the client finds the ATS URL; the server consumes it)
 
 The server is a thin layer over the **existing read API** (`services/queries.py`) —
 the same store the web app and CLI use — mounted into the existing FastAPI app, so it
-ships on the same image + push-deploy pipeline. It's exposed publicly over **HTTPS via
-Tailscale Funnel** and protected by **OAuth 2.1** (the auth remote MCP connectors expect).
+ships on the same image + push-deploy pipeline. It's reachable **only inside the
+tailnet** (no Funnel, no public exposure) and therefore runs unauthenticated.
 
 **The CV lives in the user's Claude project**, not the server. Fit analysis ("how do I
 fit Attio's Product Lead role?") is Claude-side reasoning over `get_job`'s ad text + the
@@ -24,10 +26,10 @@ project CV — the server has no CV and no fit tool.
 
 ## Goals
 
-1. Claude Desktop + mobile connect to `https://dalstonserver.<tailnet>.ts.net/mcp` and use
+1. Claude clients on tailnet devices connect to `http://dalstonserver:8765/mcp` and use
    read tools over the tracked roles.
 2. Read tools: **list / search jobs**, **get one job's full ad text**, plus light company reads.
-3. Remote **Streamable HTTP** transport + **OAuth 2.1** auth; public HTTPS via **Tailscale Funnel**.
+3. Remote **Streamable HTTP** transport, tailnet-only (no public exposure, no auth).
 4. Reuse `services.queries` (no logic duplication); rides the existing deploy pipeline.
 
 ## Non-goals
@@ -40,7 +42,9 @@ project CV — the server has no CV and no fit tool.
 - **Fetching un-tracked/arbitrary ads** (`get_job_by_url`) — deferred; for a role not in the
   DB, paste the ad into chat or follow the company.
 - **Server-side CV / a fit tool** — CV lives in the Claude project; fit is Claude-side.
-- Multi-user. OAuth is single-user (one login).
+- Multi-user.
+- **Public internet exposure** — decided against (2026-07-03). The server stays
+  tailnet-only; claude.ai / mobile access (which needs a public HTTPS endpoint) is out.
 
 ## Background findings
 
@@ -123,32 +127,25 @@ authoritative for their wording. Rules:
   written, what network activity happens, what the failure modes are) — see
   `follow_company`'s docstring for the pattern.
 
-### Auth — OAuth 2.1 (single-user)
-Remote MCP connectors authenticate via the **MCP Authorization spec** (OAuth 2.1): the MCP
-server is an OAuth-protected **resource server**, with an **authorization server** (same app).
-Implement the minimum the connector needs:
-- **Dynamic Client Registration** (RFC 7591) — Claude registers a client.
-- **Authorization Code + PKCE** flow. A single **shared-secret login** gates the consent step
-  (it's just you); auto-approve after login.
-- **Token** issue + validate (JWT or opaque + introspection); reject unauthenticated `/mcp` calls.
-- Use the **MCP SDK's auth support** (or `authlib`) — do **not** hand-roll the full protocol.
-- Secrets (signing key, login password, client secret) live in the Pi's `.env` (like the rest).
-- **Risk:** OAuth is the heaviest part — isolate it in Phase B behind a clear gate.
+### Auth — none (tailnet-only)
+`/mcp` is unauthenticated, which is correct **only because it is unreachable from outside
+the tailnet**. Tailscale device auth is the perimeter. An OAuth 2.1 layer (DCR + PKCE +
+shared-secret login, env-gated) was built as #53 and reverted when public exposure was
+ruled out; the PR history has the implementation if that decision is ever revisited.
+**Invariant: if `/mcp` is ever made publicly reachable, auth must come first.**
 
-### Exposure — Tailscale Funnel (only `/mcp` public)
-- `tailscale funnel` exposes **only the `/mcp` path** on `https://dalstonserver.<tailnet>.ts.net/mcp`
-  (valid `ts.net` cert, ports 443/8443/10000). The web UI + other `/api/*` routes stay **tailnet-only**
-  (`tailscale serve`, not funnel). Funnel makes `/mcp` reachable from the public internet ⇒ OAuth is
-  **mandatory**, which is why it gates that path.
-- One-time Pi setup documented in `deploy.md`.
+### Exposure — tailnet-only (no Funnel)
+- The whole app (web UI, `/api/*`, `/mcp`) listens on `:8765` and is reachable only from
+  devices on the tailnet. **Tailscale Funnel is deliberately not enabled** — the owner
+  does not want the server exposed on the public internet.
 - The SDK's DNS-rebinding guard validates the `Host` header (unknown → 421). Defaults
   allow local + test hosts only; **`JSA_MCP_ALLOWED_HOSTS`** (comma list, `host:*`
   wildcards ports) extends it — `deploy/docker-compose.yml` sets the Pi's tailnet +
   `ts.net` names (verified: without it the deployed `/mcp` 421s tailnet clients).
 
 ### Client setup
-Claude Desktop / claude.ai → **Add custom connector** → URL `https://dalstonserver.<tailnet>.ts.net/mcp`
-→ complete the OAuth login → tools appear. Then ask: *"what senior PM roles are new today?"*,
+From a device on the tailnet (Claude Code MCP config, or Claude Desktop custom connector):
+URL `http://dalstonserver:8765/mcp` → tools appear. Then ask: *"what senior PM roles are new today?"*,
 *"show me the Kraken product roles"*, *"get role <id> and tell me how I fit given my CV"*,
 *"start tracking Attio"* (Claude web-searches for Attio's ATS board, then calls
 `follow_company` with the clean URL).
@@ -179,16 +176,17 @@ resolved to `greenhouse/gocardless`, wrote the registry, and ran the scoped scan
 35 listed, 0 kept — no matching senior-PM roles that day); re-follow deduped; unfollow set
 `active=false` keeping data; unknown slug returned the guided error.
 
-### Phase B — OAuth 2.1 + protect `/mcp`
-Add the auth/authorization server; require a valid token on `/mcp`.
-**Gate:** a client can register + PKCE-auth + call a tool; unauthenticated → 401; secrets from `.env`.
+### Phase B — OAuth 2.1 + protect `/mcp` ❌ dropped (built, then reverted)
+Implemented and merged as #53, then reverted: the owner decided against any public
+internet exposure, and OAuth's only purpose was to make that exposure safe. The reverted
+implementation (single-user AS over the MCP SDK's auth support: DCR, PKCE, shared-secret
+login, hashed tokens at rest, env-gated enablement) lives in the git history of #53.
 
-### Phase C — Funnel exposure + real client
-Funnel only `/mcp`; connect Claude Desktop + mobile end-to-end.
-**Gate:** connect from Claude Desktop, run "what's new today"; web UI still tailnet-only.
+### Phase C — Funnel exposure ❌ dropped
+Never enabled. The server stays tailnet-only; see Exposure above.
 
-### Phase D — Docs
-`deploy.md` (Funnel + connector setup + the new `.env` secrets); `specs/README.md` index; mark this spec ✅.
+### Phase D — Docs ✅
+This spec records the final (tailnet-only) state.
 
 ## Alternatives considered
 - **Cloudflare Tunnel + Access** — offloads auth but adds a vendor + a domain. Rejected (stay all-Tailscale).
@@ -198,10 +196,8 @@ Funnel only `/mcp`; connect Claude Desktop + mobile end-to-end.
 - **Skill-describes-API / CLI** — rejected earlier: Claude-Code-only and/or brittle HTTP-guessing; MCP is the cross-surface, structured choice.
 
 ## Open questions
-- Exact auth implementation — MCP SDK's built-in auth vs `authlib`; resolved in Phase B by
-  prototyping the connector's registration flow.
-- Funnel path-scoping specifics (expose only `/mcp`, keep the rest private); verified in Phase C.
+None — auth and exposure were resolved by dropping public exposure entirely (2026-07-03).
 
 ## Rollback plan
-Additive — a new `/mcp` mount + Funnel config + `.env` secrets. Disable by unmounting `/mcp`
-and `tailscale funnel off`. No store/schema changes.
+Additive — a single `/mcp` mount. Disable by unmounting `/mcp` in `app.py`. No store/schema
+changes. (The OAuth layer was already rolled back; Funnel was never enabled.)
