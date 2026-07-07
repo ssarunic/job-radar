@@ -3,9 +3,8 @@
 Exposes the tracked-role repository to Claude (Desktop + mobile) as MCP tools, thin
 over the shared read layer `services.queries` (same store as the web app + CLI).
 Phase 2 adds two management tools (follow_company / unfollow_company) over the same
-registry the web app writes. OAuth 2.1 (Phase B, see mcp_auth.py) turns on when
-JSA_MCP_LOGIN_SECRET + JSA_MCP_ISSUER are set — otherwise /mcp is unauthenticated,
-which is fine while it's tailnet-only (public HTTPS via Tailscale Funnel is Phase C).
+registry the web app writes; no auth here (added in Phase B); localhost/tailnet for
+now (public HTTPS via Tailscale Funnel is Phase C).
 
 Deployed path: `app.py` mounts this server's routes under `/mcp` — same image, same
 uvicorn process as the web app (spec: one server, one deploy).
@@ -24,9 +23,7 @@ from urllib.parse import urlparse
 
 _BACKEND_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(_BACKEND_DIR.parents[1]))   # repo root -> services.*
-sys.path.insert(0, str(_BACKEND_DIR))              # -> mcp_auth when run as a package
 
-import mcp_auth  # noqa: E402
 from mcp.server.fastmcp import FastMCP  # noqa: E402
 from mcp.server.transport_security import TransportSecuritySettings  # noqa: E402
 
@@ -75,14 +72,15 @@ Status = Literal["open", "applied", "suspected_filled", "closed", "all"]
 _ALLOWED_HOSTS = [h.strip() for h in os.environ.get("JSA_MCP_ALLOWED_HOSTS", "").split(",")
                   if h.strip()] or ["127.0.0.1:*", "localhost:*", "testserver"]
 
-# Tools are plain functions, registered on an instance by create_mcp() (bottom of
-# file) — so tests can build an OAuth-enabled instance beside the module default.
+mcp = FastMCP("JobRadar", instructions=_INSTRUCTIONS, host="127.0.0.1", port=8899,
+              transport_security=TransportSecuritySettings(allowed_hosts=_ALLOWED_HOSTS))
 
 
 def _index():
     return queries.load_index(store.index_path())
 
 
+@mcp.tool()
 def stats() -> dict:
     """Headline numbers: open roles, new in last 7 days, distinct companies with at
     least one tracked role (NOT the full registry — use list_companies for that),
@@ -90,6 +88,7 @@ def stats() -> dict:
     return {**queries.stats(_index()), "last_run": store.last_run()}
 
 
+@mcp.tool()
 def list_jobs(status: Status = "open", company: Optional[str] = None,
               min_rank: Optional[int] = None, q: Optional[str] = None,
               sort: Literal["seniority", "recent"] = "seniority",
@@ -108,12 +107,14 @@ def list_jobs(status: Status = "open", company: Optional[str] = None,
     return [queries.role_summary(r) for r in roles]
 
 
+@mcp.tool()
 def search_jobs(q: str, status: Status = "open") -> list[dict]:
     """Quick lookup of roles by company or title substring (case-insensitive).
     A subset of list_jobs — prefer list_jobs when you also want rank/company/sort/limit."""
     return [queries.role_summary(r) for r in queries.list_roles(_index(), status=status, q=q)]
 
 
+@mcp.tool()
 def new_jobs(days: int = 1) -> list[dict]:
     """Open roles the scraper first discovered within the last N days (first_seen,
     not the ATS posted_date). Default 1 = 'new today'; use 7 for 'the past week'."""
@@ -123,6 +124,7 @@ def new_jobs(days: int = 1) -> list[dict]:
     return [queries.role_summary(r) for r in roles]
 
 
+@mcp.tool()
 def get_job(id: str) -> dict:
     """Full detail for one role by id: all fields + the **Markdown ad text** + the
     user's notes. Required for any fit-against-CV judgment — summaries from the
@@ -130,6 +132,7 @@ def get_job(id: str) -> dict:
     return queries.get_role(id) or {"error": f"no role with id {id!r}"}
 
 
+@mcp.tool()
 def list_companies() -> list[dict]:
     """The full registry of tracked companies (active or not) with ATS type and
     open-role counts. Source of the slugs company_roles expects."""
@@ -142,6 +145,7 @@ def list_companies() -> list[dict]:
             for c in registry.list_companies()]
 
 
+@mcp.tool()
 def company_roles(slug: str) -> list[dict]:
     """Open roles for one company, by registry slug (e.g. 'monzo' — see
     list_companies). Unknown slug returns []."""
@@ -188,6 +192,7 @@ def _scan_company(slug: str, settings: dict) -> bool:
         return False
 
 
+@mcp.tool()
 def follow_company(ats_url: str, name: Optional[str] = None, scan: bool = True) -> dict:
     """Start tracking a company. Side effects: writes the company registry; with
     scan=true (default) also scrapes that company's board once so its roles are
@@ -241,6 +246,7 @@ def follow_company(ats_url: str, name: Optional[str] = None, scan: bool = True) 
     return out
 
 
+@mcp.tool()
 def unfollow_company(slug: str) -> dict:
     """Stop tracking a company by registry slug (see list_companies). Side effect:
     sets active=false in the registry — existing roles/data are kept, the daily
@@ -248,32 +254,6 @@ def unfollow_company(slug: str) -> dict:
     if not registry.set_active(slug, False):
         return {"error": f"no company with slug {slug!r} — see list_companies"}
     return {"slug": slug, "active": False}
-
-
-# --- server assembly --------------------------------------------------------------
-
-_TOOLS = (stats, list_jobs, search_jobs, new_jobs, get_job,
-          list_companies, company_roles, follow_company, unfollow_company)
-
-
-def create_mcp(auth_provider=None, auth_settings=None, login_secret: str = "") -> FastMCP:
-    """Build a JobRadar FastMCP instance; OAuth (Phase B) only when a provider is
-    given — otherwise /mcp is unauthenticated (tailnet-local mode)."""
-    kwargs = {}
-    if auth_provider is not None:
-        kwargs.update(auth_server_provider=auth_provider, auth=auth_settings)
-    m = FastMCP("JobRadar", instructions=_INSTRUCTIONS, host="127.0.0.1", port=8899,
-                transport_security=TransportSecuritySettings(allowed_hosts=_ALLOWED_HOSTS),
-                **kwargs)
-    for fn in _TOOLS:
-        m.tool()(fn)
-    if auth_provider is not None:
-        mcp_auth.add_login_route(m, auth_provider, login_secret)
-    return m
-
-
-# OAuth on iff JSA_MCP_LOGIN_SECRET + JSA_MCP_ISSUER are set (the Pi's .env).
-mcp = create_mcp(*mcp_auth.from_env())
 
 
 if __name__ == "__main__":
