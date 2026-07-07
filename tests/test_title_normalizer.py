@@ -119,3 +119,54 @@ def test_marketing_kept_when_distinct_pm_title_present():
 def test_marketing_alone_still_excluded():
     assert not classify("Product Marketing Manager", PROFILE).kept
     assert not classify("Brand Manager", PROFILE).kept
+
+
+# --- AI / Innovation leadership family (README §11.9) ---------------------------
+
+@pytest.mark.parametrize("title,rank,norm", [
+    ("AI & Innovation Lead", 4, "AI/Innovation Lead"),          # real Mishcon case
+    ("Innovation Lead", 4, "AI/Innovation Lead"),
+    ("GenAI Lead", 4, "AI/Innovation Lead"),
+    ("AI Leader, Legal Practice", 4, "AI/Innovation Lead"),
+    ("Head of AI", 6, "Head of AI/Innovation"),
+    ("Head of Innovation", 6, "Head of AI/Innovation"),
+    ("Head of AI & Innovation", 6, "Head of AI/Innovation"),
+    ("Director of AI & Innovation", 7, "Director of AI/Innovation"),
+    ("Innovation Director", 7, "Director of AI/Innovation"),
+    ("VP of AI", 8, "VP AI/Innovation"),
+    ("Vice President, Innovation", 8, "VP AI/Innovation"),
+    ("Chief AI Officer", 9, "Chief AI Officer"),
+    ("Chief Innovation Officer", 9, "Chief AI Officer"),
+])
+def test_ai_innovation_leadership_kept(title, rank, norm):
+    c = classify(title, PROFILE)
+    assert c.kept is True
+    assert c.rank == rank
+    assert c.normalised == norm
+
+
+@pytest.mark.parametrize("title", [
+    "AI Engineer Lead",            # engineer between domain and lead — IC track
+    "Lead AI Engineer",
+    "AI Research Lead",
+    "Head of AI Research",         # IC-track qualifier after the domain
+    "VP AI Engineering",
+    "Machine Learning Lead",       # ML alone is not the AI/Innovation domain
+    "Innovation Manager",          # no manager tier in the family
+    "AI Scientist",
+])
+def test_ai_ic_track_and_manager_tier_dropped(title):
+    assert classify(title, PROFILE).kept is False
+
+
+def test_ai_family_disabled_by_config():
+    prof = {**PROFILE, "include_ai_innovation": False}
+    c = classify("AI & Innovation Lead", prof)
+    assert c.kept is False
+    assert c.reason == "not a product role"
+
+
+def test_pm_patterns_win_over_ai_family():
+    c = classify("VP Product & AI", PROFILE)
+    assert c.normalised == "VP Product"
+    assert c.rank == 8
