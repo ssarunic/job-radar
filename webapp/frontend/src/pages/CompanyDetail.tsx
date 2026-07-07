@@ -1,9 +1,14 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { api, apiSend, RANK_LABEL, fmtSalary } from "../api";
 
 export default function CompanyDetail() {
   const { slug } = useParams();
+  // The list passes its search query via link state; back returns to that exact view.
+  const fromSearch =
+    (useLocation().state as { fromSearch?: string } | null)?.fromSearch ?? "";
+  const back = { pathname: "/companies", search: fromSearch };
   const qc = useQueryClient();
   const detail = useQuery({
     queryKey: ["company", slug],
@@ -18,11 +23,13 @@ export default function CompanyDetail() {
     },
   });
 
+  useEffect(() => window.scrollTo(0, 0), []);   // don't inherit the list's scroll offset
+
   if (detail.isLoading) return <p className="muted">Loading…</p>;
   if (detail.isError || !detail.data)
     return (
       <p className="muted">
-        Not found. <Link to="/companies">← all companies</Link>
+        Not found. <Link to={back}>← all companies</Link>
       </p>
     );
 
@@ -31,7 +38,7 @@ export default function CompanyDetail() {
 
   return (
     <div className="page">
-      <Link to="/companies" className="back">← all companies</Link>
+      <Link to={back} className="back">← all companies</Link>
 
       <div className="company-head">
         <h1>{c.name}</h1>
