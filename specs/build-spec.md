@@ -58,6 +58,12 @@ Recruitee boards incl. custom domains (`careers.hostaway.com`), which proxy the 
 `/api/offers/` endpoint so no tenant-slug resolution is needed. See
 `specs/recruitee-adapter.md`.
 
+**Built since:** cvMail adapter (10th ATS) — `scrapers/ats/cvmail.py` for Thomson
+Reuters cvMail (`fsr.cvmailuk.com/<firm>/`, the UK legal-sector standard, e.g. Mishcon
+de Reya). First HTML-scraping ATS rung (no JSON API exists): server-rendered board
+table + form-POST pagination + label/value detail pages; robots-checked. See
+`specs/cvmail-adapter.md`.
+
 **Still out of scope** (deferred): Telegram/email notifiers, XLSX export, fit scoring,
 web-app write-back (edit notes / mark applied), GitHub branch protection (needs Pro on private repos).
 
@@ -189,6 +195,7 @@ Detection (`ats_type: auto`): fetch `careers_url`, inspect final URL/host and pa
 | RevolutPeople | host contains `revolutpeople.com` | `GET https://revolutpeople.com/api/{tenant}/external/v3/postings?page=N` (structured `locations[]`) + per-posting detail (`…/v2/postings/{id}` → description). e.g. Cleo — see `revolut-people-adapter.md` |
 | Oracle ORC (Fusion CE) | host `*.fa.*.oraclecloud.com` + `/hcmUI/CandidateExperience/…/sites/{SITE}/` | `GET {host}/hcmRestApi/resources/latest/recruitingCEJobRequisitions?expand=requisitionList&finder=findReqs;siteNumber={SITE},selectedLocationsFacet={UK},limit=100,offset=N` + per-posting detail (`recruitingCEJobRequisitionDetails` → `ExternalDescriptionStr`). Country-level UK location facet discovered first to collapse volume — see `oracle-adapter.md` |
 | Recruitee | host `{slug}.recruitee.com`, or `recruitee` in the page body (custom domain) | `GET {careers_origin}/api/offers/` — descriptions inline (custom domains proxy the API, so no tenant-slug resolution) — see `recruitee-adapter.md` |
+| cvMail (Thomson Reuters) | host contains `cvmail` (`fsr.cvmailuk.com/<firm>/`) | **HTML, no JSON API**: `GET /{firm}/main.cfm?page=jobBoard` table (+ form-POST pagination with per-render `x-token`) + per-posting detail (`page=jobSpecific&jobId=N`, label/value rows → Markdown). Job URLs normalised to drop the volatile `rcd` param; no posted dates; robots-checked — see `cvmail-adapter.md` |
 
 This rung handles most companies and is immune to HTML redesigns. Prefer it whenever possible.
 **Empirically, of 30 target companies: 10 Greenhouse, 14 Ashby, 1 Lever, 1 SmartRecruiters, 2 Workday, 1 Talemetry, 1 needs work (Google).** Ashby is the modern AI-startup default. `scratchpad/probe_ats.py` detects a company's ATS by trying each API against candidate slugs.

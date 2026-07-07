@@ -10,6 +10,7 @@ from contextlib import contextmanager
 
 from scrapers import static_scraper
 from scrapers.ats import ashby, greenhouse, lever, smartrecruiters
+from scrapers.ats.cvmail import CvMailFetcher
 from scrapers.ats.oracle import OracleFetcher
 from scrapers.ats.recruitee import RecruiteeFetcher
 from scrapers.ats.revolut_people import RevolutPeopleFetcher
@@ -29,7 +30,7 @@ def detect_ats(company: dict, http) -> str:
                ("ashbyhq", "ashby"), ("smartrecruiters", "smartrecruiters"),
                ("myworkdayjobs", "workday"), ("revolutpeople", "revolutpeople"),
                ("talemetry", "talemetry"), ("oraclecloud", "oracle"),
-               ("recruitee", "recruitee"))
+               ("recruitee", "recruitee"), ("cvmail", "cvmail"))
     low = url.lower()
     for needle, ats in markers:
         if needle in low:
@@ -164,6 +165,8 @@ def _build_rungs(company, profile, http):
         return [(True, lambda: OracleFetcher(company, http, query)), playwright, static]
     if ats == "recruitee":
         return [(True, lambda: RecruiteeFetcher(company, http)), playwright, static]
+    if ats == "cvmail":
+        return [(True, lambda: CvMailFetcher(company, http)), playwright, static]
     if ats == "revolutpeople":
         return [(True, lambda: RevolutPeopleFetcher(company, http)), playwright, static]
     if ats == "talemetry":
