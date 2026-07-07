@@ -63,7 +63,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7      # so we can ship the current compose file to the Pi
       - name: Join the tailnet
-        uses: tailscale/github-action@v2
+        uses: tailscale/github-action@v4
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
