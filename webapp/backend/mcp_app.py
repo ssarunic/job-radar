@@ -56,8 +56,9 @@ Reading results:
 - status lifecycle: open -> suspected_filled (missing 2 consecutive runs) -> closed;
   "applied" is set by the user.
 - seniority_rank: CPO 9, VP 8, Director 7, Head 6, Principal/Staff 5,
-  Group/Product-Lead 4, Senior 3, PM/Product Owner 2. Only rank >= 3 (plus opted-in
-  Product Owners) is tracked.
+  Group/Product-Lead 4, Senior 3, PM/Product Owner 2. AI/Innovation leadership
+  titles (e.g. "AI & Innovation Lead", "Head of AI") rank in the same ladder.
+  Only rank >= 3 (plus opted-in Product Owners) is tracked.
 - salary min/max are extracted, never currency-converted; salary.original_text is
   authoritative. compensation_type notes bonus/equity mentions.
 - job_ad_url is the external ATS posting — use it when citing or linking a role.

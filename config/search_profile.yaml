@@ -11,6 +11,7 @@ roles:
 
 seniority_min: 3                 # README §11: keep rank >= 3
 include_product_owner: true      # README §11 step 8
+include_ai_innovation: true      # README §11 step 9: AI/Innovation leadership family
 
 exclude_titles:                  # README §11 steps 5-6
   - "marketing"
