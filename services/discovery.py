@@ -85,6 +85,9 @@ def _from_url(url: str, http=None) -> dict | None:
         return mk("oracle", "", careers=url, name=host.split(".")[0].upper())
     if "recruitee.com" in host:                 # {slug}.recruitee.com (origin proxies the API)
         return mk("recruitee", "", careers=url, name=host.split(".")[0].title())
+    if "cvmail" in host:   # fsr.cvmailuk.com/<firm>/… — Thomson Reuters cvMail (legal)
+        board = f"{urlsplit(url).scheme}://{host}/{seg0}/main.cfm?page=jobBoard"
+        return mk("cvmail", seg0, careers=board, name=seg0.title())
 
     # Unrecognised host: body-probe for an embedded ATS (esp. Talemetry, which has
     # no host marker). Cloudflare-protected sites (e.g. NatWest) will 403 here and

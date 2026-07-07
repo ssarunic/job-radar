@@ -203,7 +203,8 @@ def follow_company(ats_url: str, name: Optional[str] = None, scan: bool = True) 
     Recognised directly: (job-)boards.greenhouse.io/<slug>, jobs.ashbyhq.com/<slug>,
     jobs.lever.co/<slug>, jobs.smartrecruiters.com/<Company>,
     <tenant>.myworkdayjobs.com/<site>, <tenant>.fa.<region>.oraclecloud.com/...,
-    <slug>.recruitee.com. Other careers pages are probed for an embedded ATS
+    <slug>.recruitee.com, fsr.cvmailuk.com/<firm>/... (cvMail — UK law firms; any
+    deep job link works). Other careers pages are probed for an embedded ATS
     (Talemetry/Workday/Recruitee) and rejected if none is found.
 
     name: display name override (recommended — URL-derived names are rough).
@@ -220,7 +221,7 @@ def follow_company(ats_url: str, name: Optional[str] = None, scan: bool = True) 
     info = discovery.discover(url, http)
     if not info or info.get("ats_type") == "custom":
         return {"error": f"{url} is not a recognised ATS job board — pass the company's "
-                         "Greenhouse/Ashby/Lever/SmartRecruiters/Workday/Oracle/Recruitee "
+                         "Greenhouse/Ashby/Lever/SmartRecruiters/Workday/Oracle/Recruitee/cvMail "
                          "board URL (or a careers page that embeds one)"}
     if name and name.strip():
         info["name"], info["slug"] = name.strip(), _slugify(name)
