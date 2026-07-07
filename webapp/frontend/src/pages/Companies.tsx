@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { api, apiSend } from "../api";
 import Modal from "../components/Modal";
+import { useScrollRestore } from "../hooks";
 
 type Company = {
   name: string;
@@ -16,10 +17,25 @@ type Company = {
 
 export default function Companies() {
   const qc = useQueryClient();
-  const [search, setSearch] = useState("");
+  // Search lives in the URL (like JobsList) so the filtered view survives navigating
+  // to a company and back; the modal open/close stays local.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const search = searchParams.get("q") ?? "";
+  const setSearch = (value: string) =>
+    setSearchParams(
+      (prev) => {
+        if (value) prev.set("q", value);
+        else prev.delete("q");
+        return prev;
+      },
+      { replace: true },
+    );
   const [adding, setAdding] = useState(false);
 
   const companies = useQuery({ queryKey: ["companies"], queryFn: () => api("/companies") });
+
+  useScrollRestore(location.search, !!companies.data);
 
   const toggle = useMutation({
     mutationFn: (v: { slug: string; active: boolean }) =>
@@ -133,11 +149,14 @@ function CompanyRow({
   busy: boolean;
 }) {
   const navigate = useNavigate();
+  const location = useLocation();
   return (
     <div
       className="row clickable"
       style={{ opacity: c.active ? 1 : 0.55 }}
-      onClick={() => navigate(`/companies/${c.slug}`)}
+      onClick={() =>
+        navigate(`/companies/${c.slug}`, { state: { fromSearch: location.search } })
+      }
     >
       <div className="row-main">
         <span className="company">{c.name}</span>
