@@ -16,4 +16,4 @@ mcp>=1.0             # JobRadar MCP server (webapp/backend/mcp_app.py)
 #   playwright-stealth>=2.0
 
 # dev / tests
-pytest>=8.0
+pytest>=9.1.1
