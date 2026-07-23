@@ -9,6 +9,32 @@ import yaml
 from services.store import atomic_write_text
 
 NOTES_RX = re.compile(r"##\s*My notes\s*\n(.*)\Z", re.DOTALL | re.IGNORECASE)
+WORDS_RX = re.compile(r"[a-z0-9]+")
+
+
+def _norm_lines(text: str) -> list[str]:
+    """Lines reduced to lowercase words only — spacing (incl. NBSP), markdown
+    emphasis, bullets and punctuation all wash out."""
+    out = []
+    for ln in (text or "").splitlines():
+        norm = " ".join(WORDS_RX.findall(ln.lower()))
+        if norm:
+            out.append(norm)
+    return out
+
+
+def _requirements_redundant(description: str, requirements: str) -> bool:
+    """True when the requirements block already appears in the description
+    (many ads carry a labelled qualifications section that extraction copies
+    rather than cuts). The 0.8 line-overlap threshold tolerates a few edited
+    lines; below it the section is kept — the safe failure mode is a visible
+    duplicate, never dropped content."""
+    req = _norm_lines(requirements)
+    if not req:
+        return False
+    desc = set(_norm_lines(description))
+    matched = sum(1 for ln in req if ln in desc)
+    return matched / len(req) >= 0.8
 
 
 def parse_md(path: Path) -> tuple[dict, str]:
@@ -39,7 +65,7 @@ def render(frontmatter: dict, description: str, requirements: str, notes: str) -
     fm = yaml.safe_dump(frontmatter, sort_keys=False, allow_unicode=True).strip()
     out = [f"---\n{fm}\n---\n"]
     out.append("## Description\n\n" + (description.strip() or "_(not captured)_") + "\n")
-    if requirements.strip():
+    if requirements.strip() and not _requirements_redundant(description, requirements):
         out.append("## Requirements\n\n" + requirements.strip() + "\n")
     out.append("## My notes\n\n" + (notes.strip() + "\n" if notes.strip() else ""))
     return "\n".join(out)

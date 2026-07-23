@@ -17,6 +17,64 @@ def test_render_parse_roundtrip(tmp_path):
     assert "## Requirements" in body
 
 
+DESC_WITH_QUALS = """Role summary here.
+
+Required Qualifications, Capabilities and Skills
+
+- Strong **financial services** background, with regulated-environment delivery.
+- Proven track record of scaling digital products.
+- Demonstrated people leadership across multiple locations.
+- Strategic communicator with executive presence.
+- Strong understanding of technical architecture.
+"""
+
+
+def test_requirements_skipped_when_already_in_description():
+    reqs = ("- Strong **financial services** background, with regulated-environment delivery.\n"
+            "- Proven track record of scaling digital products.\n"
+            "- Demonstrated people leadership across multiple locations.\n"
+            "- Strategic communicator with executive presence.\n"
+            "- Strong understanding of technical architecture.")
+    body = md_writer.render(FM, DESC_WITH_QUALS, reqs, "")
+    assert "## Requirements" not in body
+    assert "Required Qualifications" in body    # description untouched
+
+
+def test_requirements_skipped_despite_formatting_drift():
+    # same content, but emphasis stripped, bullets restyled, spacing mangled
+    reqs = ("* Strong financial  services background,   with regulated-environment delivery.\n"
+            "*  Proven track record of scaling digital products.\n"
+            "* Demonstrated people leadership across multiple locations.\n"
+            "* Strategic communicator with executive presence.\n"
+            "* Strong understanding of technical architecture.")
+    body = md_writer.render(FM, DESC_WITH_QUALS, reqs, "")
+    assert "## Requirements" not in body
+
+
+def test_requirements_skipped_when_one_line_edited():
+    # 4 of 5 lines identical -> still over the 0.8 overlap threshold
+    reqs = ("- Strong **financial services** background, with regulated-environment delivery.\n"
+            "- Proven track record of scaling excellent digital products at pace.\n"
+            "- Demonstrated people leadership across multiple locations.\n"
+            "- Strategic communicator with executive presence.\n"
+            "- Strong understanding of technical architecture.")
+    body = md_writer.render(FM, DESC_WITH_QUALS, reqs, "")
+    assert "## Requirements" not in body
+
+
+def test_requirements_kept_when_genuinely_different():
+    reqs = ("- 10+ years of product management experience.\n"
+            "- Deep fintech domain knowledge.\n"
+            "- Fluent in SQL and experimentation frameworks.")
+    body = md_writer.render(FM, DESC_WITH_QUALS, reqs, "")
+    assert "## Requirements" in body
+
+
+def test_requirements_kept_when_description_empty():
+    body = md_writer.render(FM, "", "- req one", "")
+    assert "## Requirements" in body
+
+
 def test_notes_preserved_on_rewrite(tmp_path):
     path = md_writer.write_posting(tmp_path, "monzo", "spm", "abc12345", FM,
                                    "desc", "", "Applied 2026-06-27. Spoke to Jane.")
