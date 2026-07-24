@@ -78,6 +78,7 @@ def _map(o: dict) -> dict:
 
 class RecruiteeFetcher:
     needs_detail = False       # descriptions ship inline in the listing
+    live_listing = True   # ATS board lists only currently-open roles
     check_robots = False       # documented public JSON API
     rung_name = "recruitee"
 

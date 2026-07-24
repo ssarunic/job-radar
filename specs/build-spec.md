@@ -326,10 +326,14 @@ Apply, in order, exactly as specified in the README — do not reinvent:
    (README §13). **Source preference:** ATS-provided *structured* compensation (Ashby
    `summaryComponents`) is authoritative when present, then Claude (if enabled), then the
    context-aware regex over the description.
-6. **Recency** — drop if older than `recency_days` when a date is present. The
-   cutoff tests a **freshness** date (last-updated) when the source provides one,
-   not first-publish: a live ATS feed only returns currently-open roles, so an
-   evergreen role first published months ago but updated recently still counts.
+6. **Recency** — applies only to **discovery rungs** (playwright/static), where a
+   stale page can render long-filled roles: drop if older than `recency_days` when
+   a date is present, testing a **freshness** date (last-updated) when the source
+   provides one, not first-publish. **ATS rungs skip the cutoff entirely**
+   (`live_listing=True` on the fetcher): an ATS board only lists currently-open
+   roles, so presence in the feed is proof of liveness — aging a still-open role
+   out mid-tracking made the lifecycle falsely close it (2026-07-24 audit: Monzo /
+   Spotify / Hostaway / Airwallex all "closed" on exactly day 46 while live).
    `posted_date` (first-publish) is still stored for display. (Refinement over
    README §10 — see §9.)
 7. **Per-company cap** — keep top `max_roles_per_company` by seniority; ties by posted date, then

@@ -61,6 +61,7 @@ def _pick_uk_facet(facets: list) -> tuple:
 
 class WorkdayFetcher:
     needs_detail = True
+    live_listing = True   # ATS board lists only currently-open roles
     check_robots = False  # documented JSON API
     rung_name = "workday"
 

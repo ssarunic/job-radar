@@ -95,6 +95,7 @@ def _paging_form(html: str, base: str) -> tuple[str, dict, int] | None:
 
 class CvMailFetcher:
     needs_detail = True
+    live_listing = True   # ATS board lists only currently-open roles
     check_robots = True        # HTML scrape, not a documented JSON API
     rung_name = "cvmail"
 

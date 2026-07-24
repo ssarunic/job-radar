@@ -31,6 +31,7 @@ def _location(job) -> str:
 
 class RevolutPeopleFetcher:
     needs_detail = True           # description comes from the per-posting detail call
+    live_listing = True   # ATS board lists only currently-open roles
     check_robots = False          # documented JSON API
     rung_name = "revolutpeople"
 

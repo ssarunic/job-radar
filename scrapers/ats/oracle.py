@@ -46,6 +46,7 @@ def _emp(j: dict) -> str:
 
 class OracleFetcher:
     needs_detail = True
+    live_listing = True   # ATS board lists only currently-open roles
     check_robots = False  # documented public JSON API
     rung_name = "oracle"
 
