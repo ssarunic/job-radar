@@ -61,7 +61,7 @@ Actions). Once set, every `vX.Y.Z` tag auto-deploys to the Pi.
    Pi and the **private** key as the `PI_SSH_KEY` secret:
    ```bash
    ssh-keygen -t ed25519 -f deploy_key -N '' -C 'gh-actions-deploy'
-   ssh-copy-id -i deploy_key.pub ssarunic@dalstonserver   # or append to ~/.ssh/authorized_keys
+   ssh-copy-id -i deploy_key.pub "$DEPLOY_TARGET"   # or append to ~/.ssh/authorized_keys
    gh secret set PI_SSH_KEY < deploy_key
    gh secret set TS_OAUTH_CLIENT_ID   # paste when prompted
    gh secret set TS_OAUTH_SECRET
@@ -71,7 +71,7 @@ Actions). Once set, every `vX.Y.Z` tag auto-deploys to the Pi.
 If MagicDNS resolution flakes on the runner, replace `dalstonserver` in the
 `deploy` job with the Pi's stable tailnet IP (`100.64.162.62`).
 
-## One-time Pi setup (`ssarunic@dalstonserver`)
+## One-time Pi setup (the `DEPLOY_TARGET` box)
 
 Docker + Compose + Tailscale are already installed. Then:
 
