@@ -88,6 +88,14 @@ def _from_url(url: str, http=None) -> dict | None:
     if "cvmail" in host:   # fsr.cvmailuk.com/<firm>/… — Thomson Reuters cvMail (legal)
         board = f"{urlsplit(url).scheme}://{host}/{seg0}/main.cfm?page=jobBoard"
         return mk("cvmail", seg0, careers=board, name=seg0.title())
+    if "revolutpeople" in host:   # revolutpeople.com/{tenant}/… — white-label ATS
+        return mk("revolutpeople", seg0,
+                  careers=f"https://revolutpeople.com/{seg0}/public/careers")
+    if host.endswith("revolut.com") and seg0 == "careers":
+        # Revolut's own board: their tenant 403s the public API, so the adapter
+        # scrapes __NEXT_DATA__ from www.revolut.com/careers instead.
+        return mk("revolutpeople", "revolut",
+                  careers="https://www.revolut.com/careers", name="Revolut")
 
     # Unrecognised host: body-probe for an embedded ATS (esp. Talemetry, which has
     # no host marker). Cloudflare-protected sites (e.g. NatWest) will 403 here and
