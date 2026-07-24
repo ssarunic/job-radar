@@ -32,7 +32,7 @@ you can point it at *your* roles, *your* city, *your* companies.
 git clone https://github.com/ssarunic/job-radar && cd job-radar
 cp .env.example .env                        # add your Slack webhook (optional)
 docker compose --profile scheduler up -d    # web UI + daily 08:00 scan
-open http://localhost:8765                  # follow your first companies from the UI
+open http://localhost:8765                  # answer 4 setup questions, follow companies
 ```
 
 That's it — omit `--profile scheduler` if you only want the web UI and the

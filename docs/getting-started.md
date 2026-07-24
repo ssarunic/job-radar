@@ -30,8 +30,8 @@ Open `.env` in any text editor. The only thing most people set is
 when new roles appear. Skip it if you're happy just checking the web page.
 
 What you're *searching for* (roles, seniority, location) is configured after
-start-up: the web UI offers a **Set up your search** page on first run — four
-questions, no file editing. (It ships with a senior Product Management profile
+start-up: on first run the web UI points you to **Set up your search**
+(`/setup`) — four questions, no file editing. (It ships with a senior Product Management profile
 for London/UK; power users can edit `config/search_profile.yaml` directly —
 every field is explained in [Configuration](configuration.md).)
 
@@ -41,9 +41,13 @@ every field is explained in [Configuration](configuration.md).)
 docker compose --profile scheduler up -d
 ```
 
-Then open **http://localhost:8765**. The `--profile scheduler` part runs the
-daily scan (08:00 local time by default); without it you get just the web UI
-and the manual "↻ Refresh" button.
+The first start **builds the image locally — expect a few minutes** of build
+output; later starts are instant. Then open **http://localhost:8765**.
+
+The `--profile scheduler` part runs the daily scan; without it you get just
+the web UI and the manual "↻ Refresh" button. The scan runs at **08:00
+Europe/London** by default — if you're elsewhere, set `SEEK_TZ` (e.g.
+`Europe/Berlin`) and optionally `SEEK_AT` (e.g. `07:30`) in your `.env`.
 
 ## 5. Follow your first companies
 
