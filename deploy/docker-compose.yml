@@ -8,7 +8,7 @@
 # Requires a .env next to this file with SLACK_WEBHOOK_URL and WEB_BASE_URL.
 services:
   web:
-    image: ghcr.io/ssarunic/job-search-assistant:latest
+    image: ghcr.io/ssarunic/job-radar:latest
     ports: ["8765:8765"]
     environment:
       JSA_ROOT: /data
@@ -27,7 +27,7 @@ services:
   # Daily seek — the service that fires Slack notifications. Runs at a fixed local
   # time (default 08:00 Europe/London), not 24h after start.
   scraper:
-    image: ghcr.io/ssarunic/job-search-assistant:latest
+    image: ghcr.io/ssarunic/job-radar:latest
     profiles: ["scheduler"]
     depends_on: [web]
     environment:
