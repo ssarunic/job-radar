@@ -31,6 +31,18 @@ export default function Companies() {
       },
       { replace: true },
     );
+  // Open-roles filter defaults ON; only the non-default ("all") state goes in the
+  // URL, so a clean /companies always shows companies with open roles.
+  const showAll = searchParams.get("show") === "all";
+  const setShowAll = (value: boolean) =>
+    setSearchParams(
+      (prev) => {
+        if (value) prev.set("show", "all");
+        else prev.delete("show");
+        return prev;
+      },
+      { replace: true },
+    );
   const [adding, setAdding] = useState(false);
 
   const companies = useQuery({ queryKey: ["companies"], queryFn: () => api("/companies") });
@@ -44,13 +56,14 @@ export default function Companies() {
   });
 
   const q = search.trim().toLowerCase();
-  const rows: Company[] = (companies.data?.companies ?? []).filter(
+  const matches: Company[] = (companies.data?.companies ?? []).filter(
     (c) =>
       !q ||
       c.name.toLowerCase().includes(q) ||
       (c.ats_type ?? "").toLowerCase().includes(q) ||
       c.slug.toLowerCase().includes(q),
   );
+  const rows = matches.filter((c) => showAll || c.open_roles > 0);
   const active = rows.filter((c) => c.active);
   const inactive = rows.filter((c) => !c.active);
 
@@ -63,6 +76,13 @@ export default function Companies() {
           onChange={(e) => setSearch(e.target.value)}
           style={{ flex: 1 }}
         />
+        <select
+          value={showAll ? "all" : "open"}
+          onChange={(e) => setShowAll(e.target.value === "all")}
+        >
+          <option value="open">With open roles</option>
+          <option value="all">All companies</option>
+        </select>
         <button onClick={() => setAdding(true)}>+ Follow</button>
       </div>
 
@@ -81,7 +101,13 @@ export default function Companies() {
             <CompanyRow key={c.slug} c={c} onToggle={toggle.mutate} busy={toggle.isPending} />
           ))}
           {rows.length === 0 && (
-            <p className="muted empty">{q ? "No companies match." : "No companies tracked yet."}</p>
+            <p className="muted empty">
+              {matches.length > 0
+                ? "All matching companies have no open roles — switch to “All companies”."
+                : q
+                  ? "No companies match."
+                  : "No companies tracked yet."}
+            </p>
           )}
         </div>
       )}
