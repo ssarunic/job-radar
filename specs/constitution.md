@@ -30,7 +30,7 @@ and **Exploratory** (company enrichment).
      profile). It accesses the same public data a browser would — it does **not**
      bypass authentication, paywalls, or login. A genuine interactive challenge
      is treated as "do not enter," not something to defeat.
-   This principle is the single authority on crawler ethics; `README.md` /
+   This principle is the single authority on crawler ethics; `product-spec.md` /
    `AGENTS.md` defer here.
 
 3. **Markdown is canonical; everything else is derived.** `jobs/<company>/<role>--<id>.md`
@@ -49,7 +49,7 @@ and **Exploratory** (company enrichment).
    never kills a run.
 
 6. **Domain rules are fixed and London-focused.** Seniority ranking, title/location/
-   salary handling, dedup, and lifecycle follow the root `README.md` (the domain source
+   salary handling, dedup, and lifecycle follow the `product-spec.md` (the domain source
    of truth). Scope is London/England, Senior+ (this is a deliberate constraint, not a
    gap).
 
@@ -80,6 +80,6 @@ config/*  ──▶  scraping ladder (ATS API → Playwright → static)  ──
 ```
 
 ## Authority
-- **Domain rules:** root `README.md`.
+- **Domain rules:** `product-spec.md`.
 - **Core build detail:** [`specs/build-spec.md`](build-spec.md).
 - **Per-feature:** `specs/<feature>/{outcomes,strategy,tactical}.md`.

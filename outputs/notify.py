@@ -1,4 +1,4 @@
-"""Push notifications for genuinely-new roles (README §20 / deferred feature).
+"""Push notifications for genuinely-new roles (product-spec §20 / deferred feature).
 
 Fires when the run's diff contains `added`/`reopened` rows — never for routine
 updates or closures. The daily scheduler additionally passes `notify_empty=True`

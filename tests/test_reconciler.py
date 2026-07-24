@@ -1,4 +1,4 @@
-"""Run-to-run reconciliation + lifecycle (SPEC §8, README §15)."""
+"""Run-to-run reconciliation + lifecycle (SPEC §8, product-spec §15)."""
 from pathlib import Path
 
 from models.job_posting import JobPosting

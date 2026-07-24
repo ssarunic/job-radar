@@ -1,4 +1,4 @@
-"""Run-to-run reconciliation + lifecycle (SPEC §8, README §15 lifecycle).
+"""Run-to-run reconciliation + lifecycle (SPEC §8, product-spec §15 lifecycle).
 
 Lifecycle via a `missing_runs` counter in frontmatter:
   missing 1 run  -> stays open

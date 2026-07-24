@@ -1,5 +1,5 @@
 """Shared HTTP client (#8): one place for timeout, retries+backoff, per-domain
-rate limiting, a consistent User-Agent, and robots.txt checks (README §10, §17).
+rate limiting, a consistent User-Agent, and robots.txt checks (product-spec §10, §17).
 
 All requests-based adapters go through this so the crawler stays polite and
 failures are handled consistently. `sleep` is injectable for tests.

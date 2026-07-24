@@ -1,4 +1,4 @@
-"""Location acceptance + multi-location expansion (README §12)."""
+"""Location acceptance + multi-location expansion (product-spec §12)."""
 import pytest
 
 from services import location_filter as L

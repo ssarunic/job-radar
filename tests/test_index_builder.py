@@ -1,4 +1,4 @@
-"""Derived JSONL index: one row per (role, location) (#3, README §12)."""
+"""Derived JSONL index: one row per (role, location) (#3, product-spec §12)."""
 import json
 
 from outputs import index_builder, md_writer

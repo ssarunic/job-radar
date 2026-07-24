@@ -1,4 +1,4 @@
-"""Title classification + seniority ranking (README §11)."""
+"""Title classification + seniority ranking (product-spec §11)."""
 import pytest
 
 from services.title_normalizer import classify
@@ -99,7 +99,7 @@ def test_internship_term_not_matching_internal():
 
 
 def test_design_kept_when_clearly_pm():
-    # 'design' shouldn't exclude a real PM title (README §11.5)
+    # 'design' shouldn't exclude a real PM title (product-spec §11.5)
     c = classify("Senior Product Manager, Design Systems", PROFILE)
     assert c.kept is True
     assert c.rank == 3
@@ -122,7 +122,7 @@ def test_markets_vp_not_a_product_role():
 
 
 def test_marketing_kept_when_distinct_pm_title_present():
-    """README §11: marketing/brand dropped UNLESS a distinct segment is a PM title."""
+    """product-spec §11: marketing/brand dropped UNLESS a distinct segment is a PM title."""
     c = classify("Product Marketing Manager / Senior Product Manager", PROFILE)
     assert c.kept and c.rank == 3 and c.normalised == "Senior Product Manager"
 
@@ -132,7 +132,7 @@ def test_marketing_alone_still_excluded():
     assert not classify("Brand Manager", PROFILE).kept
 
 
-# --- AI / Innovation leadership family (README §11.9) ---------------------------
+# --- AI / Innovation leadership family (product-spec §11.9) ---------------------------
 
 @pytest.mark.parametrize("title,rank,norm", [
     ("AI & Innovation Lead", 4, "AI/Innovation Lead"),          # real Mishcon case

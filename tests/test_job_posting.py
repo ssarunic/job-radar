@@ -31,7 +31,7 @@ def test_id_without_url_uses_composite():
 
 
 def test_id_without_url_varies_by_location():
-    """No-URL fallback still distinguishes by location (README §15)."""
+    """No-URL fallback still distinguishes by location (product-spec §15)."""
     a = _jp(job_ad_url="", locations=["London"])
     b = _jp(job_ad_url="", locations=["Manchester"])
     assert a.id != b.id

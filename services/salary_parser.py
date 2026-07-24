@@ -1,4 +1,4 @@
-"""Salary detection from free text (README §13). Regex first; never converts.
+"""Salary detection from free text (product-spec §13). Regex first; never converts.
 
 Deliberately conservative: a match REQUIRES a currency symbol/code adjacent to a
 salary-scale amount (thousands separator, a 'k' suffix, or 4+ digits). This
@@ -114,7 +114,7 @@ def parse(text: str) -> tuple[Salary, str]:
 
 
 def employment_type(text: str) -> str:
-    """Detect employment type from free body text (README §10)."""
+    """Detect employment type from free body text (product-spec §10)."""
     t = (text or "").lower()
     if re.search(r"\b(fixed[- ]term|temporary|interim|freelance)\b", t):
         return "Contract"
@@ -130,7 +130,7 @@ def employment_type(text: str) -> str:
 
 def classify_employment(raw_value: str, body: str) -> str:
     """Normalise a structured employment value (Ashby 'FullTime', Workday 'Full time',
-    SR 'Contractor', 'Fixed-term'…) and fall back to body heuristics (README §10, #4)."""
+    SR 'Contractor', 'Fixed-term'…) and fall back to body heuristics (product-spec §10, #4)."""
     v = (raw_value or "").lower()
     if v:
         if any(k in v for k in ("contract", "fixed", "temporary", "interim",

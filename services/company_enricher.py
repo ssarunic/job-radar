@@ -1,4 +1,4 @@
-"""Exploratory mode — enrich a company from public data (README §3.1, §9.1).
+"""Exploratory mode — enrich a company from public data (product-spec §3.1, §9.1).
 
 Pragmatic + honest: with public HTML only and no paid APIs, the reliably-available
 signal is the company "About" blurb embedded in its job postings (Greenhouse/Ashby/
@@ -88,7 +88,7 @@ def enrich(company: dict, postings: list, claude, now_iso: str) -> Company:
             c.hq_location = hq
             notes.append("HQ approximated from posting locations")
 
-    # confidence (README §14): description + HQ from real signal -> Medium; AI -> High
+    # confidence (product-spec §14): description + HQ from real signal -> Medium; AI -> High
     if ai and c.description:
         c.data_confidence = "High"
     elif c.description and c.hq_location:

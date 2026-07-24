@@ -1,4 +1,4 @@
-"""Location acceptance + multi-location expansion (README §12). Hardcoded."""
+"""Location acceptance + multi-location expansion (product-spec §12). Hardcoded."""
 from __future__ import annotations
 
 import re
@@ -100,7 +100,7 @@ def _collapse(labels: list[str]) -> list[str]:
 
 
 def expand(location_str: str, profile: dict) -> list[str]:
-    """Return accepted location labels, one per output row (README §12), judging
+    """Return accepted location labels, one per output row (product-spec §12), judging
     remote against the WHOLE posting: a 'Remote' tied to US-only cities is US-remote
     and rejected. Max 5; if >5 and London present, keep London + remote only."""
     pieces = split_locations(location_str)

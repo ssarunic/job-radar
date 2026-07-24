@@ -11,7 +11,7 @@ from services import store
 def rebuild(jobs_dir: Path, index_path: Path) -> int:
     """Regenerate jobs.jsonl. The MD file is the canonical per-role record; the
     index is the DERIVED display view with one row per (role, location) (#3,
-    README §12 one-row-per-location)."""
+    product-spec §12 one-row-per-location)."""
     rows = []
     if jobs_dir.exists():
         for path in sorted(jobs_dir.rglob("*.md")):

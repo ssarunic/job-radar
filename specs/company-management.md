@@ -113,7 +113,7 @@ already uses). Pure refactor — no signature change.
    add, dedupe `409`, toggle, `404`; monkeypatch `discovery.discover` for the
    `{query}` path so tests stay network-free.
 3. **Frontend** — `api.ts` helper, `Companies.tsx`, route + nav link.
-4. **Docs** — note the new surface in `build-spec.md`; `README` web-app blurb.
+4. **Docs** — note the new surface in `build-spec.md`; root `README` (landing page) blurb.
 
 ## Testing
 

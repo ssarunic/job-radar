@@ -2,10 +2,10 @@
 
 > **Status:** implemented & deployed — live on a Raspberry Pi via CI/CD
 > (tag → GHCR arm64 image → push-deploy over Tailscale SSH), daily 08:00 scraper → Slack. See `specs/deploy.md`.
-> **Relationship to `README.md`:** `README.md` remains the source of truth for *domain rules*
+> **Relationship to `product-spec.md`:** `product-spec.md` remains the source of truth for *domain rules*
 > (seniority ranking, title/location/salary handling, dedup, lifecycle). This document is the
 > source of truth for *how we build and store* the Job Seek pipeline. Where the two differ, the
-> divergence is called out under [§9 Divergence from README](#9-divergence-from-readme).
+> divergence is called out under [§9 Divergence from product-spec](#9-divergence-from-product-spec).
 
 ---
 
@@ -15,7 +15,7 @@ Build a **one-shot CLI** (`python main.py seek`) that, for a configured list of 
 
 1. Resolves each company's careers listing.
 2. Fetches open roles using the **scraping ladder** (ATS JSON API → Playwright → static HTML).
-3. Applies the README's filtering + ranking rules.
+3. Applies the product-spec's filtering + ranking rules.
 4. Writes one Markdown file per kept role (canonical record) and regenerates a JSONL index.
 5. Emits a per-run diff and a console/TXT summary.
 
@@ -94,7 +94,7 @@ Rules:
 - **Identity is one MD file per role (#3).** The id keys on the canonical URL only — location
   labels never change identity, so a role with multiple offices is a single canonical record with
   `locations: [...]`. The index is the **derived display view**: `index_builder` expands each role
-  to one JSONL row per location (README §12 one-row-per-location). A title rename keeps the id but
+  to one JSONL row per location (product-spec §12 one-row-per-location). A title rename keeps the id but
   changes the filename slug; the writer removes the stale file (`prior_path`).
 - Upgrade path (do **not** build now): swap the derived index for SQLite, keeping MD canonical.
 
@@ -118,13 +118,13 @@ One row per company. CSV is fine here (flat, hand-edited).
 
 ### 3.2 `config/search_profile.yaml` — the "what I'm looking for" doc
 
-Global criteria. Field semantics map directly onto README §10–13.
+Global criteria. Field semantics map directly onto product-spec §10–13.
 
 ```yaml
 roles:          ["Product Manager", "Senior Product Manager", "Group Product Manager",
                  "Principal Product Manager", "Head of Product", "Director of Product"]
-seniority_min:  3                 # README §11: keep rank >= 3
-include_product_owner: true       # README §11 step 8
+seniority_min:  3                 # product-spec §11: keep rank >= 3
+include_product_owner: true       # product-spec §11 step 8
 exclude_titles: ["marketing", "growth marketing", "brand", "design", "hr", "talent", "people ops"]
 locations:      ["London", "UK", "United Kingdom", "England"]
 allow_remote:   true              # accept if UK/Europe/EMEA-eligible, not US-only
@@ -151,7 +151,7 @@ wait_for:       ".job-result"   # Playwright selector to await before scraping
 locations_add:  ["Edinburgh"]   # extend, don't replace, the global list
 ```
 
-### 3.4 `config/settings.yaml` — operational constants (README §10)
+### 3.4 `config/settings.yaml` — operational constants (product-spec §10)
 
 Hardcoded per single-user tool: `request_timeout: 20`, `rate_limit_per_sec: 1`,
 `retries: 2`, `runtime_budget_min: 30`, `max_companies: 300`, `user_agent: "<string>"`,
@@ -241,7 +241,7 @@ salary text, and posted date — before the Claude-parsing step (§7).
 
 ---
 
-## 5. Operational constraints (README §10, §17)
+## 5. Operational constraints (product-spec §10, §17)
 
 Public HTML only; respect `robots.txt`; no login areas. Per-domain rate limit **1 req/sec**,
 **20s** timeout, **2 retries** with exponential backoff. Enforce the **30-min** runtime budget
@@ -254,7 +254,7 @@ results in the summary. Hard cap **300** companies.
 
 ### 6.1 `JobPosting` dataclass (`models/`)
 
-Mirror README §6.2 fields. Minimum set the index/MD must carry:
+Mirror product-spec §6.2 fields. Minimum set the index/MD must carry:
 
 `id, company, company_slug, title_raw, title_normalised, seniority_level, seniority_rank,
 employment_type, workplace_model, locations (list), remote_eligible_regions, salary{min,max,
@@ -263,7 +263,7 @@ job_ad_url, source_type, source_detail, first_seen, last_seen, last_checked, sta
 
 ### 6.2 `id` (stable key)
 
-`id = sha1(canonical_job_ad_url)[:8]` when a URL exists (README §15 primary key); otherwise
+`id = sha1(canonical_job_ad_url)[:8]` when a URL exists (product-spec §15 primary key); otherwise
 `sha1(company_slug + normalised_title + first_120_chars(description) + sorted(locations))[:8]`.
 The `id` is the dedup key and the suffix in the MD filename.
 
@@ -311,19 +311,19 @@ Everything else is scraper-managed.
 
 ---
 
-## 7. Filtering, ranking, parsing (delegate to README)
+## 7. Filtering, ranking, parsing (delegate to product-spec)
 
-Apply, in order, exactly as specified in the README — do not reinvent:
+Apply, in order, exactly as specified in the product-spec — do not reinvent:
 
-1. **Title normalisation + seniority rank** — README §11. Keep if `rank >= seniority_min` OR
+1. **Title normalisation + seniority rank** — product-spec §11. Keep if `rank >= seniority_min` OR
    (Product Owner AND `include_product_owner`).
-2. **Title exclusions** — README §11 steps 5–6 (marketing/brand/HR/design-only).
-3. **Employment type** — exclude Contract (README §10).
+2. **Title exclusions** — product-spec §11 steps 5–6 (marketing/brand/HR/design-only).
+3. **Employment type** — exclude Contract (product-spec §10).
 4. **Location expansion** — one row per location, max 5; >5 with London ⇒ London + Remote only
-   (README §12). Remote accepted only if UK/Europe/EMEA-eligible; a remote label naming a
+   (product-spec §12). Remote accepted only if UK/Europe/EMEA-eligible; a remote label naming a
    non-eligible region (`Remote (USA)`, `Remote - Canada`, `Remote (APAC)`, …) is rejected (#3).
 5. **Salary** — never convert currency; min/max + currency + original text; bonus ⇒ `Base+Bonus`
-   (README §13). **Source preference:** ATS-provided *structured* compensation (Ashby
+   (product-spec §13). **Source preference:** ATS-provided *structured* compensation (Ashby
    `summaryComponents`) is authoritative when present, then Claude (if enabled), then the
    context-aware regex over the description.
 6. **Recency** — applies only to **discovery rungs** (playwright/static), where a
@@ -335,15 +335,15 @@ Apply, in order, exactly as specified in the README — do not reinvent:
    out mid-tracking made the lifecycle falsely close it (2026-07-24 audit: Monzo /
    Spotify / Hostaway / Airwallex all "closed" on exactly day 46 while live).
    `posted_date` (first-publish) is still stored for display. (Refinement over
-   README §10 — see §9.)
+   product-spec §10 — see §9.)
 7. **Per-company cap** — keep top `max_roles_per_company` by seniority; ties by posted date, then
-   alphabetical (README §9.2 step 10). The cap runs **after** the detail fetch and detail-derived
+   alphabetical (product-spec §9.2 step 10). The cap runs **after** the detail fetch and detail-derived
    filters (recency, employment): the pipeline ranks a candidate pool, fetches detail, applies the
    final filters, and keeps the first `max_roles` survivors — so a stale/contract role can't occupy
    a slot and then be silently dropped.
-8. **Dedup** — README §15 (URL, or company + normalised title + first 120 chars + location).
+8. **Dedup** — product-spec §15 (URL, or company + normalised title + first 120 chars + location).
 
-**Claude API only for the fuzzy steps** (README §21.4, §22): title classification, salary
+**Claude API only for the fuzzy steps** (product-spec §21.4, §22): title classification, salary
 extraction from free text, description summarisation, requirement parsing. **Always** fall back
 to regex/heuristics on API failure; cache successful extractions; validate every response against
 its JSON schema before use. All navigation/filtering/ranking stays hardcoded.
@@ -363,7 +363,7 @@ Per run (`python main.py seek`):
      id), treat it as the same role: carry over `first_seen`/notes/`applied`, rename the file (#2).
    - seen again ⇒ update `last_seen`, `last_checked`; refresh scraper-managed fields; preserve
      user-owned fields (§6.3).
-   - **missing this run** ⇒ apply README lifecycle: missing for **N=2** consecutive runs ⇒
+   - **missing this run** ⇒ apply product-spec lifecycle: missing for **N=2** consecutive runs ⇒
      `suspected_filled`; missing the next run ⇒ `closed`. (Track a `missing_runs` counter in
      frontmatter; never auto-close a `status: applied` role.) **Only postings of companies that
      were authoritatively checked this run are aged** — a partial run (`--only`/`--limit`, runtime
@@ -374,16 +374,16 @@ Per run (`python main.py seek`):
    (title, locations, salary, employment, comp type, posted date, URL, source — not lifecycle
    bookkeeping like `last_seen`), and carries a `changes: {field: [old, new]}` map (#7).
 7. Print + write `data/runs/<ts>/summary.txt`: companies processed, roles added/updated/closed,
-   failures, blocked, elapsed vs budget, list of failed URLs (README §16).
+   failures, blocked, elapsed vs budget, list of failed URLs (product-spec §16).
 
 ---
 
-## 9. Divergence from README
+## 9. Divergence from product-spec
 
-The README predates the local-first storage decision. This spec **overrides** it on storage and
+The product-spec (the original root README) predates the local-first storage decision. This spec **overrides** it on storage and
 fetching; it **inherits** all domain rules unchanged.
 
-| Topic | README | This spec |
+| Topic | product-spec | This spec |
 | --- | --- | --- |
 | Primary store | Versioned **XLSX** tables | **MD-per-role (canonical) + `jobs.jsonl` index** |
 | Diff format | XLSX/CSV | **JSONL** under `data/runs/<ts>/` |
@@ -392,7 +392,7 @@ fetching; it **inherits** all domain rules unchanged.
 | XLSX output | Core output | Deferred — optional *export* derived from the index later |
 | Recency basis | `posted_date` only | **freshness (last-updated) when available**, else posted_date (§7.6) |
 
-Everything in README §6 (fields), §11 (titles/ranking), §12 (location), §13 (salary), §14
+Everything in product-spec §6 (fields), §11 (titles/ranking), §12 (location), §13 (salary), §14
 (confidence), §15 (dedup), §16 (errors), §17 (ethics) applies as written.
 
 ---
@@ -418,8 +418,8 @@ job-radar/
 │   ├── static_scraper.py
 │   └── rate_limiter.py
 ├── services/
-│   ├── title_normalizer.py        # README §11 (hardcoded)
-│   ├── location_filter.py         # README §12 (hardcoded)
+│   ├── title_normalizer.py        # product-spec §11 (hardcoded)
+│   ├── location_filter.py         # product-spec §12 (hardcoded)
 │   ├── salary_parser.py           # regex first, Claude fallback
 │   ├── claude_service.py          # fuzzy parsing only, schema-validated
 │   └── reconciler.py              # §8 lifecycle + diff
@@ -488,7 +488,7 @@ ladder-fetches the listing and derives, **public-HTML-only**:
   ship descriptions); or a Claude 1–2 sentence summary when `use_claude` is on.
 - **HQ** — the most common posting city (an *approximation*, flagged in `notes`).
 - **Industry / funding / revenue / employees / founded** — only when `use_claude` parses the
-  About text; otherwise left blank with `DataConfidence: Low` (no paid APIs, README §14).
+  About text; otherwise left blank with `DataConfidence: Low` (no paid APIs, product-spec §14).
 
 Storage mirrors jobs: `companies/<slug>.md` is canonical (note-preserving via the same renderer),
 `data/company_index.jsonl` is the derived index. Workday/SmartRecruiters/Talemetry boards ship no

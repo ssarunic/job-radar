@@ -1,0 +1,14 @@
+# Example company registry — copy rows you want into companies.csv, or (easier)
+# just follow companies from the web UI's "+ Follow" button and let discovery
+# fill this file in for you. One row per company.
+#
+# ats_type: greenhouse | ashby | lever | smartrecruiters | workday | oracle |
+#           recruitee | revolutpeople | talemetry | cvmail | custom
+# priority: high | medium | low   (informational)
+# active:   true | false          (false = unfollowed, kept for history)
+name,slug,careers_url,ats_type,ats_slug,priority,active
+Monzo,monzo,https://job-boards.greenhouse.io/monzo,greenhouse,monzo,medium,true
+Attio,attio,https://jobs.ashbyhq.com/attio,ashby,attio,medium,true
+Spotify,spotify,https://jobs.lever.co/spotify,lever,spotify,medium,true
+Wise,wise,https://jobs.smartrecruiters.com/Wise,smartrecruiters,Wise,high,true
+Hostaway,hostaway,https://careers.hostaway.com,recruitee,,medium,true

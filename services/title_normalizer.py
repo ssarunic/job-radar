@@ -1,11 +1,11 @@
-"""Title normalisation + seniority ranking (README §11). Hardcoded — no API."""
+"""Title normalisation + seniority ranking (product-spec §11). Hardcoded — no API."""
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
 from typing import Optional
 
-# (regex, normalised title, seniority level, rank) — ordered by priority (README §11.3).
+# (regex, normalised title, seniority level, rank) — ordered by priority (product-spec §11.3).
 # Order matters: first match wins, so seniority descends and Principal precedes Group.
 PATTERNS = [
     (r"\b(cpo|chief product officer)\b", "Chief Product Officer", "C Level", 9),
@@ -31,7 +31,7 @@ PATTERNS = [
     (r"\bproduct owner\b", "Product Owner", "Other", 2),
 ]
 
-# README §11.9 — AI / Innovation leadership family (toggle: include_ai_innovation).
+# product-spec §11.9 — AI / Innovation leadership family (toggle: include_ai_innovation).
 # Domain = AI / Artificial Intelligence / GenAI / Innovation, incl. conjoined forms
 # ("AI & Innovation"); only conjunctions may join domain words, so "AI Engineer Lead"
 # can't bridge. Leadership role-words only (no manager tier — an "Innovation Manager"
@@ -71,7 +71,7 @@ _SEG_RX = re.compile(r"\s*(?:/|\||&|\band\b|\bor\b)\s*", re.IGNORECASE)
 
 
 def _distinct_pm_segment(raw_title: str, excl: list, patterns: list) -> Optional[str]:
-    """README §11 exception: a marketing/brand title is kept if a *distinct*
+    """product-spec §11 exception: a marketing/brand title is kept if a *distinct*
     segment is itself a PM title. Returns that segment (normalised) — e.g. the
     'senior product manager' half of 'Product Marketing Manager / Senior Product
     Manager' — or None. The segment must contain none of the excluded terms."""
@@ -85,7 +85,7 @@ def _distinct_pm_segment(raw_title: str, excl: list, patterns: list) -> Optional
 
 
 def classify(raw_title: str, profile: dict) -> Classification:
-    """Return a Classification. `kept` reflects README §11 filter:
+    """Return a Classification. `kept` reflects product-spec §11 filter:
     rank >= seniority_min, OR Product Owner when include_product_owner."""
     t = _strip_brackets((raw_title or "").lower())
     t = re.sub(r"\s+", " ", t).strip()
@@ -95,7 +95,7 @@ def classify(raw_title: str, profile: dict) -> Classification:
     include_po = profile.get("include_product_owner", True)
     patterns = PATTERNS + (AI_PATTERNS if profile.get("include_ai_innovation", True) else [])
 
-    # README §11.5-6 — exclusions (marketing/brand/HR/talent/design-only/etc.).
+    # product-spec §11.5-6 — exclusions (marketing/brand/HR/talent/design-only/etc.).
     # Match at a word boundary so short terms don't hit substrings
     # (e.g. 'hr' must not match inside "Threat"). Start-boundary only, so stems
     # still match ('design' -> 'designer', 'recruit' -> 'recruiter').
@@ -110,13 +110,13 @@ def classify(raw_title: str, profile: dict) -> Classification:
     if excluded_term:
         seg = _distinct_pm_segment(raw_title, excl, patterns)
         if seg:
-            t = seg          # README §11: a distinct PM title rescues a marketing/brand role
+            t = seg          # product-spec §11: a distinct PM title rescues a marketing/brand role
         else:
             return Classification("", "", 0, False, f"excluded:{excluded_term}")
 
     for rx, norm, level, rank in patterns:
         if re.search(rx, t):
-            # Product Owner bumps to rank 3 if senior/lead (README §11.7)
+            # Product Owner bumps to rank 3 if senior/lead (product-spec §11.7)
             if norm == "Product Owner":
                 if re.search(r"\b(senior|lead)\b", t):
                     rank, level = 3, "Senior"

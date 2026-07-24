@@ -14,10 +14,15 @@ Tailscale on each tag. The scraper runs **daily at 08:00 Europe/London** and pos
 senior PM roles to Slack, deep-linked to the web app. Runbook: `specs/deploy.md`.
 
 **Architecture authority:** `specs/constitution.md` (principles) → `specs/build-spec.md`
-(storage layout, scraping ladder, ATS adapters, fetching policy). The root
-`README.md` is the original product/domain spec and is **historical for storage &
+(storage layout, scraping ladder, ATS adapters, fetching policy).
+`specs/product-spec.md` (the original root README, cited in code as
+"product-spec §N") is the product/domain spec and is **historical for storage &
 output** (it describes XLSX, which predates the Markdown store) — defer to
 `specs/build-spec.md` for anything about how data is stored or fetched.
+
+**Docs are two-part:** `docs/` is the plain-language **user guide** (no dev
+concepts — keep it that way); `specs/` is the **dev docs** (`specs/README.md`
+is the index). The root `README.md` is a short landing page linking both.
 
 ## What This Builds
 
@@ -55,7 +60,7 @@ keep cost low (~$15–30 for 300 companies vs $150+ pure-API).
 
 ## Domain Rules That Are Easy To Get Wrong
 
-These are the non-obvious rules the implementation must encode (README §11–15). They drive most of the business logic:
+These are the non-obvious rules the implementation must encode (product-spec §11–15). They drive most of the business logic:
 
 - **Seniority ranking** (numeric): CPO 9, VP 8, Director 7, Head 6, EIR ~6, Principal 5, Staff 5, Group 4, Product Lead(er) 4, Senior 3, Product Manager/Mid 2, Product Owner 2 (→3 if title contains senior/lead). "Product Lead" ranks Group-tier bare, but VP/Director-prefixed forms rank up even when the seniority word isn't adjacent to "product" (e.g. "…Product Lead… Vice President" → VP). An **AI/Innovation leadership family** (`include_ai_innovation`, default on) ranks in the same ladder: Chief AI Officer 9, VP 8, Director 7, Head 6, AI/Innovation Lead(er) 4 — leadership role-words only (no manager tier), IC-track qualifiers dropped ("Head of AI Research", "AI Engineer Lead"). **Keep a role only if rank ≥ 3**, OR it's a Product Owner and `include product owner` is true.
 - **Title exclusions**: drop titles containing marketing/growth marketing/brand (unless a second distinct title matches a PM pattern exactly), and people-ops/HR/talent/design-only roles.
@@ -80,5 +85,5 @@ initial / 300 hard cap. Config + API keys are local (single-user tool;
 `anthropic_api_key` reads from env, never committed).
 
 When details are ambiguous, **`specs/constitution.md` then `specs/build-spec.md`
-are the source of truth** for architecture/storage/fetching, and `README.md` for
-product/domain intent. Items marked ✅ in the README are confirmed decisions.
+are the source of truth** for architecture/storage/fetching, and `specs/product-spec.md` for
+product/domain intent. Items marked ✅ in the product-spec are confirmed decisions.

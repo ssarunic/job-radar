@@ -1,4 +1,4 @@
-"""Claude API — fuzzy parsing ONLY, with hard fallback to heuristics (README §21.4, §22).
+"""Claude API — fuzzy parsing ONLY, with hard fallback to heuristics (product-spec §21.4, §22).
 
 Disabled by default (settings.use_claude=false) so a run costs nothing. When
 enabled, every response is validated; any failure returns None so the caller
@@ -57,7 +57,7 @@ class ClaudeService:
         return None
 
     def extract_company(self, text: str, company_name: str) -> dict | None:
-        """Summarise a company from job-description text (README §22 enrich prompt).
+        """Summarise a company from job-description text (product-spec §22 enrich prompt).
         Returns {description,industry,sub_industry,hq_location,total_funding,
         employee_count,year_founded} or None."""
         if not self.enabled or not text:

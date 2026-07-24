@@ -1,4 +1,4 @@
-"""Per-domain rate limiting (README §10, §17)."""
+"""Per-domain rate limiting (product-spec §10, §17)."""
 from __future__ import annotations
 
 import time

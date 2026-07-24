@@ -1,4 +1,4 @@
-"""Company dataclass for Exploratory/enrichment mode (README §6.1)."""
+"""Company dataclass for Exploratory/enrichment mode (product-spec §6.1)."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -14,12 +14,12 @@ class Company:
     industry: str = ""
     sub_industry: str = ""
     hq_location: str = ""
-    total_funding: str = ""           # original string, no conversion (README §7)
+    total_funding: str = ""           # original string, no conversion (product-spec §7)
     main_investors: list = field(default_factory=list)
     year_founded: str = ""
     employee_count: str = ""          # original string / range
     revenue: str = ""
-    data_confidence: str = "Low"      # High | Medium | Low (README §14)
+    data_confidence: str = "Low"      # High | Medium | Low (product-spec §14)
     last_updated_utc: str = ""
     notes: str = ""
 
