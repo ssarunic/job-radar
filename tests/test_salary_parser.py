@@ -1,4 +1,4 @@
-"""Salary detection + employment classification (README §13, §10)."""
+"""Salary detection + employment classification (product-spec §13, §10)."""
 import pytest
 
 from services import salary_parser
@@ -8,7 +8,7 @@ def test_range_gbp():
     sal, comp = salary_parser.parse("Salary: £105,000 - £135,000 plus bonus")
     assert (sal.min, sal.max, sal.currency) == (105000, 135000, "GBP")
     assert comp == "Base+Bonus"
-    assert sal.original_text  # preserved (README §13)
+    assert sal.original_text  # preserved (product-spec §13)
 
 
 def test_single_usd_per_year():

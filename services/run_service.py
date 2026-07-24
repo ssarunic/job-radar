@@ -108,7 +108,7 @@ def seek_run(settings, base_profile, companies, *, http=None, claude=None,
                 kept = (pipeline.process_company(company, profile, result.postings,
                                                  fetcher, settings, claude, today)
                         if result.postings else [])
-            except Exception as e:  # noqa: BLE001 — keep the batch alive (README §16)
+            except Exception as e:  # noqa: BLE001 — keep the batch alive (product-spec §16)
                 stats["errors"] += 1
                 failed_urls.append(company["careers_url"])
                 stats["per_company"][name] = {"kept": 0, "rung": rung, "status": f"error: {e}"}

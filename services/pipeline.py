@@ -1,4 +1,4 @@
-"""Per-company processing pipeline (SPEC §7, README §9.2/§11-13).
+"""Per-company processing pipeline (SPEC §7, product-spec §9.2/§11-13).
 
 Order is chosen to minimise detail fetches: cheap listing-level filters
 (title, seniority, location, recency) and the per-company cap run first; only
@@ -32,7 +32,7 @@ def normalize_date(val) -> str | None:
 
 def _too_old(iso: str | None, recency_days: int, today: date) -> bool:
     if not iso:
-        return False  # unknown date — keep (README §10)
+        return False  # unknown date — keep (product-spec §10)
     try:
         d = date.fromisoformat(iso)
     except ValueError:
@@ -102,8 +102,8 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
     # --- Stage B: dedup, rank, per-company cap (before detail fetch) ----------
     by_id: dict[str, tuple[JobPosting, dict]] = {}
     for jp, raw in candidates:
-        by_id.setdefault(jp.id, (jp, raw))   # README §15 dedup by id
-    # ties: more-senior first, then newer posted date, then alphabetical (README §9.2)
+        by_id.setdefault(jp.id, (jp, raw))   # product-spec §15 dedup by id
+    # ties: more-senior first, then newer posted date, then alphabetical (product-spec §9.2)
     ranked = sorted(by_id.values(),
                     key=lambda pr: (-pr[0].seniority_rank,
                                     _date_sort_key(pr[0].posted_date),

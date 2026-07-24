@@ -1,4 +1,4 @@
-"""Run summary: console + TXT, plus per-run diff.jsonl (SPEC §8, README §16)."""
+"""Run summary: console + TXT, plus per-run diff.jsonl (SPEC §8, product-spec §16)."""
 from __future__ import annotations
 
 import json

@@ -38,7 +38,7 @@ AWS ALB). **No JSON API** — everything is HTML:
   load without `rcd`) so `JobAdURL` is stable across runs — otherwise URL-based
   dedup/lifecycle would churn every run.
 - **No posted date** anywhere ⇒ `posted_date=None`; the recency filter keeps
-  unknown dates (README §10).
+  unknown dates (product-spec §10).
 - **robots.txt**: disallows a long list of *named* bots from `/`, but has **no
   `User-agent: *` group** — our `JobSeekAssistant` UA is not disallowed, so
   `HttpClient.allowed()` passes. The adapter still sets `check_robots=True`

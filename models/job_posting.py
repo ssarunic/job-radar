@@ -64,7 +64,7 @@ class JobPosting:
         """Stable key (SPEC §6.2, #3). URL-backed jobs key on the canonical URL
         ONLY — location-label changes must not mint a new id. Locations expand to
         rows at output time, not into the identity. No-URL jobs fall back to a
-        composite (README §15)."""
+        composite (product-spec §15)."""
         base = canonical_url(self.job_ad_url)
         if not base:
             locs = ";".join(sorted(l.lower().strip() for l in self.locations))
