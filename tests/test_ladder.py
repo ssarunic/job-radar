@@ -6,6 +6,7 @@ from scrapers.result import BLOCKED, EMPTY, ERROR, OK, ListingResult
 class FakeHttp:
     def __init__(self, allowed=True):
         self._allowed = allowed
+        self.settings = {}
 
     def allowed(self, url):
         return self._allowed
@@ -104,6 +105,18 @@ def test_build_rungs_ats_has_fallbacks_terminal_on_empty():
                          {}, FakeHttp())
     assert len(rungs) == 3
     assert rungs[0][0] is True        # ATS primary: empty is terminal
+
+
+def test_build_rungs_revolutpeople_dispatches_web_or_api_by_host():
+    from scrapers.ats.revolut_people import RevolutPeopleFetcher, RevolutWebFetcher
+    api = _build_rungs({"ats_type": "revolutpeople", "slug": "cleo-ai", "ats_slug": "cleo",
+                        "careers_url": "https://revolutpeople.com/cleo/public/careers"},
+                       {}, FakeHttp())
+    web = _build_rungs({"ats_type": "revolutpeople", "slug": "revolut",
+                        "careers_url": "https://www.revolut.com/careers"},
+                       {}, FakeHttp())
+    assert api[0][0] is True and isinstance(api[0][1](), RevolutPeopleFetcher)
+    assert web[0][0] is True and isinstance(web[0][1](), RevolutWebFetcher)
 
 
 def test_build_rungs_custom_is_discovery_only():

@@ -9,11 +9,10 @@ from __future__ import annotations
 from contextlib import contextmanager
 
 from scrapers import static_scraper
-from scrapers.ats import ashby, greenhouse, lever, smartrecruiters
+from scrapers.ats import ashby, greenhouse, lever, revolut_people, smartrecruiters
 from scrapers.ats.cvmail import CvMailFetcher
 from scrapers.ats.oracle import OracleFetcher
 from scrapers.ats.recruitee import RecruiteeFetcher
-from scrapers.ats.revolut_people import RevolutPeopleFetcher
 from scrapers.ats.talemetry import TalemetryFetcher
 from scrapers.ats.workday import WorkdayFetcher
 from scrapers.playwright_scraper import PlaywrightSession
@@ -29,6 +28,7 @@ def detect_ats(company: dict, http) -> str:
     markers = (("greenhouse", "greenhouse"), ("lever.co", "lever"),
                ("ashbyhq", "ashby"), ("smartrecruiters", "smartrecruiters"),
                ("myworkdayjobs", "workday"), ("revolutpeople", "revolutpeople"),
+               ("revolut.com/careers", "revolutpeople"),
                ("talemetry", "talemetry"), ("oraclecloud", "oracle"),
                ("recruitee", "recruitee"), ("cvmail", "cvmail"))
     low = url.lower()
@@ -171,7 +171,8 @@ def _build_rungs(company, profile, http):
     if ats == "cvmail":
         return [(True, lambda: CvMailFetcher(company, http)), playwright, static]
     if ats == "revolutpeople":
-        return [(True, lambda: RevolutPeopleFetcher(company, http)), playwright, static]
+        return [(True, lambda: revolut_people.make_fetcher(company, http)),
+                playwright, static]
     if ats == "talemetry":
         return [(True, lambda: TalemetryFetcher(company, http, query)), static]
     # custom / unresolved -> discovery rungs only

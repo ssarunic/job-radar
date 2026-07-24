@@ -55,6 +55,21 @@ def test_from_url_workday():
     assert "myworkdayjobs" in d["careers_url"]
 
 
+def test_from_url_revolutpeople_tenant():
+    d = discovery.discover(
+        "https://revolutpeople.com/cleo/public/careers/position/abc", http=None)
+    assert d["ats_type"] == "revolutpeople" and d["ats_slug"] == "cleo"
+    assert d["careers_url"] == "https://revolutpeople.com/cleo/public/careers"
+
+
+def test_from_url_revolut_own_careers():
+    d = discovery.discover(
+        "https://www.revolut.com/careers/position/6e84f229-b790/", http=None)
+    assert d["ats_type"] == "revolutpeople" and d["ats_slug"] == "revolut"
+    assert d["name"] == "Revolut"
+    assert d["careers_url"] == "https://www.revolut.com/careers"
+
+
 def test_from_url_unknown_is_custom():
     d = discovery.discover("https://tessl.io/careers", http=None)
     assert d["ats_type"] == "custom"
