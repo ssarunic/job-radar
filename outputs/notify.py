@@ -19,6 +19,11 @@ import os
 NEW_CHANGES = ("added", "reopened")
 
 
+# Label for role counts in notifications; override per-seeker via
+# search_profile.yaml `search_label` (threaded through notify(label=...)).
+DEFAULT_LABEL = "senior PM"
+
+
 def new_rows(diff: list[dict]) -> list[dict]:
     return [d for d in diff if d.get("change") in NEW_CHANGES]
 
@@ -65,10 +70,11 @@ def _slack_line(row: dict, web_base_url: str) -> str:
     return line
 
 
-def build_slack_blocks(diff: list[dict], web_base_url: str = "", max_items: int = 12):
+def build_slack_blocks(diff: list[dict], web_base_url: str = "", max_items: int = 12,
+                       label: str = DEFAULT_LABEL):
     """Return (fallback_text, Block Kit blocks) for the new/reopened roles."""
     rows = new_rows(diff)
-    text = f"{len(rows)} new senior PM role{'s' if len(rows) != 1 else ''}"
+    text = f"{len(rows)} new {label} role{'s' if len(rows) != 1 else ''}"
     lines = [_slack_line(r, web_base_url) for r in rows[:max_items]]
     if len(rows) > max_items:
         lines.append(f"_…and {len(rows) - max_items} more_")
@@ -99,14 +105,14 @@ def _heartbeat_tail(summary: dict | None) -> str:
     return line
 
 
-def build_heartbeat_message(summary: dict | None = None) -> str:
+def build_heartbeat_message(summary: dict | None = None, label: str = DEFAULT_LABEL) -> str:
     tail = _heartbeat_tail(summary)
-    return "No new senior PM roles since yesterday." + (f" ({tail})" if tail else "")
+    return f"No new {label} roles since yesterday." + (f" ({tail})" if tail else "")
 
 
-def build_slack_heartbeat(summary: dict | None = None):
+def build_slack_heartbeat(summary: dict | None = None, label: str = DEFAULT_LABEL):
     """Return (fallback_text, Block Kit blocks) for a no-new-roles heartbeat."""
-    text = "No new senior PM roles since yesterday"
+    text = f"No new {label} roles since yesterday"
     body = "No new or reopened roles since yesterday."
     tail = _heartbeat_tail(summary)
     if tail:
@@ -120,7 +126,8 @@ def build_slack_heartbeat(summary: dict | None = None):
 
 
 def notify(diff: list[dict], settings: dict, http, sender=None,
-           *, notify_empty: bool = False, summary: dict | None = None) -> bool:
+           *, notify_empty: bool = False, summary: dict | None = None,
+           label: str = DEFAULT_LABEL) -> bool:
     """Send a notification if enabled and there are new/reopened roles.
 
     With `notify_empty=True` (the daily scheduler), also send an "all quiet"
@@ -140,9 +147,9 @@ def notify(diff: list[dict], settings: dict, http, sender=None,
         if not topic:
             return False
         if rows:
-            title, body = f"{len(rows)} new PM role(s)", build_message(diff)
+            title, body = f"{len(rows)} new {label} role(s)", build_message(diff)
         else:
-            title, body = "No new PM roles", build_heartbeat_message(summary)
+            title, body = f"No new {label} roles", build_heartbeat_message(summary, label)
         (sender or _send_ntfy)(_ntfy_url(topic), title, body, http)
         return True
 
@@ -152,9 +159,9 @@ def notify(diff: list[dict], settings: dict, http, sender=None,
             return False
         web_base_url = settings.get("web_base_url") or os.environ.get("WEB_BASE_URL", "")
         if rows:
-            text, blocks = build_slack_blocks(diff, web_base_url)
+            text, blocks = build_slack_blocks(diff, web_base_url, label=label)
         else:
-            text, blocks = build_slack_heartbeat(summary)
+            text, blocks = build_slack_heartbeat(summary, label=label)
         (sender or _send_slack)(webhook, text, blocks, http)
         return True
 

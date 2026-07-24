@@ -36,8 +36,9 @@ from services import discovery, loader, queries, registry, run_service, store  #
 # instructions and the tool docstrings are what the client model reads to pick a
 # tool and interpret results — edit them as prompt text, not comments.
 _INSTRUCTIONS = """\
-JobRadar tracks senior Product-Management roles at companies the user follows,
-scraped daily from each company's ATS. Single user.
+JobRadar tracks roles matching the user's configured search profile (the
+default profile: senior Product-Management roles) at companies the user
+follows, scraped daily from each company's ATS. Single user.
 
 Which tool:
 - "What's new?" -> new_jobs (days=1 today, days=7 the past week); stats for headline numbers.
@@ -55,7 +56,7 @@ Reading results:
   the ATS's own date (may be null or much older); last_seen = last run it was still up.
 - status lifecycle: open -> suspected_filled (missing 2 consecutive runs) -> closed;
   "applied" is set by the user.
-- seniority_rank: CPO 9, VP 8, Director 7, Head 6, Principal/Staff 5,
+- seniority_rank (default product pack): CPO 9, VP 8, Director 7, Head 6, Principal/Staff 5,
   Group/Product-Lead 4, Senior 3, PM/Product Owner 2. AI/Innovation leadership
   titles (e.g. "AI & Innovation Lead", "Head of AI") rank in the same ladder.
   Only rank >= 3 (plus opted-in Product Owners) is tracked.
@@ -94,7 +95,7 @@ def list_jobs(status: Status = "open", company: Optional[str] = None,
               min_rank: Optional[int] = None, q: Optional[str] = None,
               sort: Literal["seniority", "recent"] = "seniority",
               limit: Optional[int] = None) -> list[dict]:
-    """List tracked senior-PM roles — the general query tool; all filters combine.
+    """List tracked roles — the general query tool; all filters combine.
 
     company: name or slug. min_rank: keep seniority_rank >= N (CPO 9, VP 8,
     Director 7, Head 6, Principal/Staff 5, Group/Product-Lead 4, Senior 3).
@@ -211,7 +212,7 @@ def follow_company(ats_url: str, name: Optional[str] = None, scan: bool = True) 
 
     name: display name override (recommended — URL-derived names are rough).
     Returns the registry row + scanned flag + open_roles kept by the scan (0 with
-    scanned=true means the board is live but has no matching senior-PM roles right
+    scanned=true means the board is live but has no profile-matching roles right
     now — the follow still succeeded), or {"error": ...} (unrecognised ATS, already
     actively tracking). Following a previously-unfollowed company re-activates it."""
     url = (ats_url or "").strip()
@@ -245,7 +246,7 @@ def follow_company(ats_url: str, name: Optional[str] = None, scan: bool = True) 
         out["open_roles"] = len(queries.list_roles(_index(), status="open",
                                                    company=info["slug"]))
         out["note"] = ("roles queryable now" if out["open_roles"]
-                       else "scan ok — no currently-open senior-PM roles on this board")
+                       else "scan ok — no currently-open matching roles on this board")
     return out
 
 

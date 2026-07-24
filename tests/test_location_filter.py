@@ -64,3 +64,33 @@ def test_named_ineligible_remote_rejected_amid_uk_context():
     assert L.expand("London / Remote (Canada)", PROFILE) == ["London"]
     # an explicitly UK/EU remote alongside London is still kept
     assert "Remote (UK)" in L.expand("London; Remote (UK)", PROFILE)
+
+
+# --- profile-driven geography (non-UK seekers) -----------------------------------
+
+BERLIN = {"allow_remote": True, "location": {
+    "home_terms": ["berlin", "germany", "munich"],
+    "home_word_terms": ["de"],
+    "home_generic": ["germany", "deutschland"],
+    "home_city": "berlin",
+    "remote_regions": ["germany", "europe", "emea", "eu "],
+}}
+
+
+def test_expand_home_terms_override():
+    assert L.expand("Berlin; San Francisco", BERLIN) == ["Berlin"]
+    assert L.expand("London", BERLIN) == []          # London is foreign to a Berlin profile
+
+
+def test_expand_remote_regions_override():
+    assert L.expand("Remote (Germany)", BERLIN) == ["Remote (Germany)"]
+    assert L.expand("Remote (USA)", BERLIN) == []
+
+
+def test_expand_generic_collapse_uses_profile():
+    # country label collapses when the home city is present
+    assert L.expand("Berlin; Germany", BERLIN) == ["Berlin"]
+
+
+def test_defaults_unchanged_without_location_block():
+    assert L.expand("London; New York", {"allow_remote": True}) == ["London"]

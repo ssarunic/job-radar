@@ -181,3 +181,44 @@ def test_pm_patterns_win_over_ai_family():
     c = classify("VP Product & AI", PROFILE)
     assert c.normalised == "VP Product"
     assert c.rank == 8
+
+
+# --- custom pattern packs (non-PM disciplines) -----------------------------------
+
+DESIGN_PROFILE = {
+    "seniority_min": 3,
+    "exclude_titles": ["marketing", "internship"],
+    "custom_patterns": [
+        {"pattern": r"\bhead of design\b", "normalised": "Head of Design",
+         "level": "Head", "rank": 6},
+        {"pattern": r"\bsenior product designer\b", "normalised": "Senior Product Designer",
+         "level": "Senior", "rank": 3},
+        {"pattern": r"\bproduct designer\b", "normalised": "Product Designer",
+         "level": "Mid", "rank": 2},
+    ],
+}
+
+
+def test_custom_pack_replaces_pm_ladder():
+    c = classify("Head of Design", DESIGN_PROFILE)
+    assert (c.normalised, c.rank, c.kept) == ("Head of Design", 6, True)
+    # PM titles are unknown to a custom pack
+    assert classify("Head of Product", DESIGN_PROFILE).kept is False
+
+
+def test_custom_pack_order_and_floor():
+    assert classify("Senior Product Designer", DESIGN_PROFILE).rank == 3
+    c = classify("Product Designer", DESIGN_PROFILE)
+    assert c.rank == 2 and c.kept is False        # below seniority_min
+
+
+def test_custom_pack_ignores_product_owner_bump():
+    p = {**DESIGN_PROFILE, "custom_patterns": DESIGN_PROFILE["custom_patterns"] + [
+        {"pattern": r"\bproduct owner\b", "normalised": "Product Owner",
+         "level": "Other", "rank": 2}]}
+    # no senior/lead bump outside the product pack
+    assert classify("Senior Product Owner", p).rank == 2
+
+
+def test_custom_pack_still_honours_exclusions():
+    assert classify("Design Marketing Lead", DESIGN_PROFILE).kept is False

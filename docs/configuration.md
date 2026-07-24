@@ -33,10 +33,27 @@ recency_days: 45          # ignore postings older than this
 max_roles_per_company: 10 # keep the N most senior per company
 ```
 
-The seniority ladder itself (which words rank where) is currently tuned for
-Product Management roles. Editing `exclude_titles`, `locations`, and
-`seniority_min` covers most customization; deeper changes to the ladder are a
-dev-docs topic (`specs/product-spec.md` §11).
+Two more blocks make the search fully yours:
+
+```yaml
+search_label: "senior PM"   # used in notifications: "3 new senior PM roles"
+
+location:                   # searching from somewhere other than London/UK?
+  home_terms: ["berlin", "germany", "munich"]  # concrete locations you accept
+  home_city: "berlin"                          # kept when a posting lists >5 locations
+  remote_regions: ["germany", "europe", "emea"] # remote labels that include you
+# omit the block entirely to keep the London/UK defaults
+
+custom_patterns:            # searching a different discipline? Replace the
+  # built-in Product-Management seniority ladder (first match wins, most
+  # senior first). rank feeds seniority_min and the UI's seniority filter.
+  - {pattern: "\\bhead of design\\b",          normalised: "Head of Design",          level: "Head",   rank: 6}
+  - {pattern: "\\bsenior product designer\\b", normalised: "Senior Product Designer", level: "Senior", rank: 3}
+```
+
+With `custom_patterns` set, the PM-specific extras (`include_product_owner`,
+`include_ai_innovation`) don't apply; `exclude_titles` and `seniority_min`
+still do. The built-in PM ladder is documented in `specs/product-spec.md` §11.
 
 ## `.env` — secrets and addresses
 
