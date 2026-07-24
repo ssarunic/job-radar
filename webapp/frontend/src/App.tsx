@@ -8,6 +8,7 @@ import Companies from "./pages/Companies";
 import CompanyDetail from "./pages/CompanyDetail";
 import Activity from "./pages/Activity";
 import RunDetail from "./pages/RunDetail";
+import Setup from "./pages/Setup";
 
 function RefreshButton() {
   const qc = useQueryClient();
@@ -90,6 +91,7 @@ export default function App() {
           <Route path="/companies/:slug" element={<CompanyDetail />} />
           <Route path="/activity" element={<Activity />} />
           <Route path="/activity/:ts" element={<RunDetail />} />
+          <Route path="/setup" element={<Setup />} />
         </Routes>
       </main>
     </div>

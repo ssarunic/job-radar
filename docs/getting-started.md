@@ -29,10 +29,11 @@ Open `.env` in any text editor. The only thing most people set is
 `SLACK_WEBHOOK_URL` — a Slack "Incoming Webhook" that lets JobRadar message you
 when new roles appear. Skip it if you're happy just checking the web page.
 
-Then look at `config/search_profile.yaml` — this is **what you're searching
-for**: role titles, minimum seniority, where you want to work. It ships with a
-senior Product Management profile for London/UK; edit it to match your search.
-Every field is explained in [Configuration](configuration.md).
+What you're *searching for* (roles, seniority, location) is configured after
+start-up: the web UI offers a **Set up your search** page on first run — four
+questions, no file editing. (It ships with a senior Product Management profile
+for London/UK; power users can edit `config/search_profile.yaml` directly —
+every field is explained in [Configuration](configuration.md).)
 
 ## 4. Start it
 

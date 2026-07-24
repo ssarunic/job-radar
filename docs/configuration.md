@@ -1,5 +1,10 @@
 # Configuration
 
+The basics (what roles, seniority floor, location, remote preference) are
+editable from the web UI at **`/setup`** — no file editing needed. Everything
+below is for going deeper. Note: once you save from the UI, the profile file
+is rewritten without its explanatory comments (this page is the reference).
+
 Three files control JobRadar. After the first run they live in the Docker
 volume (the container copies defaults there on first boot); edit them there —
 or before first boot, edit them in the repo's `config/` folder.
