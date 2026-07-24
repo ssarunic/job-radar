@@ -71,13 +71,17 @@ jobs:
       - name: Sync compose, pull the new image, and restart on the Pi
         env:
           PI_SSH_KEY: ${{ secrets.PI_SSH_KEY }}
+          # user@host of the deploy box — repo Actions variable, so forks/public
+          # eyes see no personal names and forkers point it at their own machine.
+          DEPLOY_TARGET: ${{ vars.DEPLOY_TARGET }}
         run: |
+          : "${DEPLOY_TARGET:?repo variable DEPLOY_TARGET (user@host) is not set}"
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           printf '%s\n' "$PI_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           SSH_OPTS="-i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new"
           # Ship the compose file first so compose-level changes (services, image
           # swaps) deploy too — `docker compose pull/up` only acts on what's on the Pi.
-          scp $SSH_OPTS deploy/docker-compose.yml ssarunic@dalstonserver:~/job-radar/docker-compose.yml
-          ssh $SSH_OPTS ssarunic@dalstonserver \
+          scp $SSH_OPTS deploy/docker-compose.yml "$DEPLOY_TARGET":~/job-radar/docker-compose.yml
+          ssh $SSH_OPTS "$DEPLOY_TARGET" \
             'cd ~/job-radar && docker compose pull && docker compose --profile scheduler up -d'
