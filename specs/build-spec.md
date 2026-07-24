@@ -400,7 +400,7 @@ Everything in README §6 (fields), §11 (titles/ranking), §12 (location), §13 
 ## 10. Folder layout
 
 ```
-job-search-assistant/
+job-radar/
 ├── config/
 │   ├── companies.csv
 │   ├── search_profile.yaml

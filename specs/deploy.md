@@ -14,7 +14,7 @@ operational runbook.
 feature branch ─PR─▶ [CI: ruff + pytest + eslint + frontend build] ─(required, green)─▶ squash to main
                                                                               │
 git tag vX.Y.Z ─push─▶ Release workflow:  test ─▶ build-push (needs: test)    │
-                       buildx linux/arm64 ─▶ ghcr.io/ssarunic/job-search-assistant
+                       buildx linux/arm64 ─▶ ghcr.io/ssarunic/job-radar
                                                   :X.Y.Z  :sha-…  :latest      │
                           ─▶ deploy (needs: build-push): join tailnet ─▶ ssh   │
 RPi:                          Pi `docker compose pull && up -d`  ◀─────────────┘
@@ -104,7 +104,7 @@ genuinely new/reopened roles, each deep-linked to its detail page via `WEB_BASE_
 ## Branch protection (one-time, after the first CI run names the check)
 
 ```bash
-gh api -X PUT repos/ssarunic/job-search-assistant/branches/main/protection \
+gh api -X PUT repos/ssarunic/job-radar/branches/main/protection \
   -F required_status_checks='{"strict":true,"contexts":["test"]}' \
   -F enforce_admins=false -F required_pull_request_reviews= -F restrictions=
 ```
