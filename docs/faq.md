@@ -39,11 +39,12 @@ No. It's optional and off by default — it improves parsing of odd titles and
 salary text. Expect roughly $15–30 per ~300 companies if enabled.
 
 **How do I add notes to a role, or mark it as applied?**
-Open the role's Markdown file in your data volume
-(`jobs/<company>/<role>--<id>.md`): write anything under the `## My notes`
-heading, and set `status: applied` in the frontmatter at the top. JobRadar
-displays both in the UI and never overwrites either, even when the ad changes
-or the posting closes. (In-UI editing isn't built yet.)
+On the role's detail page: **✓ Mark applied** toggles the applied status, and
+**My notes** has an edit button (Markdown supported). JobRadar never
+overwrites either, even when the ad changes or the posting closes. (They're
+stored in the role's Markdown file in your data volume, so a text editor works
+too — and connected Claude clients can do it for you: "mark the Revolut EIR
+as applied".)
 
 **Where is my data?**
 In a Docker volume, as human-readable Markdown files (one per role) plus a

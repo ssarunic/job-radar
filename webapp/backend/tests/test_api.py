@@ -358,3 +358,31 @@ def test_put_profile_validates(client):
     assert client.put("/api/profile", json={"seniority_min": 12}).status_code == 422
     assert client.put("/api/profile",
                       json={"home_terms": ["ok", "  "]}).status_code == 422
+
+
+# --- job status/notes editing ----------------------------------------------------
+
+def test_patch_job_applied_and_notes(client):
+    r = client.patch("/api/jobs/aaa11111",
+                     json={"status": "applied", "notes": "Applied today."})
+    assert r.status_code == 200
+    d = client.get("/api/jobs/aaa11111").json()
+    assert d["status"] == "applied" and d["notes"] == "Applied today."
+    # ad text untouched, status visible in the (rebuilt) index
+    assert "bold" in d["ad_markdown"]
+    jobs = client.get("/api/jobs?status=applied").json()
+    assert [j["id"] for j in jobs["jobs"]] == ["aaa11111"]
+
+
+def test_patch_job_unmark_applied(client):
+    client.patch("/api/jobs/aaa11111", json={"status": "applied"})
+    client.patch("/api/jobs/aaa11111", json={"status": "open"})
+    assert client.get("/api/jobs/aaa11111").json()["status"] == "open"
+
+
+def test_patch_job_validation(client):
+    assert client.patch("/api/jobs/aaa11111", json={}).status_code == 422
+    assert client.patch("/api/jobs/aaa11111",
+                        json={"status": "closed"}).status_code == 422
+    assert client.patch("/api/jobs/nope1234",
+                        json={"status": "applied"}).status_code == 404

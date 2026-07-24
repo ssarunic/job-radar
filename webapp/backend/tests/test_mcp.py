@@ -204,7 +204,7 @@ def test_follow_company_rejects_non_public_urls(mcp_store):
 def test_mcp_surface(mcp_store):
     tools = {t.name: t for t in anyio.run(mcp_app.mcp.list_tools)}
     assert set(tools) == {"stats", "list_jobs", "search_jobs", "new_jobs", "get_job",
-                          "list_companies", "company_roles",
+                          "set_job_status", "list_companies", "company_roles",
                           "follow_company", "unfollow_company"}
     status = tools["list_jobs"].inputSchema["properties"]["status"]
     assert status["enum"] == ["open", "applied", "suspected_filled", "closed", "all"]
@@ -225,3 +225,25 @@ def test_mcp_mounted_in_web_app(mcp_store):
                         json=init)
         assert r.status_code == 200 and "JobRadar" in r.text
         assert client.get("/api/stats").status_code == 200   # web API unaffected
+
+
+# --- set_job_status ---------------------------------------------------------------
+
+def test_set_job_status_applied_with_note(mcp_store):
+    out = mcp_app.set_job_status("aaa11111", "applied", note="Applied 2026-07-24.")
+    assert out["status"] == "applied"
+    assert "Applied 2026-07-24." in out["notes"]
+    # visible through the read tools (index rebuilt)
+    assert [j["id"] for j in mcp_app.list_jobs(status="applied")] == ["aaa11111"]
+
+
+def test_set_job_status_note_appends_not_replaces(mcp_store):
+    mcp_app.set_job_status("aaa11111", "applied", note="first")
+    out = mcp_app.set_job_status("aaa11111", "applied", note="second")
+    assert "first" in out["notes"] and "second" in out["notes"]
+
+
+def test_set_job_status_revert_and_unknown(mcp_store):
+    mcp_app.set_job_status("aaa11111", "applied")
+    assert mcp_app.set_job_status("aaa11111", "open")["status"] == "open"
+    assert "error" in mcp_app.set_job_status("zzz99999", "applied")

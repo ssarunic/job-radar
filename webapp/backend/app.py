@@ -27,6 +27,7 @@ sys.path.insert(0, str(_BACKEND_DIR))              # -> mcp_app when imported as
 import mcp_app  # noqa: E402
 
 from models.job_posting import _slugify  # noqa: E402
+from outputs import index_builder, md_writer  # noqa: E402
 from scrapers.http_client import HttpClient  # noqa: E402
 from scrapers.rate_limiter import RateLimiter  # noqa: E402
 from services import discovery, loader, queries, registry, run_service, store  # noqa: E402
@@ -70,6 +71,37 @@ def get_job(job_id: str):
     if not role:
         raise HTTPException(status_code=404, detail="job not found")
     return role
+
+
+class JobUpdate(BaseModel):
+    """User-owned fields only. Status may only move between open and applied —
+    suspected_filled/closed belong to the scan lifecycle."""
+    status: Optional[str] = None
+    notes: Optional[str] = None
+
+
+def _role_path(job_id: str):
+    for row in queries.load_index(store.index_path()):
+        if row.get("id") == job_id and row.get("_path"):
+            p = store.root() / row["_path"]
+            return p if p.exists() else None
+    return None
+
+
+@app.patch("/api/jobs/{job_id}")
+def update_job(job_id: str, body: JobUpdate):
+    if body.status is None and body.notes is None:
+        raise HTTPException(status_code=422, detail="provide status and/or notes")
+    if body.status is not None and body.status not in ("applied", "open"):
+        raise HTTPException(status_code=422,
+                            detail="status must be 'applied' or 'open'")
+    path = _role_path(job_id)
+    if not path:
+        raise HTTPException(status_code=404, detail="job not found")
+    md_writer.update_user_fields(path, status=body.status, notes=body.notes)
+    if body.status is not None:   # status lives in the derived index; notes don't
+        index_builder.rebuild(store.jobs_dir(), store.index_path())
+    return queries.get_role(job_id)
 
 
 # --- company management (write surface over services.registry + discovery) ----

@@ -28,6 +28,7 @@ from mcp.server.fastmcp import FastMCP  # noqa: E402
 from mcp.server.transport_security import TransportSecuritySettings  # noqa: E402
 
 from models.job_posting import _slugify  # noqa: E402
+from outputs import index_builder, md_writer  # noqa: E402
 from scrapers.http_client import HttpClient  # noqa: E402
 from scrapers.rate_limiter import RateLimiter  # noqa: E402
 from services import discovery, loader, queries, registry, run_service, store  # noqa: E402
@@ -50,6 +51,7 @@ Which tool:
 - Track a new company -> follow_company. YOU find the company's ATS job-board URL first
   (web-search "<company> careers", follow through to the ATS board) and pass that clean
   URL — the server does not search the web. Stop tracking -> unfollow_company.
+- User says they applied to a role -> set_job_status(id, "applied", note="Applied <date> …").
 
 Reading results:
 - first_seen = date the scraper discovered the posting (drives new_jobs); posted_date =
@@ -132,6 +134,37 @@ def get_job(id: str) -> dict:
     user's notes. Required for any fit-against-CV judgment — summaries from the
     list tools never contain the ad text. Unknown id returns {"error": ...}."""
     return queries.get_role(id) or {"error": f"no role with id {id!r}"}
+
+
+@mcp.tool()
+def set_job_status(id: str, status: Literal["applied", "open"],
+                   note: Optional[str] = None) -> dict:
+    """Mark a role as applied (or revert it to open) on the user's behalf, e.g.
+    after they say they've applied. Optionally APPENDS a line to the role's
+    `## My notes` (existing notes are never replaced — include a date in the
+    note when logging an application). suspected_filled/closed are lifecycle
+    states and cannot be set. Returns the updated role summary, or
+    {"error": ...} for an unknown id."""
+    role = queries.get_role(id)
+    if not role:
+        return {"error": f"no role with id {id!r}"}
+    path = None
+    for row in _index():
+        if row.get("id") == id and row.get("_path"):
+            p = store.root() / row["_path"]
+            path = p if p.exists() else None
+            break
+    if not path:
+        return {"error": f"no file for role id {id!r}"}
+    notes = role.get("notes") or ""
+    if note and note.strip():
+        notes = (notes + "\n\n" if notes.strip() else "") + note.strip()
+    md_writer.update_user_fields(path, status=status,
+                                 notes=notes if note else None)
+    index_builder.rebuild(store.jobs_dir(), store.index_path())
+    updated = queries.get_role(id) or {}
+    return {"id": id, "status": updated.get("status"),
+            "notes": updated.get("notes", "")}
 
 
 @mcp.tool()

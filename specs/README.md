@@ -39,7 +39,7 @@ deliberately rather than letting code drift from it.
   spec for the `seek`/`enrich` pipeline (predates this structure; treated as the core
   feature's combined strategy+tactical). Domain rules live in [`product-spec.md`](product-spec.md).
 - **Web app:** [`webapp/outcomes.md`](webapp/outcomes.md) · [`webapp/strategy.md`](webapp/strategy.md) · [`webapp/tactical.md`](webapp/tactical.md)
-- **Web features:** [`setup-wizard.md`](setup-wizard.md) · [`company-management.md`](company-management.md) · [`web-refresh-and-activity.md`](web-refresh-and-activity.md) · [`activity-search.md`](activity-search.md) · [`notifications.md`](notifications.md)
+- **Web features:** [`setup-wizard.md`](setup-wizard.md) · [`job-notes-applied.md`](job-notes-applied.md) · [`company-management.md`](company-management.md) · [`web-refresh-and-activity.md`](web-refresh-and-activity.md) · [`activity-search.md`](activity-search.md) · [`notifications.md`](notifications.md)
 - **MCP server:** [`mcp-server.md`](mcp-server.md) — tools, transport, host allowlist ([user-side setup](../docs/claude-mcp.md))
 - **ATS adapters:** [`oracle-adapter.md`](oracle-adapter.md) · [`recruitee-adapter.md`](recruitee-adapter.md) · [`revolut-people-adapter.md`](revolut-people-adapter.md) · [`cvmail-adapter.md`](cvmail-adapter.md)  (the JSON-API adapters — greenhouse/ashby/lever/smartrecruiters/workday/talemetry — are covered in `build-spec.md` §4.1)
 - **Deploy:** [`deploy.md`](deploy.md) — CI/CD runbook: tag-to-release → GHCR → push-deploy over Tailscale to a Raspberry Pi. Specific to the author's setup; treat it as an example self-host recipe.
