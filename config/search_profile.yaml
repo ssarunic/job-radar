@@ -3,21 +3,11 @@
 # Short label used in notifications ("3 new <label> roles"). Match your search.
 search_label: "senior PM"
 
-roles:
-  - "Product Manager"
-  - "Senior Product Manager"
-  - "Group Product Manager"
-  - "Principal Product Manager"
-  - "Head of Product"
-  - "Director of Product"
-  - "VP Product"
-  - "Chief Product Officer"
+seniority_min: 3                 # product-spec §11: keep rank >= 3
+include_product_owner: true      # product-spec §11 step 8
+include_ai_innovation: true      # product-spec §11 step 9: AI/Innovation leadership family
 
-seniority_min: 3                 # README §11: keep rank >= 3
-include_product_owner: true      # README §11 step 8
-include_ai_innovation: true      # README §11 step 9: AI/Innovation leadership family
-
-exclude_titles:                  # README §11 steps 5-6
+exclude_titles:                  # product-spec §11 steps 5-6
   - "marketing"
   - "growth marketing"
   - "brand"
@@ -29,20 +19,7 @@ exclude_titles:                  # README §11 steps 5-6
   - "graduate"                   # entry-level: "Graduate Programme…", "Graduate PM"
   - "internship"                 # NOT "intern" — would hit "Internal…" at the word start
 
-locations:
-  - "London"
-  - "UK"
-  - "United Kingdom"
-  - "England"
-
 allow_remote: true               # accept if UK/Europe/EMEA-eligible (not US-only)
-remote_keywords:
-  - "remote"
-  - "anywhere"
-  - "uk remote"
-  - "emea remote"
-  - "europe remote"
-
 # Searching from somewhere other than London/UK? Override the geography here —
 # omitted keys keep the UK defaults (see services/location_filter.py):
 # location:
@@ -58,7 +35,7 @@ remote_keywords:
 #   - {pattern: "\\bstaff product designer\\b",   normalised: "Staff Product Designer",   level: "Staff",  rank: 5}
 #   - {pattern: "\\bsenior product designer\\b",  normalised: "Senior Product Designer",  level: "Senior", rank: 3}
 
-employment:                      # exclude Contract (README §10)
+employment:                      # exclude Contract (product-spec §10)
   - "Full time"
   - "Part time"
 
