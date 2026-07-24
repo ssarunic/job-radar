@@ -5,7 +5,8 @@ from services.title_normalizer import classify
 
 PROFILE = {
     "exclude_titles": ["marketing", "growth marketing", "brand", "design",
-                       "hr", "talent", "people ops", "recruit"],
+                       "hr", "talent", "people ops", "recruit",
+                       "graduate", "internship"],
     "seniority_min": 3,
     "include_product_owner": True,
 }
@@ -82,9 +83,19 @@ def test_senior_product_owner_bumped_to_rank_3():
     "Head of Talent",
     "HR Business Partner",
     "Brand Manager, Product",
+    "Graduate Programme 2027: Product Owner (UX)",
+    "Internship Programme 2027: Product Owner (Technical)",
+    "Graduate Product Manager",
 ])
 def test_excluded_titles(title):
     assert classify(title, PROFILE).kept is False
+
+
+def test_internship_term_not_matching_internal():
+    """'internship' (not 'intern') so 'Internal…' titles survive the word-start match."""
+    c = classify("Senior Product Manager, Internal Tools", PROFILE)
+    assert c.kept is True
+    assert c.rank == 3
 
 
 def test_design_kept_when_clearly_pm():
