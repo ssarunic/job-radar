@@ -17,9 +17,23 @@ The home page lists every tracked role, most senior first. Filters at the top:
 - **Search** — free text over company + title
 - **Sort** — by seniority or by newest first
 
-Click a role for the full ad text, captured the day it was found. Your notes
-section (**My notes**) and the **applied** status are yours — JobRadar never
-overwrites them, even if the ad changes or closes.
+Click a role for the full ad text, captured the day it was found. Filters and
+your scroll position live in the page URL, so opening a role and going back
+returns you exactly where you were.
+
+## Notes and "applied"
+
+Each role is a plain Markdown file in your data volume
+(`jobs/<company>/<role>--<id>.md`). Two parts of it belong to you, and JobRadar
+never overwrites them, even if the ad changes or closes:
+
+- **`## My notes`** — free text; anything you write there is shown on the
+  role's detail page.
+- **`status: applied`** — set it in the file's frontmatter to mark a role
+  applied; the applied status then shows in the UI's status filter.
+
+Editing happens in the file for now (any text editor); the web UI displays
+both but doesn't yet edit them.
 
 ## What the statuses mean
 
@@ -29,7 +43,8 @@ overwrites them, even if the ad changes or closes.
   one miss isn't enough.
 - **closed** — still gone the scan after that. If it ever reappears on the
   board, it reopens automatically.
-- **applied** — set by you (in the UI); never changed automatically.
+- **applied** — set by you (in the role's file — see "Notes and applied"
+  above); never changed automatically.
 
 ## The Companies page
 

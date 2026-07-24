@@ -12,10 +12,6 @@ or before first boot, edit them in the repo's `config/` folder.
 ## `config/search_profile.yaml` — what you're looking for
 
 ```yaml
-roles:                    # titles you're interested in (informational labels)
-  - "Senior Product Manager"
-  - "Head of Product"
-
 seniority_min: 3          # keep roles ranked at or above this
                           # 9 CPO · 8 VP · 7 Director · 6 Head · 5 Principal/Staff
                           # 4 Group/Lead · 3 Senior · 2 mid-level
@@ -27,15 +23,12 @@ exclude_titles:           # drop any title containing these words
   - "graduate"            # entry-level programmes
   - "internship"
 
-locations:                # where you want to work (title/location match terms)
-  - "London"
-  - "UK"
 allow_remote: true        # accept remote roles eligible for your region
-remote_keywords: ["remote", "uk remote", "emea remote"]
 
 employment: ["Full time", "Part time"]   # Contract is always excluded
 recency_days: 45          # ignore postings older than this
 max_roles_per_company: 10 # keep the N most senior per company
+# advanced: detail_fetch_cap: 50   # bounds full-ad fetches per company per scan
 ```
 
 Two more blocks make the search fully yours:
@@ -60,6 +53,19 @@ With `custom_patterns` set, the PM-specific extras (`include_product_owner`,
 `include_ai_innovation`) don't apply; `exclude_titles` and `seniority_min`
 still do. The built-in PM ladder is documented in `specs/product-spec.md` §11.
 
+## Notifications — Slack or ntfy
+
+Two providers, chosen by `notify.provider` in `config/settings.yaml`:
+
+- **Slack** (the default): create an Incoming Webhook and put it in
+  `SLACK_WEBHOOK_URL` in `.env`. Done.
+- **[ntfy](https://ntfy.sh)** — simpler if you don't use Slack: set
+  `notify.provider: ntfy` and `ntfy_topic: <a-hard-to-guess-topic>` in
+  `settings.yaml`, then subscribe to that topic in the ntfy phone app. No
+  account or webhook needed.
+
+Leave both unset for no notifications — the web UI works regardless.
+
 ## `.env` — secrets and addresses
 
 | Variable | What it does |
@@ -71,9 +77,16 @@ still do. The built-in PM ladder is documented in `specs/product-spec.md` §11.
 
 ## `config/settings.yaml` — operational knobs
 
-Timeouts, per-domain rate limit (1 request/second — please keep it polite),
-retries, and the Claude on/off switch. The defaults are sensible; you rarely
-need to touch this file.
+Three things live here that you might actually touch:
+
+- the **notify block** (provider Slack/ntfy — see above),
+- **`web_base_url`** — same job as the `WEB_BASE_URL` env var (links in
+  notifications), and
+- **`use_claude`** — the Claude API on/off switch.
+
+The rest is operational tuning — timeouts, per-domain rate limit (1
+request/second — please keep it polite), retries, and pagination caps. The
+defaults are sensible; you rarely need to touch them.
 
 ## Advanced: per-company overrides
 
