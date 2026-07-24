@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { api, apiSend } from "../api";
 import Modal from "../components/Modal";
 import { useScrollRestore } from "../hooks";
@@ -67,8 +67,18 @@ export default function Companies() {
   const active = rows.filter((c) => c.active);
   const inactive = rows.filter((c) => !c.active);
 
+  const noneFollowed =
+    companies.data && (companies.data.companies ?? []).length === 0;
+
   return (
     <div className="page">
+      {noneFollowed && (
+        <div className="banner">
+          First time here? <Link to="/setup">Set up your search</Link> — tell
+          JobRadar what roles and locations you want, then follow your first
+          company with “+ Follow”.
+        </div>
+      )}
       <div className="filters">
         <input
           placeholder="Search companies…"

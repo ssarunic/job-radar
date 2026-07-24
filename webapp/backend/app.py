@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+import yaml
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -90,6 +91,55 @@ def _company_view(c: dict, counts: dict) -> dict:
             "ats_type": c.get("ats_type"), "ats_slug": c.get("ats_slug"),
             "careers_url": c.get("careers_url"), "active": bool(c.get("active")),
             "open_roles": counts.get(c.get("slug"), 0)}
+
+
+class ProfileUpdate(BaseModel):
+    """The wizard's editable subset of search_profile.yaml. Everything is
+    optional — only provided fields are merged; the rest of the file (packs,
+    exclusions, operational knobs) is preserved."""
+    search_label: Optional[str] = None
+    seniority_min: Optional[int] = None
+    allow_remote: Optional[bool] = None
+    home_city: Optional[str] = None
+    home_terms: Optional[list[str]] = None
+    remote_regions: Optional[list[str]] = None
+    exclude_titles: Optional[list[str]] = None
+
+
+@app.get("/api/profile")
+def get_profile():
+    """The current search profile + whether any company is followed yet —
+    the frontend uses (companies_followed == 0) to offer first-run setup."""
+    followed = sum(1 for c in registry.list_companies() if c.get("active"))
+    return {"profile": loader.load_profile(), "companies_followed": followed}
+
+
+@app.put("/api/profile")
+def update_profile(body: ProfileUpdate):
+    """Merge the wizard fields into search_profile.yaml (atomic write). YAML
+    comments in the shipped default are not preserved — the file becomes
+    machine-written after first save; docs/configuration.md documents fields."""
+    if body.seniority_min is not None and not 1 <= body.seniority_min <= 9:
+        raise HTTPException(status_code=422, detail="seniority_min must be 1–9")
+    for name in ("home_terms", "remote_regions", "exclude_titles"):
+        v = getattr(body, name)
+        if v is not None and any(not str(t).strip() for t in v):
+            raise HTTPException(status_code=422, detail=f"{name} contains empty terms")
+
+    profile = loader.load_profile()
+    for key in ("search_label", "seniority_min", "allow_remote", "exclude_titles"):
+        v = getattr(body, key)
+        if v is not None:
+            profile[key] = v
+    loc_updates = {k: v for k, v in
+                   {"home_city": body.home_city, "home_terms": body.home_terms,
+                    "remote_regions": body.remote_regions}.items() if v is not None}
+    if loc_updates:
+        profile["location"] = {**(profile.get("location") or {}), **loc_updates}
+
+    store.atomic_write_text(store.config_dir() / "search_profile.yaml",
+                            yaml.safe_dump(profile, sort_keys=False, allow_unicode=True))
+    return {"profile": profile}
 
 
 @app.get("/api/companies")

@@ -94,3 +94,11 @@ button:disabled { opacity: .5; cursor: default; }
   .detail h1 { font-size: 20px; }
   .facts { gap: 10px 14px; }
 }
+
+/* Setup wizard */
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px;
+  font-size: 14px; }
+.field input, .field select { background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; }
+.banner { background: var(--panel); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 14px; }

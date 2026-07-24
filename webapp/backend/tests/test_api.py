@@ -321,3 +321,40 @@ def test_runs_content_search(client, tmp_path):
     # no match → empty; no q → all runs, no `matched` key
     assert client.get("/api/runs?q=nope").json()["count"] == 0
     assert "matched" not in client.get("/api/runs").json()["runs"][0]
+
+
+# --- profile (setup wizard) ------------------------------------------------------
+
+def test_get_profile(client):
+    p = client.get("/api/profile").json()
+    assert p["companies_followed"] == 2
+    assert p["profile"]["seniority_min"] == 3
+
+
+def test_put_profile_merges_and_persists(client):
+    r = client.put("/api/profile", json={
+        "search_label": "design leadership", "seniority_min": 4,
+        "home_city": "Berlin", "home_terms": ["berlin", "germany"],
+        "allow_remote": False})
+    assert r.status_code == 200
+    p = client.get("/api/profile").json()["profile"]
+    assert p["search_label"] == "design leadership"
+    assert p["seniority_min"] == 4
+    assert p["allow_remote"] is False
+    assert p["location"]["home_city"] == "Berlin"
+    assert p["location"]["home_terms"] == ["berlin", "germany"]
+    # untouched fields survive the merge
+    assert "exclude_titles" in p and "marketing" in p["exclude_titles"]
+
+
+def test_put_profile_partial_location_merge(client):
+    client.put("/api/profile", json={"home_city": "Berlin"})
+    client.put("/api/profile", json={"remote_regions": ["europe"]})
+    loc = client.get("/api/profile").json()["profile"]["location"]
+    assert loc["home_city"] == "Berlin" and loc["remote_regions"] == ["europe"]
+
+
+def test_put_profile_validates(client):
+    assert client.put("/api/profile", json={"seniority_min": 12}).status_code == 422
+    assert client.put("/api/profile",
+                      json={"home_terms": ["ok", "  "]}).status_code == 422
