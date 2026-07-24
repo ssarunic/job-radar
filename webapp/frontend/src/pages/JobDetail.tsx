@@ -1,12 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useLocation, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { api, fmtSalary } from "../api";
+import { api, apiSend, fmtSalary } from "../api";
 
 export default function JobDetail() {
   const { id } = useParams();
+  const qc = useQueryClient();
   // The list passes its filter query via link state; back returns to that exact view.
   // Deep links (Slack, MCP) carry no state -> plain unfiltered list.
   const fromSearch = (useLocation().state as { fromSearch?: string } | null)?.fromSearch ?? "";
@@ -16,6 +17,16 @@ export default function JobDetail() {
     queryFn: () => api(`/jobs/${id}`),
   });
 
+  const update = useMutation({
+    mutationFn: (patch: { status?: string; notes?: string }) =>
+      apiSend(`/jobs/${id}`, "PATCH", patch),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["job", id] });
+      qc.invalidateQueries({ queryKey: ["jobs"] });   // status shows in the list
+      qc.invalidateQueries({ queryKey: ["stats"] });
+    },
+  });
+
   useEffect(() => window.scrollTo(0, 0), []);   // don't inherit the list's scroll offset
 
   if (isLoading) return <p className="muted">Loading…</p>;
@@ -23,6 +34,7 @@ export default function JobDetail() {
 
   const d: any = data;
   const sal = fmtSalary(d.salary);
+  const applied = d.status === "applied";
   return (
     <article className="detail">
       <Link to={back} className="back">← all roles</Link>
@@ -39,18 +51,65 @@ export default function JobDetail() {
         {d.posted_date && <span>📅 {d.posted_date}</span>}
         {d.source_detail && <span>🔌 {d.source_detail}</span>}
       </div>
-      <a className="apply" href={d.job_ad_url} target="_blank" rel="noreferrer">
-        View original ↗
-      </a>
+      <div className="filters">
+        <a className="apply" href={d.job_ad_url} target="_blank" rel="noreferrer">
+          View original ↗
+        </a>
+        {(applied || d.status === "open") && (
+          <button
+            disabled={update.isPending}
+            onClick={() => update.mutate({ status: applied ? "open" : "applied" })}
+          >
+            {applied ? "Unmark applied" : "✓ Mark applied"}
+          </button>
+        )}
+      </div>
       <section className="ad">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{d.ad_markdown}</ReactMarkdown>
       </section>
-      {d.notes && (
-        <section className="notes">
-          <h2>My notes</h2>
-          <ReactMarkdown>{d.notes}</ReactMarkdown>
-        </section>
-      )}
+      <NotesSection key={d.notes ?? ""} notes={d.notes ?? ""} saving={update.isPending}
+                    onSave={(notes) => update.mutate({ notes })} />
     </article>
+  );
+}
+
+function NotesSection({ notes, saving, onSave }: {
+  notes: string; saving: boolean; onSave: (notes: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(notes);
+  return (
+    <section className="notes">
+      <h2>
+        My notes{" "}
+        {!editing && (
+          <button className="small" onClick={() => { setDraft(notes); setEditing(true); }}>
+            {notes ? "Edit" : "+ Add"}
+          </button>
+        )}
+      </h2>
+      {editing ? (
+        <>
+          <textarea
+            autoFocus
+            value={draft}
+            rows={Math.max(4, draft.split("\n").length + 1)}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Markdown supported. Never overwritten by scans."
+          />
+          <div className="filters" style={{ marginTop: 8 }}>
+            <button disabled={saving}
+                    onClick={() => { onSave(draft); setEditing(false); }}>
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button onClick={() => setEditing(false)}>Cancel</button>
+          </div>
+        </>
+      ) : notes ? (
+        <ReactMarkdown>{notes}</ReactMarkdown>
+      ) : (
+        <p className="muted">No notes yet.</p>
+      )}
+    </section>
   );
 }

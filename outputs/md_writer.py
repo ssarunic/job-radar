@@ -91,3 +91,20 @@ def update_frontmatter(path: Path, frontmatter: dict) -> None:
     _, body = parse_md(path)
     fm = yaml.safe_dump(frontmatter, sort_keys=False, allow_unicode=True).strip()
     atomic_write_text(path, f"---\n{fm}\n---\n\n{body}")
+
+
+def update_user_fields(path: Path, *, status: str | None = None,
+                       notes: str | None = None) -> dict:
+    """Update the USER-OWNED parts of a posting — the `status` frontmatter field
+    and the `## My notes` section — preserving the captured ad text verbatim.
+    Pass None to leave a field untouched. Returns the updated frontmatter."""
+    fm, body = parse_md(path)
+    ad, old_notes = split_body(body)
+    if status is not None:
+        fm["status"] = status
+    new_notes = old_notes if notes is None else notes
+    fm_y = yaml.safe_dump(fm, sort_keys=False, allow_unicode=True).strip()
+    out = (f"---\n{fm_y}\n---\n\n{ad}\n\n## My notes\n\n"
+           + (new_notes.strip() + "\n" if new_notes.strip() else ""))
+    atomic_write_text(path, out)
+    return fm

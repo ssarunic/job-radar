@@ -23,17 +23,15 @@ returns you exactly where you were.
 
 ## Notes and "applied"
 
-Each role is a plain Markdown file in your data volume
-(`jobs/<company>/<role>--<id>.md`). Two parts of it belong to you, and JobRadar
-never overwrites them, even if the ad changes or closes:
+On a role's detail page you can **✓ Mark applied** (and unmark it) and
+**edit My notes** (Markdown supported). Both are yours: JobRadar never
+overwrites them, even if the ad changes or the posting closes — an applied
+role keeps its applied status forever unless you change it.
 
-- **`## My notes`** — free text; anything you write there is shown on the
-  role's detail page.
-- **`status: applied`** — set it in the file's frontmatter to mark a role
-  applied; the applied status then shows in the UI's status filter.
-
-Editing happens in the file for now (any text editor); the web UI displays
-both but doesn't yet edit them.
+Under the hood each role is a plain Markdown file in your data volume
+(`jobs/<company>/<role>--<id>.md`) — notes live under `## My notes` and the
+applied flag is `status: applied` in the frontmatter, so everything is equally
+editable with a text editor if you prefer.
 
 ## What the statuses mean
 
@@ -43,8 +41,8 @@ both but doesn't yet edit them.
   one miss isn't enough.
 - **closed** — still gone the scan after that. If it ever reappears on the
   board, it reopens automatically.
-- **applied** — set by you (in the role's file — see "Notes and applied"
-  above); never changed automatically.
+- **applied** — set by you (the "Mark applied" button); never changed
+  automatically.
 
 ## The Companies page
 
