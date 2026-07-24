@@ -1,4 +1,8 @@
-# "What I'm looking for" — global search criteria (SPEC §3.2). Maps onto README §10–13.
+# "What I'm looking for" — global search criteria (SPEC §3.2). Maps onto product-spec §10–13.
+
+# Short label used in notifications ("3 new <label> roles"). Match your search.
+search_label: "senior PM"
+
 roles:
   - "Product Manager"
   - "Senior Product Manager"
@@ -38,6 +42,21 @@ remote_keywords:
   - "uk remote"
   - "emea remote"
   - "europe remote"
+
+# Searching from somewhere other than London/UK? Override the geography here —
+# omitted keys keep the UK defaults (see services/location_filter.py):
+# location:
+#   home_terms: ["berlin", "germany", "munich"]   # concrete locations you accept
+#   home_city: "berlin"                           # anchor when >5 locations collapse
+#   remote_regions: ["germany", "europe", "emea", "eu "]  # remote labels eligible for you
+
+# Searching a different discipline? Replace the built-in Product-Management
+# seniority ladder entirely (first match wins — most senior first). With this
+# set, include_product_owner / include_ai_innovation don't apply:
+# custom_patterns:
+#   - {pattern: "\\bhead of design\\b",           normalised: "Head of Design",           level: "Head",   rank: 6}
+#   - {pattern: "\\bstaff product designer\\b",   normalised: "Staff Product Designer",   level: "Staff",  rank: 5}
+#   - {pattern: "\\bsenior product designer\\b",  normalised: "Senior Product Designer",  level: "Senior", rank: 3}
 
 employment:                      # exclude Contract (README §10)
   - "Full time"

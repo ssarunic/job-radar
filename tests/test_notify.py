@@ -51,7 +51,7 @@ def test_notify_sends_on_new_roles():
     assert notify.notify(DIFF, settings, http=None, sender=s) is True
     assert len(s.calls) == 1
     assert s.calls[0]["url"] == "https://ntfy.sh/my-topic"
-    assert s.calls[0]["title"] == "2 new PM role(s)"
+    assert s.calls[0]["title"] == "2 new senior PM role(s)"
     assert "Monzo" in s.calls[0]["body"]
 
 
@@ -71,7 +71,7 @@ def test_notify_empty_sends_heartbeat_ntfy():
     sent = notify.notify(only_updates, settings, http=None, sender=s, notify_empty=True,
                          summary={"companies": 34, "open_total": 28})
     assert sent is True
-    assert s.calls[0]["title"] == "No new PM roles"
+    assert s.calls[0]["title"] == "No new senior PM roles"
     assert "No new senior PM roles since yesterday." in s.calls[0]["body"]
     assert "checked 34 companies" in s.calls[0]["body"]
 
@@ -174,3 +174,15 @@ def test_notify_empty_sends_slack_heartbeat():
     assert s.calls[0]["text"] == "No new senior PM roles since yesterday"
     assert "All quiet" in s.calls[0]["blocks"][0]["text"]["text"]
     assert "checked 34 companies" in s.calls[0]["blocks"][1]["text"]["text"]
+
+
+def test_label_threads_through_builders():
+    from outputs import notify as N
+    diff = [{"change": "added", "company": "X", "title": "Head of Design",
+             "location": "Berlin", "status": "open", "id": "abc", "url": "u"}]
+    text, _ = N.build_slack_blocks(diff, label="design leadership")
+    assert "design leadership role" in text
+    hb, _ = N.build_slack_heartbeat(label="design leadership")
+    assert "No new design leadership roles" in hb
+    # default stays the original wording
+    assert "senior PM" in N.build_heartbeat_message()

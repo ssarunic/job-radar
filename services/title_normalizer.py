@@ -1,4 +1,24 @@
-"""Title normalisation + seniority ranking (product-spec §11). Hardcoded — no API."""
+"""Title normalisation + seniority ranking (product-spec §11). Hardcoded — no API.
+
+The bundled patterns are the **product-management pack** (plus the AI/Innovation
+family). Other disciplines can replace them from `search_profile.yaml` without
+touching code:
+
+    custom_patterns:                # replaces the PM pack entirely when present
+      - pattern: "\\bhead of design\\b"
+        normalised: "Head of Design"
+        level: "Head"
+        rank: 6
+      - pattern: "\\bsenior product designer\\b"
+        normalised: "Senior Product Designer"
+        level: "Senior"
+        rank: 3
+
+Order matters (first match wins — most senior first). With custom patterns
+active, the PM-specific extras (Product Owner rank-bump, AI/Innovation family,
+`include_product_owner`) don't apply; `exclude_titles` and `seniority_min`
+still do.
+"""
 from __future__ import annotations
 
 import re
@@ -84,6 +104,18 @@ def _distinct_pm_segment(raw_title: str, excl: list, patterns: list) -> Optional
     return None
 
 
+def _profile_patterns(profile: dict) -> tuple[list, bool]:
+    """(patterns, is_product_pack). A non-empty `custom_patterns` list in the
+    profile replaces the bundled PM pack; PM-specific extras only apply to the
+    bundled pack."""
+    custom = profile.get("custom_patterns") or []
+    if custom:
+        return ([(c["pattern"], c["normalised"], c.get("level", "Other"),
+                  int(c["rank"])) for c in custom], False)
+    return (PATTERNS + (AI_PATTERNS if profile.get("include_ai_innovation", True) else []),
+            True)
+
+
 def classify(raw_title: str, profile: dict) -> Classification:
     """Return a Classification. `kept` reflects product-spec §11 filter:
     rank >= seniority_min, OR Product Owner when include_product_owner."""
@@ -93,7 +125,7 @@ def classify(raw_title: str, profile: dict) -> Classification:
     excl = [e.lower() for e in profile.get("exclude_titles", [])]
     seniority_min = profile.get("seniority_min", 3)
     include_po = profile.get("include_product_owner", True)
-    patterns = PATTERNS + (AI_PATTERNS if profile.get("include_ai_innovation", True) else [])
+    patterns, is_product_pack = _profile_patterns(profile)
 
     # product-spec §11.5-6 — exclusions (marketing/brand/HR/talent/design-only/etc.).
     # Match at a word boundary so short terms don't hit substrings
@@ -117,7 +149,7 @@ def classify(raw_title: str, profile: dict) -> Classification:
     for rx, norm, level, rank in patterns:
         if re.search(rx, t):
             # Product Owner bumps to rank 3 if senior/lead (product-spec §11.7)
-            if norm == "Product Owner":
+            if is_product_pack and norm == "Product Owner":
                 if re.search(r"\b(senior|lead)\b", t):
                     rank, level = 3, "Senior"
                 kept = include_po or rank >= seniority_min
