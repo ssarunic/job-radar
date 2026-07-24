@@ -6,7 +6,7 @@ respect_robots: true         # robots.txt check for company-site (discovery) run
 runtime_budget_min: 30       # per-batch wall-clock budget
 max_companies: 300           # hard cap
 ats_max_pages: 25            # pagination cap for Workday/SmartRecruiters (logged if hit)
-user_agent: "JobSeekAssistant/0.1 (+personal job search; contact ssarunic@gmail.com)"
+user_agent: "JobRadar/1.0 (+https://github.com/ssarunic/job-radar; self-hosted job search)"  # add YOUR contact here — sites appreciate it
 headless: true               # Playwright headless mode
 stealth: true                # playwright-stealth: defeats Cloudflare even headless
 

@@ -28,6 +28,8 @@ export default function JobsList() {
     );
 
   const stats = useQuery({ queryKey: ["stats"], queryFn: () => api("/stats") });
+  const profile = useQuery({ queryKey: ["profile"], queryFn: () => api("/profile") });
+  const firstRun = profile.data?.companies_followed === 0;
 
   const params = new URLSearchParams({ status, sort });
   if (minRank) params.set("min_rank", String(minRank));
@@ -41,6 +43,12 @@ export default function JobsList() {
 
   return (
     <div className="page">
+      {firstRun && (
+        <div className="banner">
+          Welcome! <Link to="/setup">Set up your search</Link> (what roles,
+          where), then follow your first companies — roles will appear here.
+        </div>
+      )}
       <div className="stats">
         {stats.data && (
           <>
