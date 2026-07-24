@@ -59,6 +59,12 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
                     fetcher, settings: dict, claude, today: date) -> list[JobPosting]:
     recency_days = profile.get("recency_days", 45)
     max_roles = profile.get("max_roles_per_company", 10)
+    # An ATS board only lists currently-open roles, so presence in the feed is
+    # proof of liveness — the recency cutoff must not drop those, or a still-open
+    # role silently ages out mid-tracking and the lifecycle falsely closes it.
+    # The cutoff only guards discovery rungs (playwright/static), where a stale
+    # page can render long-filled roles.
+    live = getattr(fetcher, "live_listing", False)
 
     # --- Stage A: listing-level filters + location expansion ------------------
     candidates: list[tuple[JobPosting, dict]] = []
@@ -67,11 +73,10 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
         if not cls.kept:
             continue
         posted = normalize_date(raw.get("posted_date"))
-        # recency uses freshness (last-updated) when available: a live ATS feed
-        # only returns currently-open roles, so an evergreen role that was first
-        # published months ago but updated recently should still count.
+        # recency uses freshness (last-updated) when available: an evergreen role
+        # that was first published months ago but updated recently should still count.
         freshness = normalize_date(raw.get("freshness_date")) or posted
-        if _too_old(freshness, recency_days, today):
+        if not live and _too_old(freshness, recency_days, today):
             continue
         # One JobPosting per role, holding all accepted locations (#3). Locations
         # expand to rows at output time, not into the identity.
@@ -132,7 +137,7 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
 
         # final recency, now that detail may have supplied a real date (#2)
         fresh = normalize_date(raw.get("freshness_date")) or jp.posted_date
-        if _too_old(fresh, recency_days, today):
+        if not live and _too_old(fresh, recency_days, today):
             continue
 
         # employment: normalise structured value + body, enforce allowed set (#4)

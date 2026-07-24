@@ -59,6 +59,7 @@ def jobposting_ld(html: str) -> dict | None:
 
 class TalemetryFetcher:
     needs_detail = True
+    live_listing = True   # ATS board lists only currently-open roles
     check_robots = True
     rung_name = "talemetry"
 

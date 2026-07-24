@@ -51,6 +51,7 @@ class _ApiFetcher:
     """JSON-API adapters. Greenhouse/Ashby/Lever ship descriptions in the listing;
     SmartRecruiters exposes module-level fetch_detail + NEEDS_DETAIL."""
     check_robots = False
+    live_listing = True   # ATS feeds only return currently-open roles
 
     def __init__(self, company, http, module, rung):
         self.company, self.http, self.module, self.rung_name = company, http, module, rung
@@ -80,6 +81,7 @@ class _ApiFetcher:
 class _PlaywrightFetcher:
     needs_detail = True
     check_robots = True
+    live_listing = False   # arbitrary careers page — may render stale roles
     rung_name = "playwright"
 
     def __init__(self, company, http, selectors, wait_for):
@@ -116,6 +118,7 @@ class _PlaywrightFetcher:
 class _StaticFetcher:
     needs_detail = True
     check_robots = True
+    live_listing = False   # arbitrary careers page — may render stale roles
     rung_name = "static"
 
     def __init__(self, company, http, selectors):
