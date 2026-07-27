@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { api, apiSend, fmtSalary } from "../api";
+import Icon from "../components/Icon";
 
 // navigator.clipboard needs a secure context; the app is normally served over
 // plain http on the tailnet, so fall back to the textarea/execCommand trick.
@@ -88,21 +89,23 @@ export default function JobDetail() {
       </div>
       <div className="actions">
         <a className="apply" href={d.job_ad_url} target="_blank" rel="noreferrer">
-          View original ↗
+          View original <Icon name="external-link" size={14} />
         </a>
         <button disabled={copied === "busy"} onClick={copyMarkdown}
                 title="Copy the role as Markdown — facts, ad text and notes">
-          {copied === "done" ? "Copied ✓" : copied === "failed" ? "Copy failed" : "⧉ Copy Markdown"}
+          {copied === "done" ? <><Icon name="check" /> Copied</>
+            : copied === "failed" ? "Copy failed"
+            : <><Icon name="copy" /> Copy Markdown</>}
         </button>
         <a className="btn" href={`${mdUrl}?download=1`} title="Download the role as a .md file">
-          ⬇ .md
+          <Icon name="download" /> .md
         </a>
         {(applied || d.status === "open") && (
           <button
             disabled={update.isPending}
             onClick={() => update.mutate({ status: applied ? "open" : "applied" })}
           >
-            {applied ? "Unmark applied" : "✓ Mark applied"}
+            {applied ? "Unmark applied" : <><Icon name="check" /> Mark applied</>}
           </button>
         )}
       </div>
