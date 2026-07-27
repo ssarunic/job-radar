@@ -4,6 +4,12 @@
 > from `webapp/frontend/src/index.css`. **Consult this before adding or
 > changing any UI element**; when you deviate deliberately, update this file in
 > the same PR. Single stylesheet, no CSS framework — keep it that way.
+>
+> **Live style guide: `/styleguide`** (dev-facing route, not in the nav —
+> `pages/StyleGuide.tsx`). Every token, control, badge and pattern rendered by
+> the real classes, token hexes read from the stylesheet at runtime, so it
+> cannot drift. When this file and that page disagree, the page is right —
+> then fix this file.
 
 ## Principles
 
@@ -20,7 +26,7 @@
 ## Tokens (`:root`)
 
 | Token | Value | Use |
-|---|---|---|
+| --- | --- | --- |
 | `--bg` | `#0f1115` | page background |
 | `--panel` | `#171a21` | cards, rows, controls, topbar |
 | `--line` | `#262b36` | ALL borders and hairlines — there is no `--border` token; never invent one |
@@ -80,7 +86,15 @@ One-off colours in use (acceptable, don't multiply): `#c8f7c5` salary text,
 - **Feedback**: `.muted` for loading/empty, `.error` red text inline, button
   label swaps for transient state ("Copied ✓" — 2s reset), topbar progress bar
   for long operations.
-- **Icons**: emoji only (📍 🎚️ 💷 ⧉ ⬇ ↻ ✓), never an icon font or SVG set.
+- **Icons — two distinct roles, don't mix them:**
+  - *Controls* (buttons, links-as-buttons): inline SVG outlines from
+    `components/Icon.tsx` (Lucide paths pasted in — still no package/icon-font
+    dependency). 16px leading (14px for trailing indicators like
+    external-link), `stroke="currentColor"` stroke-2, 6px gap (baked into the
+    `button, a.btn` rule). Raw Unicode glyphs (⧉ ⬇ ↻) in captions are
+    banned — they render at text size/weight and vary per platform.
+  - *Data labels* (facts strip, list-row metadata): emoji (📍 🎚️ 💷) are the
+    house style — they label values, not actions.
 
 ## Adding new UI — checklist
 
