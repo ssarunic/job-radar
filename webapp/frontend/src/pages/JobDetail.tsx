@@ -86,7 +86,7 @@ export default function JobDetail() {
         {d.posted_date && <span>📅 {d.posted_date}</span>}
         {d.source_detail && <span>🔌 {d.source_detail}</span>}
       </div>
-      <div className="filters">
+      <div className="actions">
         <a className="apply" href={d.job_ad_url} target="_blank" rel="noreferrer">
           View original ↗
         </a>
