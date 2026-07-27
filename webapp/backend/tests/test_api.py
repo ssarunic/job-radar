@@ -105,6 +105,29 @@ def test_job_detail_404(client):
     assert client.get("/api/jobs/nope").status_code == 404
 
 
+def test_job_markdown_serves_canonical_file(client, tmp_path):
+    r = client.get("/api/jobs/aaa11111/markdown")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "text/markdown; charset=utf-8"
+    on_disk = (tmp_path / "jobs" / "capsa" / "head-of-product--aaa11111.md"
+               ).read_text(encoding="utf-8")
+    assert r.text == on_disk                          # byte-for-byte, no rendition
+    assert r.text.startswith("---")                   # frontmatter included
+    assert "my private note" in r.text                # notes included by design
+    assert "content-disposition" not in r.headers     # inline unless ?download=1
+
+
+def test_job_markdown_download_disposition(client):
+    r = client.get("/api/jobs/aaa11111/markdown?download=1")
+    assert r.status_code == 200
+    assert r.headers["content-disposition"] == \
+        'attachment; filename="capsa--head-of-product--aaa11111.md"'
+
+
+def test_job_markdown_404(client):
+    assert client.get("/api/jobs/nope/markdown").status_code == 404
+
+
 def test_spa_blocks_path_traversal(client, tmp_path, monkeypatch):
     # The SPA fallback must not serve files outside the built dist, even via encoded
     # dot segments (%2e%2e) that decode to "..". Regression for a P1 traversal.
