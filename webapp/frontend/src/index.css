@@ -74,6 +74,9 @@ main { max-width: 880px; margin: 0 auto; padding: 16px; }
 .ad h1, .ad h2, .ad h3 { font-size: 17px; margin: 18px 0 6px; }
 .ad ul { padding-left: 20px; }
 .ad a { color: var(--accent); text-decoration: underline; }
+/* scraped ads sometimes indent a plain line, which Markdown renders as a code
+   block — wrap it like prose instead of letting it overflow the card */
+.ad pre, .notes pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 .empty { padding: 24px 0; text-align: center; }
 .error { color: #f7a8a8; }
 
