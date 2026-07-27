@@ -403,6 +403,19 @@ def test_patch_job_unmark_applied(client):
     assert client.get("/api/jobs/aaa11111").json()["status"] == "open"
 
 
+def test_patch_job_rejected(client):
+    r = client.patch("/api/jobs/aaa11111", json={"status": "rejected"})
+    assert r.status_code == 200
+    assert client.get("/api/jobs/aaa11111").json()["status"] == "rejected"
+    jobs = client.get("/api/jobs?status=rejected").json()
+    assert [j["id"] for j in jobs["jobs"]] == ["aaa11111"]
+    # rejected roles are hidden from the default (open) view
+    assert "aaa11111" not in [j["id"] for j in client.get("/api/jobs").json()["jobs"]]
+    # undo: back to applied
+    client.patch("/api/jobs/aaa11111", json={"status": "applied"})
+    assert client.get("/api/jobs/aaa11111").json()["status"] == "applied"
+
+
 def test_patch_job_validation(client):
     assert client.patch("/api/jobs/aaa11111", json={}).status_code == 422
     assert client.patch("/api/jobs/aaa11111",

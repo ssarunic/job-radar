@@ -291,7 +291,7 @@ source_detail: Greenhouse
 first_seen: 2026-06-27
 last_seen: 2026-06-27
 last_checked: 2026-06-27
-status: open            # open | suspected_filled | closed | applied
+status: open            # open | suspected_filled | closed | applied | rejected
 ---
 
 ## Description
@@ -306,8 +306,10 @@ SmartRecruiters/Workday section HTML) via `scrapers/htmltext.html_to_markdown`>
 <!-- user-owned; never overwritten by the scraper -->
 ```
 
-**User-owned, preserve on regeneration:** the `## My notes` body and `status: applied`.
-Everything else is scraper-managed.
+**User-owned, preserve on regeneration:** the `## My notes` body and
+`status: applied` / `status: rejected` (both pinned — never auto-advanced by the
+reconciler, even if the posting vanishes or reappears). Everything else is
+scraper-managed.
 
 ---
 

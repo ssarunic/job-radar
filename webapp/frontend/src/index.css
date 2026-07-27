@@ -2,6 +2,7 @@
   --bg: #0f1115; --panel: #171a21; --line: #262b36; --text: #e6e8ec;
   --muted: #8b93a1; --accent: #5b9bff;
   --open: #2ecc71; --applied: #5b9bff; --suspected: #f1c40f; --closed: #7f8c8d;
+  --rejected: #e74c3c;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text);
@@ -46,6 +47,7 @@ main { max-width: 880px; margin: 0 auto; padding: 16px; }
   color: #0f1115; font-weight: 600; }
 .badge.open { background: var(--open); }
 .badge.applied { background: var(--applied); }
+.badge.rejected { background: var(--rejected); }
 .badge.suspected_filled { background: var(--suspected); }
 .badge.closed { background: var(--closed); }
 .badge.added { background: var(--open); }

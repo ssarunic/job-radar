@@ -52,12 +52,14 @@ Which tool:
   (web-search "<company> careers", follow through to the ATS board) and pass that clean
   URL — the server does not search the web. Stop tracking -> unfollow_company.
 - User says they applied to a role -> set_job_status(id, "applied", note="Applied <date> …").
+- User says their application was rejected -> set_job_status(id, "rejected",
+  note="Rejected <date> …").
 
 Reading results:
 - first_seen = date the scraper discovered the posting (drives new_jobs); posted_date =
   the ATS's own date (may be null or much older); last_seen = last run it was still up.
 - status lifecycle: open -> suspected_filled (missing 2 consecutive runs) -> closed;
-  "applied" is set by the user.
+  "applied" and "rejected" are set by the user and never auto-advanced.
 - seniority_rank (default product pack): CPO 9, VP 8, Director 7, Head 6, Principal/Staff 5,
   Group/Product-Lead 4, Senior 3, PM/Product Owner 2. AI/Innovation leadership
   titles (e.g. "AI & Innovation Lead", "Head of AI") rank in the same ladder.
@@ -68,7 +70,7 @@ Reading results:
 - Empty results return []; get_job returns {"error": ...} for an unknown id.
 """
 
-Status = Literal["open", "applied", "suspected_filled", "closed", "all"]
+Status = Literal["open", "applied", "rejected", "suspected_filled", "closed", "all"]
 
 # The SDK's DNS-rebinding guard 421s any Host it doesn't know; its built-in default
 # is localhost-only, which breaks the deployed hostname. Local + test hosts by
@@ -137,14 +139,14 @@ def get_job(id: str) -> dict:
 
 
 @mcp.tool()
-def set_job_status(id: str, status: Literal["applied", "open"],
+def set_job_status(id: str, status: Literal["applied", "rejected", "open"],
                    note: Optional[str] = None) -> dict:
-    """Mark a role as applied (or revert it to open) on the user's behalf, e.g.
-    after they say they've applied. Optionally APPENDS a line to the role's
-    `## My notes` (existing notes are never replaced — include a date in the
-    note when logging an application). suspected_filled/closed are lifecycle
-    states and cannot be set. Returns the updated role summary, or
-    {"error": ...} for an unknown id."""
+    """Mark a role as applied or rejected (or revert it to open/applied) on the
+    user's behalf, e.g. after they say they've applied or been turned down.
+    Optionally APPENDS a line to the role's `## My notes` (existing notes are
+    never replaced — include a date in the note when logging an application or
+    rejection). suspected_filled/closed are lifecycle states and cannot be set.
+    Returns the updated role summary, or {"error": ...} for an unknown id."""
     role = queries.get_role(id)
     if not role:
         return {"error": f"no role with id {id!r}"}

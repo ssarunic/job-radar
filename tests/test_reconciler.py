@@ -86,6 +86,16 @@ def test_applied_status_preserved():
     assert fm["status"] == "applied"
 
 
+def test_rejected_status_preserved():
+    """A rejection is about the user's application, not the ad — a still-live
+    posting must not flip a rejected role back to open."""
+    jp = _jp()
+    current, _, diff = reconciler.reconcile(_existing(jp, status="rejected"), [jp], TODAY)
+    _, fm, _, _ = current[0]
+    assert fm["status"] == "rejected"
+    assert not any(d["change"] == "reopened" for d in diff)
+
+
 def test_notes_carried_through():
     jp = _jp()
     body = "## Description\n\nx\n\n## My notes\n\nCalled recruiter.\n"
@@ -128,6 +138,15 @@ def test_applied_never_auto_advances():
         _existing(jp, missing_runs=5, status="applied"), [], TODAY)
     _, fm = missing[0]
     assert fm["status"] == "applied"
+    assert not diff
+
+
+def test_rejected_never_auto_advances():
+    jp = _jp()
+    _, missing, diff = reconciler.reconcile(
+        _existing(jp, missing_runs=5, status="rejected"), [], TODAY)
+    _, fm = missing[0]
+    assert fm["status"] == "rejected"
     assert not diff
 
 

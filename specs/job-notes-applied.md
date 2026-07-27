@@ -1,7 +1,8 @@
-# In-UI notes + applied status
+# In-UI notes + applied/rejected status
 
 > **Status:** ✅ implemented. User-owned role fields (`status: applied`,
-> `## My notes`) editable from the web UI and MCP, not just the file.
+> `status: rejected`, `## My notes`) editable from the web UI and MCP, not
+> just the file.
 
 ## Surface
 
@@ -10,11 +11,14 @@
   and/or the `## My notes` section, preserving the captured ad text verbatim
   (atomic write). `None` leaves a field untouched.
 - **`PATCH /api/jobs/{id}`** — `{status?, notes?}`. Status restricted to
-  `applied` | `open` (422 otherwise — `suspected_filled`/`closed` belong to
-  the scan lifecycle); rebuilds the derived index on status change (status is
-  indexed; notes are read from the file).
+  `applied` | `rejected` | `open` (422 otherwise — `suspected_filled`/`closed`
+  belong to the scan lifecycle); rebuilds the derived index on status change
+  (status is indexed; notes are read from the file).
 - **Web** (`JobDetail.tsx`): "✓ Mark applied"/"Unmark applied" button (shown
-  for open/applied roles only) + a My-notes editor (textarea, Markdown,
+  for open/applied roles only), a "✕ Mark rejected"/"Unmark rejected" button
+  (shown for open/applied/rejected; marking rejected appends a dated
+  `Rejected <date>.` line to My notes client-side, and unmarking reverts to
+  `applied` — the usual prior state) + a My-notes editor (textarea, Markdown,
   edit/save/cancel).
 - **MCP `set_job_status(id, status, note=None)`** — same restriction; `note`
   **appends** to existing notes (the conversational "I applied" flow logs a
@@ -22,9 +26,10 @@
 
 ## Invariants
 
-- The reconciler already never auto-advances an `applied` role
-  (`services/reconciler.py`); this feature only adds writers for the fields it
-  protects.
+- The reconciler never auto-advances an `applied` or `rejected` role
+  (`services/reconciler.py`) — a rejection is about the user's application,
+  not the ad, so a still-live or reappearing posting stays `rejected`; this
+  feature only adds writers for the fields it protects.
 - Ad text is never modified by any of these paths (covered by tests).
 
 ## Tests

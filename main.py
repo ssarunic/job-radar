@@ -152,7 +152,8 @@ def unfollow(slug):
 @cli.command("roles")
 @click.option("--company", default=None, help="Filter by company name or slug.")
 @click.option("--min-rank", type=int, default=None, help="Minimum seniority rank.")
-@click.option("--status", default="open", help="open | suspected_filled | closed | applied | all.")
+@click.option("--status", default="open",
+              help="open | suspected_filled | closed | applied | rejected | all.")
 @click.option("--limit", type=int, default=None)
 def roles_cmd(company, min_rank, status, limit):
     """Show tracked roles (open by default)."""

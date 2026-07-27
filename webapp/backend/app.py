@@ -89,8 +89,8 @@ def get_job_markdown(job_id: str, download: bool = False):
 
 
 class JobUpdate(BaseModel):
-    """User-owned fields only. Status may only move between open and applied —
-    suspected_filled/closed belong to the scan lifecycle."""
+    """User-owned fields only. Status may only move between open, applied and
+    rejected — suspected_filled/closed belong to the scan lifecycle."""
     status: Optional[str] = None
     notes: Optional[str] = None
 
@@ -107,9 +107,9 @@ def _role_path(job_id: str):
 def update_job(job_id: str, body: JobUpdate):
     if body.status is None and body.notes is None:
         raise HTTPException(status_code=422, detail="provide status and/or notes")
-    if body.status is not None and body.status not in ("applied", "open"):
+    if body.status is not None and body.status not in ("applied", "rejected", "open"):
         raise HTTPException(status_code=422,
-                            detail="status must be 'applied' or 'open'")
+                            detail="status must be 'applied', 'rejected' or 'open'")
     path = _role_path(job_id)
     if not path:
         raise HTTPException(status_code=404, detail="job not found")

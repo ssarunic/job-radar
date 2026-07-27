@@ -4,7 +4,8 @@ Lifecycle via a `missing_runs` counter in frontmatter:
   missing 1 run  -> stays open
   missing 2 runs -> Suspected Filled
   missing 3+ runs -> Closed
-A posting the user marked `status: applied` is never auto-advanced.
+A posting the user marked `status: applied` or `status: rejected` is never
+auto-advanced.
 """
 from __future__ import annotations
 
@@ -69,8 +70,8 @@ def reconcile(existing: dict, current_postings: list, today: str,
             fm["last_seen"] = today
             fm["last_checked"] = today
             fm["missing_runs"] = 0
-            if old_status == "applied":
-                fm["status"] = "applied"
+            if old_status in ("applied", "rejected"):
+                fm["status"] = old_status
                 change = "updated"
             elif old_status in ("suspected_filled", "closed"):
                 fm["status"] = "open"
@@ -107,7 +108,7 @@ def reconcile(existing: dict, current_postings: list, today: str,
         fm["last_checked"] = today
         mr = int(fm.get("missing_runs", 0)) + 1
         fm["missing_runs"] = mr
-        if status == "applied":
+        if status in ("applied", "rejected"):
             missing_actions.append((rec["path"], fm))
             continue
         new_status = status

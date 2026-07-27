@@ -42,7 +42,7 @@ Settings → Connectors → Add custom connector → URL
 | Full ad text + fit judgement | `get_job` |
 | Companies you track | `list_companies`, `company_roles` |
 | Start/stop tracking | `follow_company`, `unfollow_company` |
-| Mark applied + log a note | `set_job_status` |
+| Mark applied or rejected + log a note | `set_job_status` |
 
 All read-write operations touch only your own store; there's no cloud account
 behind any of this.
