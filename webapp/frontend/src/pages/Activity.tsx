@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { api, fmtRunTs } from "../api";
+import { api, fmtRunAge, fmtRunTs } from "../api";
 
 const CHANGE_ORDER = ["added", "reopened", "updated", "suspected_filled", "closed"];
 const CHANGE_LABEL: Record<string, string> = {
@@ -34,6 +34,7 @@ export default function Activity() {
             <Link key={r.ts} to={`/activity/${r.ts}`} className="row clickable">
               <div className="row-main">
                 <span className="company">{fmtRunTs(r.ts)}</span>
+                <span className="muted">{fmtRunAge(r.ts)}</span>
               </div>
               <div className="row-meta">
                 {CHANGE_ORDER.filter((k) => r.counts[k]).map((k) => (

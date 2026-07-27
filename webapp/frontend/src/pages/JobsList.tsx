@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { api, RANK_LABEL, fmtSalary } from "../api";
+import { api, RANK_LABEL, fmtSalary, fmtRunAge, fmtRunTs } from "../api";
 import { useScrollRestore } from "../hooks";
 
 // Filters live in the URL (not useState) so the exact list survives navigating to a
@@ -54,7 +54,11 @@ export default function JobsList() {
           <>
             <b>{stats.data.open}</b> open · {stats.data.new_7d} new (7d) ·{" "}
             {stats.data.companies} companies
-            {stats.data.last_run && <span className="muted"> · last run {stats.data.last_run}</span>}
+            {stats.data.last_run && (
+              <span className="muted" title={fmtRunTs(stats.data.last_run)}>
+                {" "}· last run {fmtRunAge(stats.data.last_run)}
+              </span>
+            )}
           </>
         )}
       </div>
