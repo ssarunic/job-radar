@@ -59,8 +59,13 @@ main { max-width: 880px; margin: 0 auto; padding: 16px; }
 .facts { display: flex; gap: 14px; flex-wrap: wrap; color: var(--muted);
   font-size: 14px; padding: 12px 0; border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line); }
-.apply { display: inline-block; margin: 14px 0; background: var(--accent); color: #fff;
-  padding: 9px 16px; border-radius: 8px; font-weight: 600; }
+/* detail action row — every control (accent link, buttons, download link)
+   shares one size so the row reads as a single unit */
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; }
+.actions > * { display: inline-flex; align-items: center; margin: 0;
+  font-size: 13px; padding: 8px 14px; border-radius: 8px; }
+.apply { background: var(--accent); border: 1px solid var(--accent); color: #fff;
+  font-weight: 600; }
 .ad, .notes { background: var(--panel); border: 1px solid var(--line);
   border-radius: 10px; padding: 4px 18px; }
 .notes { margin-top: 16px; }
@@ -87,7 +92,6 @@ main { max-width: 880px; margin: 0 auto; padding: 16px; }
 
 button, a.btn { background: var(--panel); color: var(--text); border: 1px solid var(--line);
   border-radius: 8px; padding: 7px 12px; font-size: 13px; cursor: pointer; transition: border-color .15s; }
-a.btn { align-self: center; }
 button:hover:not(:disabled), a.btn:hover { border-color: var(--accent); }
 button:disabled { opacity: .5; cursor: default; }
 
@@ -100,12 +104,12 @@ button:disabled { opacity: .5; cursor: default; }
 .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px;
   font-size: 14px; }
 .field input, .field select { background: var(--panel); color: var(--text);
-  border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; }
-.banner { background: var(--panel); border: 1px solid var(--border);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.banner { background: var(--panel); border: 1px solid var(--line);
   border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 14px; }
 
 /* Notes editor */
 .notes textarea { width: 100%; background: var(--panel); color: var(--text);
-  border: 1px solid var(--border); border-radius: 6px; padding: 10px;
+  border: 1px solid var(--line); border-radius: 8px; padding: 10px;
   font: inherit; resize: vertical; }
 button.small { font-size: 12px; padding: 2px 10px; margin-left: 8px; vertical-align: middle; }
