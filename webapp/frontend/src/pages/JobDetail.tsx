@@ -24,6 +24,14 @@ async function copyText(text: string) {
   if (!ok) throw new Error("copy blocked");
 }
 
+// PATCH replaces the whole notes field, so the dated rejection line is
+// appended client-side (same append-a-line convention as MCP set_job_status).
+function withRejectedNote(notes: string | null | undefined) {
+  const line = `Rejected ${new Date().toISOString().slice(0, 10)}.`;
+  const cur = (notes ?? "").trim();
+  return cur ? `${cur}\n\n${line}` : line;
+}
+
 export default function JobDetail() {
   const { id } = useParams();
   const qc = useQueryClient();
@@ -56,15 +64,9 @@ export default function JobDetail() {
 
   const d: any = data;
   const sal = fmtSalary(d.salary);
+  const open = d.status === "open";
   const applied = d.status === "applied";
   const rejected = d.status === "rejected";
-  // PATCH replaces the whole notes field, so the dated rejection line is
-  // appended client-side (same append-a-line convention as MCP set_job_status).
-  const withRejectedNote = (notes: string | null | undefined) => {
-    const line = `Rejected ${new Date().toISOString().slice(0, 10)}.`;
-    const cur = (notes ?? "").trim();
-    return cur ? `${cur}\n\n${line}` : line;
-  };
   const mdUrl = `/api/jobs/${id}/markdown`;
   const copyMarkdown = async () => {
     clearTimeout(copiedReset.current);   // a retry must not be reset by the old timer
@@ -108,7 +110,7 @@ export default function JobDetail() {
         <a className="btn" href={`${mdUrl}?download=1`} title="Download the role as a .md file">
           <Icon name="download" /> .md
         </a>
-        {(applied || d.status === "open") && (
+        {(applied || open) && (
           <button
             disabled={update.isPending}
             onClick={() => update.mutate({ status: applied ? "open" : "applied" })}
@@ -116,7 +118,7 @@ export default function JobDetail() {
             {applied ? "Unmark applied" : <><Icon name="check" /> Mark applied</>}
           </button>
         )}
-        {(rejected || applied || d.status === "open") && (
+        {(rejected || applied || open) && (
           <button
             disabled={update.isPending}
             onClick={() =>

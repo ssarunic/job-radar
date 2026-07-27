@@ -54,7 +54,7 @@ React SPA (Vite)  ──/api──▶  FastAPI (uv)  ──reads──▶  data/
 Jobs list (`/`) · Job detail (`/jobs/:id`, mobile-first, the deep-link target) ·
 Companies (`/companies`, `/companies/:slug`) · Activity/Runs (`/runs`).
 Visual language: dense list + card detail; status colours (open=green, suspected=amber,
-closed=grey, applied=blue); seniority pills; salary emphasised; responsive.
+closed=grey, applied=blue, rejected=red); seniority pills; salary emphasised; responsive.
 
 ## What we will NOT do (non-goals / guardrails)
 - **No second source of truth.** No caching job data into the web layer; always read the

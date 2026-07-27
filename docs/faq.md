@@ -38,13 +38,15 @@ scraping. No logins, no paywalls, no personal data — see
 No. It's optional and off by default — it improves parsing of odd titles and
 salary text. Expect roughly $15–30 per ~300 companies if enabled.
 
-**How do I add notes to a role, or mark it as applied?**
-On the role's detail page: **✓ Mark applied** toggles the applied status, and
-**My notes** has an edit button (Markdown supported). JobRadar never
-overwrites either, even when the ad changes or the posting closes. (They're
-stored in the role's Markdown file in your data volume, so a text editor works
-too — and connected Claude clients can do it for you: "mark the Revolut EIR
-as applied".)
+**How do I add notes to a role, or mark it as applied or rejected?**
+On the role's detail page: **✓ Mark applied** toggles the applied status,
+**✕ Mark rejected** records that an application didn't work out (it also adds
+a dated "Rejected …" line to your notes; unmarking puts the role back to
+applied), and **My notes** has an edit button (Markdown supported). JobRadar
+never overwrites any of these, even when the ad changes or the posting closes.
+(They're stored in the role's Markdown file in your data volume, so a text
+editor works too — and connected Claude clients can do it for you: "mark the
+Revolut EIR as applied".)
 
 **Where is my data?**
 In a Docker volume, as human-readable Markdown files (one per role) plus a
