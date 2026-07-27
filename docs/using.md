@@ -21,6 +21,10 @@ Click a role for the full ad text, captured the day it was found. Filters and
 your scroll position live in the page URL, so opening a role and going back
 returns you exactly where you were.
 
+On the role page, **⧉ Copy Markdown** copies the whole role as plain Markdown
+(all the facts, the ad text and your notes) — handy for pasting into Claude or
+any AI assistant — and **⬇ .md** downloads the same thing as a file.
+
 ## Notes and "applied"
 
 On a role's detail page you can **✓ Mark applied** (and unmark it) and

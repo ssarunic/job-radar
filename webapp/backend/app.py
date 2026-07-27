@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Optional
 
 import yaml
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -71,6 +71,21 @@ def get_job(job_id: str):
     if not role:
         raise HTTPException(status_code=404, detail="job not found")
     return role
+
+
+@app.get("/api/jobs/{job_id}/markdown")
+def get_job_markdown(job_id: str, download: bool = False):
+    """The canonical role file, byte-for-byte — frontmatter, ad and notes
+    (spec: job-markdown-export.md). Made for pasting into an LLM."""
+    path = _role_path(job_id)
+    if not path:
+        raise HTTPException(status_code=404, detail="job not found")
+    headers = {}
+    if download:   # slug + stem are already slugified, safe in a header
+        headers["Content-Disposition"] = \
+            f'attachment; filename="{path.parent.name}--{path.name}"'
+    return Response(path.read_text(encoding="utf-8"),
+                    media_type="text/markdown; charset=utf-8", headers=headers)
 
 
 class JobUpdate(BaseModel):
