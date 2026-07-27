@@ -33,7 +33,7 @@
 | `--text` | `#e6e8ec` | primary text |
 | `--muted` | `#8b93a1` | secondary text, labels, metadata |
 | `--accent` | `#5b9bff` | links, active nav, primary action, hover borders, progress |
-| `--open` / `--applied` / `--suspected` / `--closed` | green / accent / yellow / grey | status badges only |
+| `--open` / `--applied` / `--rejected` / `--suspected` / `--closed` | green / accent / red / yellow / grey | status badges only |
 
 One-off colours in use (acceptable, don't multiply): `#c8f7c5` salary text,
 `#f7a8a8` error text, `#20262f` pill fill, `#3a4250` "updated" badge,

@@ -67,6 +67,7 @@ export default function JobsList() {
         <select value={status} onChange={(e) => setFilter("status", e.target.value)}>
           <option value="open">Open</option>
           <option value="applied">Applied</option>
+          <option value="rejected">Rejected</option>
           <option value="suspected_filled">Suspected filled</option>
           <option value="closed">Closed</option>
           <option value="all">All</option>

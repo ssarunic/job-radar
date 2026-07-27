@@ -6,9 +6,10 @@ import Icon, { type IconName } from "../components/Icon";
 // specs/design-system.md.
 
 const TOKENS = ["bg", "panel", "line", "text", "muted", "accent",
-  "open", "applied", "suspected", "closed"] as const;
-const ICONS: IconName[] = ["copy", "download", "check", "external-link", "refresh"];
-const BADGES = ["open", "applied", "suspected_filled", "closed", "added", "reopened", "updated"];
+  "open", "applied", "rejected", "suspected", "closed"] as const;
+const ICONS: IconName[] = ["copy", "download", "check", "x", "external-link", "refresh"];
+const BADGES = ["open", "applied", "rejected", "suspected_filled", "closed",
+  "added", "reopened", "updated"];
 
 export default function StyleGuide() {
   const css = getComputedStyle(document.documentElement);

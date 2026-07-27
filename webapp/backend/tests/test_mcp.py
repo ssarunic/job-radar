@@ -207,7 +207,8 @@ def test_mcp_surface(mcp_store):
                           "set_job_status", "list_companies", "company_roles",
                           "follow_company", "unfollow_company"}
     status = tools["list_jobs"].inputSchema["properties"]["status"]
-    assert status["enum"] == ["open", "applied", "suspected_filled", "closed", "all"]
+    assert status["enum"] == ["open", "applied", "rejected",
+                              "suspected_filled", "closed", "all"]
     assert mcp_app.mcp.instructions            # model-facing contract is set
 
 
@@ -241,6 +242,13 @@ def test_set_job_status_note_appends_not_replaces(mcp_store):
     mcp_app.set_job_status("aaa11111", "applied", note="first")
     out = mcp_app.set_job_status("aaa11111", "applied", note="second")
     assert "first" in out["notes"] and "second" in out["notes"]
+
+
+def test_set_job_status_rejected_with_note(mcp_store):
+    out = mcp_app.set_job_status("aaa11111", "rejected", note="Rejected 2026-07-27.")
+    assert out["status"] == "rejected"
+    assert "Rejected 2026-07-27." in out["notes"]
+    assert [j["id"] for j in mcp_app.list_jobs(status="rejected")] == ["aaa11111"]
 
 
 def test_set_job_status_revert_and_unknown(mcp_store):

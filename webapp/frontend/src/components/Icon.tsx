@@ -18,6 +18,12 @@ const GLYPHS: Record<string, ReactNode> = {
     </>
   ),
   check: <path d="M20 6 9 17l-5-5" />,
+  x: (
+    <>
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </>
+  ),
   "external-link": (
     <>
       <path d="M15 3h6v6" />

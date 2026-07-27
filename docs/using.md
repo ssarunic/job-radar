@@ -12,7 +12,7 @@ You can also scan any time with the **↻ Refresh** button in the top bar.
 
 The home page lists every tracked role, most senior first. Filters at the top:
 
-- **Status** — open / applied / suspected filled / closed
+- **Status** — open / applied / rejected / suspected filled / closed
 - **Min seniority** — hide everything below a rank
 - **Search** — free text over company + title
 - **Sort** — by seniority or by newest first
@@ -25,12 +25,14 @@ On the role page, **⧉ Copy Markdown** copies the whole role as plain Markdown
 (all the facts, the ad text and your notes) — handy for pasting into Claude or
 any AI assistant — and **⬇ .md** downloads the same thing as a file.
 
-## Notes and "applied"
+## Notes, "applied" and "rejected"
 
-On a role's detail page you can **✓ Mark applied** (and unmark it) and
-**edit My notes** (Markdown supported). Both are yours: JobRadar never
-overwrites them, even if the ad changes or the posting closes — an applied
-role keeps its applied status forever unless you change it.
+On a role's detail page you can **✓ Mark applied** (and unmark it),
+**✕ Mark rejected** when an application didn't work out (this also adds a
+dated "Rejected …" line to your notes; unmarking puts the role back to
+applied) and **edit My notes** (Markdown supported). All of these are yours:
+JobRadar never overwrites them, even if the ad changes or the posting closes —
+an applied or rejected role keeps that status forever unless you change it.
 
 Under the hood each role is a plain Markdown file in your data volume
 (`jobs/<company>/<role>--<id>.md`) — notes live under `## My notes` and the
@@ -47,6 +49,9 @@ editable with a text editor if you prefer.
   board, it reopens automatically.
 - **applied** — set by you (the "Mark applied" button); never changed
   automatically.
+- **rejected** — set by you (the "Mark rejected" button) when a company turns
+  your application down; never changed automatically, even if the ad is still
+  up. Filter the list by "Rejected" to review them.
 
 ## The Companies page
 
