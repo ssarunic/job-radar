@@ -14,10 +14,11 @@ FROM python:3.14-slim-bookworm AS runtime
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 JSA_ROOT=/data PORT=8765
 WORKDIR /app
 
-# curated runtime deps (no pandas, no playwright)
-RUN pip install --no-cache-dir \
-      click pyyaml requests beautifulsoup4 lxml markdownify curl-cffi \
-      anthropic python-dateutil fastapi "uvicorn[standard]" mcp tzdata
+# runtime deps come from requirements.txt so image and CI can never drift on
+# versions (an unpinned copy here once shipped mcp 2.0 while CI tested <2);
+# web-server extras (fastapi/uvicorn/tzdata) are image-only, same as CI's list
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt fastapi "uvicorn[standard]" tzdata
 
 COPY services/ services/
 COPY scrapers/ scrapers/
