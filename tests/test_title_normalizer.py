@@ -35,6 +35,11 @@ PROFILE = {
     # seniority word not adjacent to "product" — still caught by prefix
     ("Executive Director, Product Lead – Merchant Services", 7, "Director of Product"),
     ("Payments - Product Lead - Merchant services EMEA - Vice President", 8, "VP Product"),
+    # area named before "product" — the qualifier bridge (_QUAL)
+    ("Head of International Platforms Product", 6, "Head of Product"),
+    ("Head of Digital Product", 6, "Head of Product"),
+    ("Director of International Platforms Product", 7, "Director of Product"),
+    ("VP Digital Commerce Product", 8, "VP Product"),
     ("Senior Product Manager", 3, "Senior Product Manager"),
     ("Sr. Product Manager", 3, "Senior Product Manager"),
 ])
@@ -114,6 +119,21 @@ def test_hr_substring_not_excluded():
 
 def test_non_product_role_dropped():
     assert classify("Software Engineer", PROFILE).kept is False
+
+
+@pytest.mark.parametrize("title", [
+    "Head of Engineering, Product Platform",   # comma blocks the bridge — a non-PM head
+    "Head of Engineering",
+    "Head of Sales",
+])
+def test_qualifier_bridge_does_not_promote_non_pm_heads(title):
+    """The _QUAL bridge must not let a non-PM discipline reach a later 'product'."""
+    assert classify(title, PROFILE).kept is False
+
+
+def test_qualifier_bridge_still_respects_exclusions():
+    assert not classify("Head of Product Marketing", PROFILE).kept
+    assert not classify("Head of Digital Product Design", PROFILE).kept
 
 
 def test_markets_vp_not_a_product_role():
