@@ -5,7 +5,9 @@ the company's careers URL (`https://{tenant}.wdN.myworkdayjobs.com/{site}`).
 Uses `searchText=product` as a server-side prefilter, **plus a discovered UK
 location facet** so big tenants (NVIDIA: 2000 product hits, Barclays: 837) collapse
 to their UK roles (NVIDIA 42) — under the page cap, and a trustworthy "0 kept".
-The classifier does the precise filtering. Listing has no description; detail()
+The classifier does the precise filtering. Listing location comes from
+`locationsText`, falling back to `bulletFields` for tenants that omit it
+(`_listing_location`). Listing has no description; detail()
 adds description + the real startDate + employment type (SPEC b). `limit` is
 hard-capped at 20 by Workday, so depth = page count only.
 """
@@ -24,6 +26,26 @@ _JSON_HEADERS = {"Accept": "application/json"}
 _UK_RX = re.compile(r"united kingdom|great britain|\bengland\b|scotland|wales|"
                     r"northern ireland|\blondon\b", re.I)
 _UK_COUNTRY_RX = re.compile(r"united kingdom|great britain|^\s*england\s*$", re.I)
+
+# A bulletFields entry that is a job requisition id, not a location (e.g.
+# 'JR0609782', 'R-12345', '2024-1234'): no spaces, contains a digit.
+_REQ_ID_RX = re.compile(r"^[A-Za-z]*[-_]?\d[\w-]*$")
+
+
+def _listing_location(j: dict) -> str:
+    """Location for a listing row. Most tenants populate `locationsText`, but some
+    (e.g. Worldpay) omit it entirely and carry the location in `bulletFields`
+    (typically ['LONDON, , UNITED KINGDOM', 'JR0609782']). Without this fallback the
+    row reaches the pipeline with an empty location and is dropped by the location
+    filter — a board full of London roles silently keeps 0."""
+    text = (j.get("locationsText") or "").strip()
+    if text:
+        return text
+    for field in j.get("bulletFields") or []:
+        field = (field or "").strip()
+        if field and not _REQ_ID_RX.match(field):
+            return field
+    return ""
 
 
 def _pick_uk_facet(facets: list) -> tuple:
@@ -107,7 +129,7 @@ class WorkdayFetcher:
                 path = j.get("externalPath", "")
                 out.append({
                     "title": (j.get("title") or "").strip(),
-                    "location": (j.get("locationsText") or "").strip(),
+                    "location": _listing_location(j),
                     "url": f"{self.base}/{self.site}{path}" if path else self.base,
                     "posted_date": None,  # postedOn is relative text, unparseable
                     "description": "",

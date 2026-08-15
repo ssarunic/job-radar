@@ -25,17 +25,26 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
+# Qualifier bridge: up to 4 words between the seniority word and "product", for
+# titles that name the area first ("Head of International Platforms Product",
+# "VP Digital Commerce Product"). Deliberately excludes commas, so bridging can't
+# cross a segment boundary — "Head of Engineering, Product Platform" stays a
+# non-PM role, while "Head of Product Marketing" is still caught by exclude_titles.
+_QUAL = r"(?:[\w&/'’-]+\s+){0,4}"
+
 # (regex, normalised title, seniority level, rank) — ordered by priority (product-spec §11.3).
 # Order matters: first match wins, so seniority descends and Principal precedes Group.
 PATTERNS = [
     (r"\b(cpo|chief product officer)\b", "Chief Product Officer", "C Level", 9),
-    (r"\b(?:svp|vp|vice president)\b,?\s+(?:of\s+)?product\b"
+    (rf"\b(?:svp|vp|vice president)\b,?\s+(?:of\s+)?{_QUAL}product\b"
      r"|\b(?:svp|vp|vice president)\b.*\bproduct (?:lead|leader)\b"
      r"|\bproduct (?:lead|leader)\b.*\b(?:svp|vp|vice president)\b", "VP Product", "VP", 8),
-    (r"\bdirector of product\b|\bproduct director\b|\bdirector\b,?\s+product management\b"
+    (rf"\bdirector of {_QUAL}product\b|\bproduct director\b"
+     rf"|\bdirector\b,?\s+{_QUAL}product management\b"
      r"|\bdirector\b.*\bproduct (?:lead|leader)\b|\bproduct (?:lead|leader)\b.*\bdirector\b",
      "Director of Product", "Director", 7),
-    (r"\bhead of product\b|\bhead\b,?\s+product\b", "Head of Product", "Head", 6),
+    (rf"\bhead of {_QUAL}product\b|\bhead\b,?\s+{_QUAL}product\b",
+     "Head of Product", "Head", 6),
     (r"\b(entrepreneur in residence|eir)\b", "Entrepreneur in Residence", "Head", 6),
     (r"\bprincipal\b.*\bproduct (?:manager|management|owner|lead|leader)\b",
      "Principal Product Manager", "Principal", 5),
