@@ -31,13 +31,15 @@ def _row(title, location, url):
 
 
 def test_unusable_location_is_resolved_for_title_passing_rows_only():
-    # d, h: resolve -> UK; se: title fails, no lookup; ok: usable, no lookup; us: -> US, dropped
+    # d, h: resolve -> UK. se: title fails, no lookup. ok: usable, no lookup.
+    # us: resolves to the US -> dropped.
     raw = [_row("Product Manager - Director", "2 Locations", "https://w/d"),
            _row("Head of Product", "Canary Wharf, 1 Churchill Place", "https://w/h"),
            _row("Software Engineer", "2 Locations", "https://w/se"),
            _row("Senior Product Manager", "London", "https://w/ok"),
            _row("Director of Product", "2 Locations", "https://w/us")]
-    f = _Fetcher({"https://w/d": "Canary Wharf, 1 Churchill Place, United Kingdom; Glasgow, Clyde Place",
+    f = _Fetcher({"https://w/d": ("Canary Wharf, 1 Churchill Place, United Kingdom; "
+                                  "Glasgow, Clyde Place"),
                   "https://w/h": "Canary Wharf, 1 Churchill Place, United Kingdom",
                   "https://w/us": "New York, 745 7th Avenue, United States of America"})
     kept = pipeline.process_company({"name": "B", "slug": "b"}, PROFILE, raw, f, {}, None,
