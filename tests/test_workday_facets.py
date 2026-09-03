@@ -25,9 +25,23 @@ def test_prefers_country_level_over_sites():
     assert param == "locationHierarchy1" and ids == ["uk"]   # country, not the 'UK, London' site
 
 
-def test_falls_back_to_city_sites():
-    param, ids = _pick_uk_facet(BARCLAYS)
-    assert param == "locations" and set(ids) == {"l1", "l2"}
+def test_site_only_tenant_gets_no_facet():
+    # Barclays-style trees have no country node; site names are street addresses
+    # ('Canary Wharf, 1 Churchill Place', 'Glasgow Campus') so a UK regex over
+    # sites keeps almost nothing. Correct answer: no facet, page unfiltered.
+    assert _pick_uk_facet(BARCLAYS) == (None, None)
+
+
+def test_street_name_london_is_not_a_uk_facet():
+    # Real Barclays descriptors (2026-09): the only 'London' matches were a street
+    # name and one Eagle Lab; applying them collapsed 778 rows to 2.
+    real = [{"facetParameter": "locationMainGroup", "descriptor": None, "values": [
+        {"facetParameter": "locations", "descriptor": "Locations", "values": [
+            {"id": "a", "descriptor": "Lowestoft, London Road North", "count": 1},
+            {"id": "b", "descriptor": "London, Luke Street (Eagle Lab)", "count": 1},
+            {"id": "c", "descriptor": "Canary Wharf, 1 Churchill Place", "count": 210},
+            {"id": "d", "descriptor": "Glasgow Campus", "count": 60}]}]}]
+    assert _pick_uk_facet(real) == (None, None)
 
 
 def test_no_uk_returns_none():
