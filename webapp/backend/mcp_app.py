@@ -24,7 +24,7 @@ from urllib.parse import urlparse
 _BACKEND_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(_BACKEND_DIR.parents[1]))   # repo root -> services.*
 
-from mcp.server.fastmcp import FastMCP  # noqa: E402
+from mcp.server.mcpserver import MCPServer  # noqa: E402
 from mcp.server.transport_security import TransportSecuritySettings  # noqa: E402
 
 from models.job_posting import _slugify  # noqa: E402
@@ -78,8 +78,16 @@ Status = Literal["open", "applied", "rejected", "suspected_filled", "closed", "a
 _ALLOWED_HOSTS = [h.strip() for h in os.environ.get("JSA_MCP_ALLOWED_HOSTS", "").split(",")
                   if h.strip()] or ["127.0.0.1:*", "localhost:*", "testserver"]
 
-mcp = FastMCP("JobRadar", instructions=_INSTRUCTIONS, host="127.0.0.1", port=8899,
-              transport_security=TransportSecuritySettings(allowed_hosts=_ALLOWED_HOSTS))
+_TRANSPORT_SECURITY = TransportSecuritySettings(allowed_hosts=_ALLOWED_HOSTS)
+
+mcp = MCPServer("JobRadar", instructions=_INSTRUCTIONS)
+
+
+def streamable_http_app():
+    """The Streamable-HTTP ASGI app (mounted by app.py). mcp 2 moved transport
+    settings off the constructor onto the app factory / run(), so they live here
+    once and the mounted app and the standalone runner can't drift."""
+    return mcp.streamable_http_app(transport_security=_TRANSPORT_SECURITY)
 
 
 def _index():
@@ -296,4 +304,5 @@ def unfollow_company(slug: str) -> dict:
 
 
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http")
+    mcp.run(transport="streamable-http", host="127.0.0.1", port=8899,
+            transport_security=_TRANSPORT_SECURITY)

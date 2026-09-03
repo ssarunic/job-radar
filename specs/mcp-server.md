@@ -62,7 +62,7 @@ project CV — the server has no CV and no fit tool.
 ## Design
 
 ### Transport & hosting
-- **MCP Python SDK (FastMCP), Streamable HTTP transport, mounted into the existing FastAPI app
+- **MCP Python SDK (`MCPServer`, formerly FastMCP — mcp 2.x), Streamable HTTP transport, mounted into the existing FastAPI app
   under `/mcp`** — one server, one deploy, shared `queries`/`store`. Add `mcp` to the runtime
   deps + `Dockerfile`.
 - Read-only: every tool calls `services.queries` against `store` (`JSA_ROOT=/data`). No writes.
@@ -111,7 +111,7 @@ The client model never reads this spec. What it reads — and all it reads — i
 `webapp/backend/mcp_app.py`. Those are prompt text, not documentation; the code is
 authoritative for their wording. Rules:
 
-- **Server `instructions`** (FastMCP's `instructions=`) carry the cross-tool guidance:
+- **Server `instructions`** (`MCPServer(instructions=…)`) carry the cross-tool guidance:
   the which-tool-when decision tree and the result-field glossary (`first_seen` vs
   `posted_date`, status lifecycle, seniority-rank ladder, salary semantics). Anything
   that applies to more than one tool lives here, not repeated per docstring.
@@ -153,10 +153,10 @@ URL `http://dalstonserver:8765/mcp` → tools appear. Then ask: *"what senior PM
 ## Execution plan
 
 ### Phase A — MCP server + read tools (no auth, tailnet-local) ✅
-Mount FastMCP `/mcp` into the FastAPI app; implement the seven read tools over `queries`.
+Mount the MCPServer `/mcp` app into the FastAPI app; implement the seven read tools over `queries`.
 | # | File | Change |
 |---|---|---|
-| 1 | `webapp/backend/mcp_app.py` (new) | FastMCP server + tools; mounted from `app.py` |
+| 1 | `webapp/backend/mcp_app.py` (new) | MCPServer + tools; mounted from `app.py` |
 | 2 | `webapp/backend/app.py` | mount `/mcp` |
 | 3 | `Dockerfile` / deps | add `mcp` |
 | 4 | `webapp/backend/tests/test_mcp.py` (new) | tool calls against a temp store (network-free) |

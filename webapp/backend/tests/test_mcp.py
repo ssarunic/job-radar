@@ -1,6 +1,6 @@
 """MCP tool tests — network-free, against a temp canonical store.
 
-Calls the tool functions directly (FastMCP's @tool returns them unchanged); one
+Calls the tool functions directly (MCPServer's @tool returns them unchanged); one
 test goes through the MCP layer to pin the registered surface (names + schemas).
 """
 import shutil
@@ -206,7 +206,7 @@ def test_mcp_surface(mcp_store):
     assert set(tools) == {"stats", "list_jobs", "search_jobs", "new_jobs", "get_job",
                           "set_job_status", "list_companies", "company_roles",
                           "follow_company", "unfollow_company"}
-    status = tools["list_jobs"].inputSchema["properties"]["status"]
+    status = tools["list_jobs"].input_schema["properties"]["status"]
     assert status["enum"] == ["open", "applied", "rejected",
                               "suspected_filled", "closed", "all"]
     assert mcp_app.mcp.instructions            # model-facing contract is set

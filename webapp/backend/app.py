@@ -43,10 +43,10 @@ async def _lifespan(_app: FastAPI):
 app = FastAPI(title="Job Search Assistant", version="1.0", lifespan=_lifespan)
 
 # MCP server at /mcp (spec: mounted into this app — one server, one deploy). Lifting
-# the FastMCP sub-app's routes (rather than app.mount) keeps the exact path `/mcp`
+# the MCP sub-app's routes (rather than app.mount) keeps the exact path `/mcp`
 # working — Starlette's Mount only matches `/mcp/…` — and must precede the SPA
 # catch-all below so GET /mcp (the SSE stream) isn't swallowed by it.
-app.router.routes.extend(mcp_app.mcp.streamable_http_app().routes)
+app.router.routes.extend(mcp_app.streamable_http_app().routes)
 
 
 @app.get("/api/stats")
