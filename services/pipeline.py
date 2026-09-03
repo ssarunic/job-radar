@@ -66,8 +66,13 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
     # page can render long-filled roles.
     live = getattr(fetcher, "live_listing", False)
 
+    # Detail fetches are the only real cost, so both the Stage C detail loop and the
+    # Stage A location lookups below are bounded by one explicit, logged cap.
+    detail_cap = profile.get("detail_fetch_cap", max(50, max_roles * 5))
+
     # --- Stage A: listing-level filters + location expansion ------------------
     candidates: list[tuple[JobPosting, dict]] = []
+    resolves = 0
     for raw in raw_listing:
         cls = classify(raw.get("title", ""), profile)
         if not cls.kept:
@@ -81,6 +86,20 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
         # One JobPosting per role, holding all accepted locations (#3). Locations
         # expand to rows at output time, not into the identity.
         locs = location_filter.expand(raw.get("location", ""), profile)
+        if not locs and hasattr(fetcher, "resolve_location") and resolves < detail_cap:
+            # Some listing rows carry a location the filter can't judge — Workday's
+            # "2 Locations" placeholder, or a bare street address such as
+            # "Canary Wharf, 1 Churchill Place" (Barclays) — while the detail record
+            # has the structured site + country. Ask the adapter, but only for rows
+            # that already passed title + recency, so it costs a handful of requests.
+            resolves += 1
+            try:
+                resolved = fetcher.resolve_location(raw.get("url", "")) or ""
+            except Exception:  # noqa: BLE001 — a failed lookup just leaves the row dropped
+                resolved = ""
+            if resolved:
+                raw = {**raw, "location": resolved}
+                locs = location_filter.expand(resolved, profile)
         if not locs:
             continue
         jp = JobPosting(
@@ -116,7 +135,6 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
     # roles at the top buries eligible ones below it. Detail fetches are the only
     # real cost, so bound *those* with an explicit, logged cap (not a silent slice).
     allowed = set(profile.get("employment", ["Full time", "Part time"]))
-    detail_cap = profile.get("detail_fetch_cap", max(50, max_roles * 5))
     kept: list[JobPosting] = []
     details = 0
     for jp, raw in ranked:

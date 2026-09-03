@@ -21,10 +21,8 @@ from scrapers.result import EMPTY, OK, ListingResult
 
 _JSON_HEADERS = {"Accept": "application/json"}
 
-# A facet value's descriptor is UK-ish. Country terms are preferred (broadest);
-# bare "uk" is intentionally excluded (matches Ukraine, Dukinfield, ...).
-_UK_RX = re.compile(r"united kingdom|great britain|\bengland\b|scotland|wales|"
-                    r"northern ireland|\blondon\b", re.I)
+# A facet value's descriptor is a UK *country* (site/city names are never used — see
+# _pick_uk_facet). Bare "uk" is intentionally excluded (matches Ukraine, Dukinfield, ...).
 _UK_COUNTRY_RX = re.compile(r"united kingdom|great britain|^\s*england\s*$", re.I)
 
 # A bulletFields entry that is a job requisition id, not a location (e.g.
@@ -51,18 +49,26 @@ def _listing_location(j: dict) -> str:
 def _pick_uk_facet(facets: list) -> tuple:
     """Walk Workday's (nested, tenant-specific) facet tree and pick ONE
     facetParameter + value ids to constrain the search to the UK. Returns
-    (param, [ids]) or (None, None) if no UK facet is present. Prefers a
-    country-level value (e.g. 'United Kingdom') over city/site values, and uses a
-    single param so values OR together (avoids AND over-constraining)."""
-    matches = []  # (param, id, count, is_country)
+    (param, [ids]) or (None, None) if the tenant exposes no **country-level** UK
+    value (e.g. 'United Kingdom'). Uses a single param so values OR together
+    (avoids AND over-constraining).
+
+    Site/city values are deliberately never used. Tenants whose location facet is
+    per-site (Barclays: 72 street addresses, no country node) name sites like
+    'Canary Wharf, 1 Churchill Place' or 'Glasgow Campus', so a descriptor regex
+    matches almost none of the UK sites — and does match street names such as
+    'Lowestoft, London Road North'. Applying those ids collapsed Barclays'
+    778-row 'product' search to 2 rows and silently hid every real UK role.
+    Without a facet the caller pages the (newest-first) unfiltered listing and the
+    location filter runs client-side, which is lossless."""
+    matches = []  # (param, id, count)
 
     def walk(nodes, parent_param):
         for n in nodes:
             param = n.get("facetParameter") or parent_param
             desc = n.get("descriptor") or ""
-            if n.get("id") and param and _UK_RX.search(desc):
-                matches.append((param, n["id"], n.get("count") or 0,
-                                bool(_UK_COUNTRY_RX.search(desc))))
+            if n.get("id") and param and _UK_COUNTRY_RX.search(desc):
+                matches.append((param, n["id"], n.get("count") or 0))
             walk(n.get("values") or [], param)
 
     for f in facets:
@@ -70,9 +76,8 @@ def _pick_uk_facet(facets: list) -> tuple:
     if not matches:
         return None, None
 
-    pool = [m for m in matches if m[3]] or matches      # country-level if any
     by_param: dict = {}
-    for param, vid, count, _ in pool:
+    for param, vid, count in matches:
         slot = by_param.setdefault(param, {"ids": [], "count": 0})
         if vid not in slot["ids"]:
             slot["ids"].append(vid)
@@ -104,7 +109,7 @@ class WorkdayFetcher:
         return False
 
     def listing(self) -> ListingResult:
-        max_pages = self.http.settings.get("ats_max_pages", 25)  # Workday caps limit at 20
+        max_pages = self.http.settings.get("ats_max_pages", 40)  # Workday caps limit at 20
 
         # Discover a UK location facet (1 cheap call) to constrain the search
         # server-side; falls back to no facet (today's behaviour) if none found.
@@ -116,6 +121,9 @@ class WorkdayFetcher:
         applied = {param: ids} if param else {}
         if applied:
             print(f"   … Workday: UK facet {param} ({len(ids)} value(s)) applied")
+        else:
+            print("   … Workday: no country-level UK facet; paging the unfiltered "
+                  "(newest-first) listing, filtering location client-side")
 
         out, offset, total, pages = [], 0, None, 0
         while True:
@@ -148,13 +156,42 @@ class WorkdayFetcher:
                 break
         return ListingResult(OK if out else EMPTY, out, self.rung_name)
 
+    def _job_info(self, url) -> dict:
+        """The posting's `jobPostingInfo` record, fetched once per URL: both
+        resolve_location() (Stage A) and detail() (Stage C) read it."""
+        if not url or url == self.base:
+            return {}
+        cache = self.__dict__.setdefault("_jpi_cache", {})
+        if url not in cache:
+            path = url.split(f"{self.base}/{self.site}", 1)[-1]
+            cache[url] = self.http.get_json(self.cxs + path).get("jobPostingInfo", {}) or {}
+        return cache[url]
+
+    def resolve_location(self, url) -> str:
+        """Structured location for a row whose listing location the filter can't
+        judge (pipeline Stage A hook). Listing rows only carry a site label —
+        "2 Locations" for multi-site postings, or a bare street address such as
+        "Canary Wharf, 1 Churchill Place" — but the detail record names the site's
+        country, which is what the location filter keys on. Returns
+        "<site>, <Country>; <additional site>; …" (additional sites carry no
+        country in the record, so they are passed through as-is), or "" if the
+        posting can't be read."""
+        jpi = self._job_info(url)
+        if not jpi:
+            return ""
+        primary = (jpi.get("location") or "").strip()
+        country = ((jpi.get("jobRequisitionLocation") or {}).get("country")
+                   or jpi.get("country") or {}).get("descriptor", "").strip()
+        pieces = [", ".join(x for x in (primary, country) if x)]
+        pieces += [str(a).strip() for a in (jpi.get("additionalLocations") or []) if str(a).strip()]
+        return "; ".join(x for x in pieces if x)
+
     def detail(self, url) -> str:
         """jobDescription + structured fields, embedded as text so the pipeline's
         generic date/employment parsers pick them up (SPEC b)."""
-        if not url or url == self.base:
+        jpi = self._job_info(url)
+        if not jpi:
             return ""
-        path = url.split(f"{self.base}/{self.site}", 1)[-1]
-        jpi = self.http.get_json(self.cxs + path).get("jobPostingInfo", {}) or {}
         header = (f"Employment type: {jpi.get('timeType','')}\n"
                   f"Date posted: {jpi.get('startDate','')}\n"
                   f"Location: {jpi.get('location','')}\n\n")

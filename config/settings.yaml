@@ -5,7 +5,7 @@ retries: 2                   # network retries, exponential backoff
 respect_robots: true         # robots.txt check for company-site (discovery) rungs
 runtime_budget_min: 30       # per-batch wall-clock budget
 max_companies: 300           # hard cap
-ats_max_pages: 25            # pagination cap for Workday/SmartRecruiters (logged if hit)
+ats_max_pages: 40            # pagination cap for Workday/Oracle (20 rows/page on Workday; logged if hit)
 user_agent: "JobRadar/1.0 (+https://github.com/ssarunic/job-radar; self-hosted job search)"  # add YOUR contact here — sites appreciate it
 headless: true               # Playwright headless mode
 stealth: true                # playwright-stealth: defeats Cloudflare even headless
