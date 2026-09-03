@@ -5,7 +5,7 @@ beautifulsoup4>=4.15.0
 lxml>=6.1.2
 markdownify>=1.2.3    # HTML job descriptions -> Markdown
 curl-cffi>=0.15.0       # browser-TLS impersonation -> Cloudflare bypass without a browser
-anthropic>=0.120.0
+anthropic>=1.2.0
 python-dateutil>=2.9.0.post0
 mcp>=1.28.1,<2          # JobRadar MCP server (webapp/backend/mcp_app.py);
                         # mcp 2.0 drops mcp.server.fastmcp — cap until we migrate
