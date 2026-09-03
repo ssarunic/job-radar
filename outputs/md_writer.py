@@ -37,14 +37,21 @@ def _requirements_redundant(description: str, requirements: str) -> bool:
     return matched / len(req) >= 0.8
 
 
+# Frontmatter = an opening "---" line, YAML, then the first LINE that is exactly
+# "---". Delimiters are matched at line starts only: a literal split on "---" cut
+# the block at the first "---" inside a value — Workday job URLs carry the title
+# as a slug ("Product-Manager---Director_JR-…"), so every field after job_ad_url
+# (source, first_seen, status, …) was silently dropped for those roles.
+_FRONTMATTER_RX = re.compile(r"\A---[ \t]*\r?\n(.*?)^---[ \t]*\r?$\n?", re.S | re.M)
+
+
 def parse_md(path: Path) -> tuple[dict, str]:
     """Return (frontmatter_dict, body_str)."""
     text = path.read_text(encoding="utf-8")
-    if text.startswith("---"):
-        parts = text.split("---", 2)
-        if len(parts) >= 3:
-            fm = yaml.safe_load(parts[1]) or {}
-            return fm, parts[2].lstrip("\n")
+    m = _FRONTMATTER_RX.match(text)
+    if m:
+        fm = yaml.safe_load(m.group(1)) or {}
+        return fm, text[m.end():].lstrip("\n")
     return {}, text
 
 

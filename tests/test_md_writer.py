@@ -123,3 +123,24 @@ def test_update_frontmatter_preserves_body(tmp_path):
     assert fm["status"] == "closed"
     assert "desc body" in body
     assert "my note here" in body
+
+
+def test_frontmatter_survives_triple_dash_inside_values(tmp_path):
+    # Workday builds URL slugs from titles: "Product Manager - Director" becomes
+    # "Product-Manager---Director". A literal split on "---" ended the frontmatter
+    # at that URL, dropping status/first_seen — the role vanished from every "open"
+    # view and was re-"added" on each run (Barclays + Worldpay, 2026-09-03).
+    fm_in = {**FM, "first_seen": "2026-09-03",
+             "job_ad_url": "https://b.wd3.myworkdayjobs.com/site/job/Canary-Wharf/"
+                           "Product-Manager---Director_JR-0000122550"}
+    path = md_writer.write_posting(tmp_path, "barclays", "product-manager-director",
+                                   "b1b198f1", fm_in, "Intro.\n\n---\n\nAfter a rule.", "", "")
+    fm, body = md_writer.parse_md(path)
+    assert fm["job_ad_url"].endswith("Product-Manager---Director_JR-0000122550")
+    assert fm["status"] == "open" and fm["first_seen"] == "2026-09-03"
+    assert "After a rule." in body and "## My notes" in body
+    # user-field updates must round-trip the full frontmatter too
+    md_writer.update_user_fields(path, status="applied", notes="sent CV")
+    fm2, _ = md_writer.parse_md(path)
+    assert fm2["status"] == "applied" and fm2["first_seen"] == "2026-09-03"
+    assert fm2["job_ad_url"] == fm_in["job_ad_url"]
