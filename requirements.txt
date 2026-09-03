@@ -7,8 +7,8 @@ markdownify>=1.2.3    # HTML job descriptions -> Markdown
 curl-cffi>=0.16.2       # browser-TLS impersonation -> Cloudflare bypass without a browser
 anthropic>=1.2.0
 python-dateutil>=2.9.0.post0
-mcp>=1.28.1,<2          # JobRadar MCP server (webapp/backend/mcp_app.py);
-                        # mcp 2.0 drops mcp.server.fastmcp — cap until we migrate
+mcp>=2.1.1,<3           # JobRadar MCP server (webapp/backend/mcp_app.py) — v2 API
+                        # (mcp.server.mcpserver.MCPServer); v1's FastMCP import is gone
 
 # optional — only for `custom` sites needing a real browser; NOT installed by default
 # (keeps the deploy/Pi image browser-free). The ladder falls back to static HTML
