@@ -32,16 +32,41 @@ from typing import Optional
 # non-PM role, while "Head of Product Marketing" is still caught by exclude_titles.
 _QUAL = r"(?:[\w&/'’-]+\s+){0,4}"
 
+# Corporate-grade titles (product-spec §11): banks and large enterprises name the
+# function and the internal grade as two segments, in either order — "Product
+# Manager - Director", "Product Owner, Vice President", "Director - Product
+# Manager". The grade carries the seniority, so these rank on it; without this
+# they fall through to bare "Product Manager" (rank 2) and are dropped below
+# seniority_min. Brackets are blanked before matching, so a bare space is also a
+# valid separator ("Product Manager (Director)", "Product Management Director").
+# AVP / Assistant Vice President is deliberately absent: it has no rung on the
+# product-spec ladder, so those titles keep their function-based rank.
+_GRADE_SEP = r"(?:\s*[-–—,|:]\s*|\s+)"
+_PM_ROLE = r"product (?:manager|management|owner|lead|leader)"
+_VP_GRADE = r"(?:senior |executive )?vice president|svp|evp|vp"
+_DIR_GRADE = r"(?:managing |executive )?director"
+
+
+def _graded(grade: str) -> str:
+    """`<pm role><sep><grade>` or `<grade><sep><pm role>`. The two must be
+    adjacent, so a grade attached to another function doesn't leak across
+    ("Director of Engineering, Product Manager" is not a Director product role)."""
+    return (rf"\b{_PM_ROLE}\b{_GRADE_SEP}(?:{grade})\b"
+            rf"|\b(?:{grade}){_GRADE_SEP}{_PM_ROLE}\b")
+
+
 # (regex, normalised title, seniority level, rank) — ordered by priority (product-spec §11.3).
 # Order matters: first match wins, so seniority descends and Principal precedes Group.
 PATTERNS = [
     (r"\b(cpo|chief product officer)\b", "Chief Product Officer", "C Level", 9),
     (rf"\b(?:svp|vp|vice president)\b,?\s+(?:of\s+)?{_QUAL}product\b"
      r"|\b(?:svp|vp|vice president)\b.*\bproduct (?:lead|leader)\b"
-     r"|\bproduct (?:lead|leader)\b.*\b(?:svp|vp|vice president)\b", "VP Product", "VP", 8),
+     r"|\bproduct (?:lead|leader)\b.*\b(?:svp|vp|vice president)\b"
+     rf"|{_graded(_VP_GRADE)}", "VP Product", "VP", 8),
     (rf"\bdirector of {_QUAL}product\b|\bproduct director\b"
      rf"|\bdirector\b,?\s+{_QUAL}product management\b"
-     r"|\bdirector\b.*\bproduct (?:lead|leader)\b|\bproduct (?:lead|leader)\b.*\bdirector\b",
+     r"|\bdirector\b.*\bproduct (?:lead|leader)\b|\bproduct (?:lead|leader)\b.*\bdirector\b"
+     rf"|{_graded(_DIR_GRADE)}",
      "Director of Product", "Director", 7),
     (rf"\bhead of {_QUAL}product\b|\bhead\b,?\s+{_QUAL}product\b",
      "Head of Product", "Head", 6),

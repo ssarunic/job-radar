@@ -152,6 +152,39 @@ def test_marketing_alone_still_excluded():
     assert not classify("Brand Manager", PROFILE).kept
 
 
+# --- corporate-grade titles (bank/enterprise "<function> - <grade>") ------------------
+
+@pytest.mark.parametrize("title,rank,norm", [
+    # real Barclays case: the grade is the seniority signal, not "Product Manager"
+    ("Product Manager - Director", 7, "Director of Product"),
+    ("Product Manager – Vice President", 8, "VP Product"),          # en dash
+    ("Product Manager, VP", 8, "VP Product"),
+    ("Product Manager: Vice President", 8, "VP Product"),
+    ("Product Manager (Director)", 7, "Director of Product"),       # brackets -> space
+    ("Product Owner - Vice President", 8, "VP Product"),
+    ("Digital Product Manager - Director", 7, "Director of Product"),
+    ("Product Manager - Managing Director", 7, "Director of Product"),
+    ("Product Management Director", 7, "Director of Product"),
+    ("Director, Product Manager", 7, "Director of Product"),        # grade first
+    ("Director - Product Owner", 7, "Director of Product"),
+])
+def test_corporate_grade_titles(title, rank, norm):
+    c = classify(title, PROFILE)
+    assert (c.rank, c.normalised, c.kept) == (rank, norm, True)
+
+
+@pytest.mark.parametrize("title,norm", [
+    # a grade attached to another function must not leak onto the PM segment
+    ("Director of Engineering, Product Manager", "Product Manager"),
+    ("Product Manager - Directory Services", "Product Manager"),
+    # AVP has no rung on the ladder: ranks on the function, so still below the floor
+    ("Product Manager - AVP", "Product Manager"),
+])
+def test_grade_does_not_leak(title, norm):
+    c = classify(title, PROFILE)
+    assert c.normalised == norm and c.rank == 2 and c.kept is False
+
+
 # --- AI / Innovation leadership family (product-spec §11.9) ---------------------------
 
 @pytest.mark.parametrize("title,rank,norm", [
