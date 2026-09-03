@@ -61,3 +61,7 @@ in the [configuration guide](docs/configuration.md).
 
 Personal project, actively used and maintained. Forks welcome; this repo does
 not accept external contributions.
+
+## License
+
+[MIT](LICENSE) — copyright (c) 2026 Saša Šarunić.
