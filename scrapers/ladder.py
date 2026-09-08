@@ -9,7 +9,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 
 from scrapers import static_scraper
-from scrapers.ats import ashby, greenhouse, lever, revolut_people, smartrecruiters
+from scrapers.ats import ashby, greenhouse, lever, revolut_people, smartrecruiters, workable
 from scrapers.ats.cvmail import CvMailFetcher
 from scrapers.ats.oracle import OracleFetcher
 from scrapers.ats.recruitee import RecruiteeFetcher
@@ -19,7 +19,8 @@ from scrapers.playwright_scraper import PlaywrightSession
 from scrapers.result import BLOCKED, EMPTY, ERROR, OK, ListingResult
 
 _API_MODULES = {"greenhouse": greenhouse, "ashby": ashby,
-                "lever": lever, "smartrecruiters": smartrecruiters}
+                "lever": lever, "smartrecruiters": smartrecruiters,
+                "workable": workable}
 
 
 def detect_ats(company: dict, http) -> str:
@@ -30,7 +31,8 @@ def detect_ats(company: dict, http) -> str:
                ("myworkdayjobs", "workday"), ("revolutpeople", "revolutpeople"),
                ("revolut.com/careers", "revolutpeople"),
                ("talemetry", "talemetry"), ("oraclecloud", "oracle"),
-               ("recruitee", "recruitee"), ("cvmail", "cvmail"))
+               ("recruitee", "recruitee"), ("cvmail", "cvmail"),
+               ("workable.com", "workable"))
     low = url.lower()
     for needle, ats in markers:
         if needle in low:

@@ -5,7 +5,7 @@ from services import discovery
 
 
 class FakeHttp:
-    """get_json returns canned data per URL substring, else raises 404."""
+    """get_json/post_json return canned data per URL substring, else raise 404."""
     def __init__(self, mapping):
         self.mapping = mapping
 
@@ -16,6 +16,8 @@ class FakeHttp:
         e = HTTPError("404")
         e.response = None
         raise e
+
+    post_json = get_json
 
 
 class _Resp:
@@ -110,4 +112,17 @@ def test_from_name_no_match_returns_none():
 def test_smartrecruiters_requires_postings():
     # SR returns 200 with totalFound 0 for unknown companies -> must NOT match
     http = FakeHttp({"smartrecruiters.com/v1/companies/ghost": {"totalFound": 0}})
+    assert discovery.discover("ghost", http) is None
+
+
+def test_from_name_probes_workable_last():
+    http = FakeHttp({"workable.com/api/v3/accounts/cloudtalk/jobs": {"total": 7, "results": []}})
+    d = discovery.discover("CloudTalk", http)
+    assert d["ats_type"] == "workable" and d["ats_slug"] == "cloudtalk"
+    assert d["careers_url"] == "https://apply.workable.com/cloudtalk/"
+
+
+def test_workable_requires_postings():
+    # Workable 200s some dormant accounts with total 0 -> must NOT match
+    http = FakeHttp({"workable.com/api/v3/accounts/ghost/jobs": {"total": 0, "results": []}})
     assert discovery.discover("ghost", http) is None

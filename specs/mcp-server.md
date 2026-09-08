@@ -94,9 +94,10 @@ searches the web.
 | `follow_company` | `ats_url, name?, scan=true` | appends to the registry; `scan=true` runs a **scoped one-company seek** (Slack suppressed, failure non-fatal — same semantics as web `POST /api/companies`) so roles are queryable immediately; the return includes the `open_roles` count the scan kept (0 = board live, no senior-PM matches — not a failure). Unrecognised ATS / already-active → `{"error": …}`; a previously-unfollowed company is **re-activated** instead of erroring | `discovery` + `registry.add_company` + `run_service.seek_run` |
 | `unfollow_company` | `slug` | sets `active=false` (data kept, daily scrape skips it); unknown slug → `{"error": …}` | `registry.set_active` |
 
-Accepted `ats_url` forms: the seven adapter boards (`(job-)boards.greenhouse.io/<slug>`,
+Accepted `ats_url` forms: the adapter boards (`(job-)boards.greenhouse.io/<slug>`,
 `jobs.ashbyhq.com/<slug>`, `jobs.lever.co/<slug>`, `jobs.smartrecruiters.com/<Company>`,
-`<tenant>.myworkdayjobs.com/<site>`, Oracle `…oraclecloud.com…`, `<slug>.recruitee.com`)
+`<tenant>.myworkdayjobs.com/<site>`, Oracle `…oraclecloud.com…`, `<slug>.recruitee.com`,
+`apply.workable.com/<slug>/…`)
 plus careers pages that embed a detectable ATS (Talemetry/Workday/Recruitee body probe).
 Anything resolving to `custom` is rejected with an error that tells the model what to
 pass instead. Because discovery body-probes unrecognised hosts with a real GET, the
