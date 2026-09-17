@@ -55,16 +55,26 @@ def _graded(grade: str) -> str:
             rf"|\b(?:{grade}){_GRADE_SEP}{_PM_ROLE}\b")
 
 
+# Conjoined C-suite titles (product-spec §11.10): scale-ups and mid-size orgs often
+# merge product with technology/engineering at C level — "Chief Product and Technology
+# Officer", "Chief Product & Engineering Officer", CPTO. Product must be one of the
+# named domains, so a bare "Chief Technology Officer" is still not a product role.
+_C_SEP = r"\s*(?:&|/|,|\band\b)\s*"
+_C_DOM = r"(?:product|technology|tech|engineering|digital|data|innovation|operating)"
+_CHIEF_PRODUCT = (rf"\bchief\s+(?:{_C_DOM}{_C_SEP})*product(?:{_C_SEP}{_C_DOM})*\s+officer\b"
+                  r"|\b(?:cpto|ctpo)\b")
+
 # (regex, normalised title, seniority level, rank) — ordered by priority (product-spec §11.3).
 # Order matters: first match wins, so seniority descends and Principal precedes Group.
 PATTERNS = [
     (r"\b(cpo|chief product officer)\b", "Chief Product Officer", "C Level", 9),
+    (_CHIEF_PRODUCT, "Chief Product & Technology Officer", "C Level", 9),
     (rf"\b(?:svp|vp|vice president)\b,?\s+(?:of\s+)?{_QUAL}product\b"
      r"|\b(?:svp|vp|vice president)\b.*\bproduct (?:lead|leader)\b"
      r"|\bproduct (?:lead|leader)\b.*\b(?:svp|vp|vice president)\b"
      rf"|{_graded(_VP_GRADE)}", "VP Product", "VP", 8),
     (rf"\bdirector of {_QUAL}product\b|\bproduct director\b"
-     rf"|\bdirector\b,?\s+{_QUAL}product management\b"
+     rf"|\bdirector\b,?\s+{_QUAL}product\b"
      r"|\bdirector\b.*\bproduct (?:lead|leader)\b|\bproduct (?:lead|leader)\b.*\bdirector\b"
      rf"|{_graded(_DIR_GRADE)}",
      "Director of Product", "Director", 7),
