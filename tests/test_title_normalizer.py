@@ -222,6 +222,48 @@ def test_grade_from_body(body, expected):
     assert grade_from_body(body) == expected
 
 
+# --- combined product + engineering titles (product-spec §11.10) ----------------------
+
+@pytest.mark.parametrize("title,rank,norm", [
+    # conjoined C-suite: product merged with technology/engineering at C level
+    ("Chief Product and Technology Officer", 9, "Chief Product & Technology Officer"),
+    ("Chief Product & Technology Officer", 9, "Chief Product & Technology Officer"),
+    ("Chief Technology and Product Officer", 9, "Chief Product & Technology Officer"),
+    ("Chief Product & Engineering Officer", 9, "Chief Product & Technology Officer"),
+    ("Chief Digital and Product Officer", 9, "Chief Product & Technology Officer"),
+    ("Chief Product, Technology & Data Officer", 9, "Chief Product & Technology Officer"),
+    ("CPTO", 9, "Chief Product & Technology Officer"),
+    ("CTPO", 9, "Chief Product & Technology Officer"),
+    # the rest of the ladder already bridges "product & engineering" via _QUAL
+    ("VP, Product & Engineering Coda & FP&A", 8, "VP Product"),   # real Unit4 case
+    ("VP Engineering & Product", 8, "VP Product"),
+    ("Director of Product and Engineering", 7, "Director of Product"),
+    ("Director, Product & Technology", 7, "Director of Product"),  # comma form, was missed
+    ("Head of Product & Engineering", 6, "Head of Product"),
+    ("Head of Engineering and Product", 6, "Head of Product"),
+])
+def test_product_engineering_titles_kept(title, rank, norm):
+    c = classify(title, PROFILE)
+    assert (c.rank, c.normalised, c.kept) == (rank, norm, True)
+
+
+@pytest.mark.parametrize("title", [
+    # engineering/other C-suite without product is still not a product role
+    "Chief Technology Officer",
+    "CTO",
+    "Chief Information Officer",
+    "Chief Data Officer",
+    "Chief Operating Officer",
+    "Chief People Officer",
+    "VP Engineering",
+    "Head of Engineering",
+    "Director of Engineering",
+])
+def test_engineering_only_titles_dropped(title):
+    c = classify(title, PROFILE)
+    assert c.kept is False and c.reason == "not a product role"
+
+
 # --- AI / Innovation leadership family (product-spec §11.9) ---------------------------
 
 @pytest.mark.parametrize("title,rank,norm", [
