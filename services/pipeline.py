@@ -12,7 +12,7 @@ from dateutil import parser as date_parser
 
 from models.job_posting import JobPosting, Salary
 from services import location_filter, salary_parser
-from services.title_normalizer import classify
+from services.title_normalizer import classify, grade_from_body
 
 
 def normalize_date(val) -> str | None:
@@ -65,6 +65,15 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
     # The cutoff only guards discovery rungs (playwright/static), where a stale
     # page can render long-filled roles.
     live = getattr(fetcher, "live_listing", False)
+    # Bank ads can carry the grade only in the body ("Senior Product & Proposition
+    # Manager" + "Vice President Expectations" — Barclays). Adapters that flag
+    # grades_in_body get PM titles dropped *only by the seniority floor* kept
+    # provisionally through Stage A; Stage C re-ranks every role on the detail
+    # text and drops the provisional ones still below the floor. They rank last,
+    # so they cost a detail fetch only when better-ranked roles haven't met the cap.
+    grades_in_body = getattr(fetcher, "grades_in_body", False)
+    seniority_min = profile.get("seniority_min", 3)
+    provisional: set[str] = set()
 
     # Detail fetches are the only real cost, so both the Stage C detail loop and the
     # Stage A location lookups below are bounded by one explicit, logged cap.
@@ -75,7 +84,8 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
     resolves = 0
     for raw in raw_listing:
         cls = classify(raw.get("title", ""), profile)
-        if not cls.kept:
+        below_floor = not cls.kept and cls.reason.startswith("rank ")
+        if not cls.kept and not (grades_in_body and below_floor):
             continue
         posted = normalize_date(raw.get("posted_date"))
         # recency uses freshness (last-updated) when available: an evergreen role
@@ -116,6 +126,8 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
             source_type=raw.get("source_type", ""),
             source_detail=raw.get("source_detail", ""),
         )
+        if not cls.kept:
+            provisional.add(jp.id)
         candidates.append((jp, raw))
 
     # --- Stage B: dedup, rank, per-company cap (before detail fetch) ----------
@@ -152,6 +164,15 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
             details += 1
             if not jp.posted_date:
                 jp.posted_date = normalize_date(_find_date(body))
+
+        # body-stated grade lifts the title rank (product-spec §11.7); a
+        # provisional role that still sits below the floor is dropped here
+        if grades_in_body:
+            graded = grade_from_body(body)
+            if graded and graded[2] > jp.seniority_rank:
+                jp.title_normalised, jp.seniority_level, jp.seniority_rank = graded
+            if jp.id in provisional and jp.seniority_rank < seniority_min:
+                continue
 
         # final recency, now that detail may have supplied a real date (#2)
         fresh = normalize_date(raw.get("freshness_date")) or jp.posted_date
