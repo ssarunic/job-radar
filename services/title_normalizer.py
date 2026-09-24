@@ -107,6 +107,35 @@ AI_PATTERNS = [
 ]
 
 
+# UK-bank job-family aliases (product-spec §11.7): the PM role under a
+# "proposition" label — "Senior Product & Proposition Manager", "Loans Product and
+# Proposition Manager", "Lead Segment and Propositions Manager" (Barclays). Rewritten
+# to the plain PM form before matching so every pattern above applies unchanged
+# (grades, senior, exclusions). Product-pack only.
+_ALIASES = [
+    (re.compile(r"\bproduct (?:&|and) propositions?\b"), "product"),
+    (re.compile(r"\bpropositions? manager\b"), "product manager"),
+]
+
+# Body-stated grades (product-spec §11.7). Barclays' Workday template carries a
+# fixed "<grade> Expectations" section ("Vice President Expectations", "Director
+# Expectations") while the title is the bare job family. Same rungs as the
+# corporate-grade title rule: VP 8, Director/MD 7; AVP has no rung -> None.
+_BODY_GRADE_RX = re.compile(
+    r"(?<!assistant )\b(managing director|director|(?:senior |executive )?vice president)"
+    r"\s+expectations\b")
+
+
+def grade_from_body(body: str) -> Optional[tuple[str, str, int]]:
+    """(normalised, level, rank) for a grade stated in the ad body, or None."""
+    m = _BODY_GRADE_RX.search((body or "").lower())
+    if not m:
+        return None
+    if "director" in m.group(1):
+        return ("Director of Product", "Director", 7)
+    return ("VP Product", "VP", 8)
+
+
 @dataclass
 class Classification:
     normalised: str
@@ -160,6 +189,9 @@ def classify(raw_title: str, profile: dict) -> Classification:
     seniority_min = profile.get("seniority_min", 3)
     include_po = profile.get("include_product_owner", True)
     patterns, is_product_pack = _profile_patterns(profile)
+    if is_product_pack:
+        for rx, rep in _ALIASES:
+            t = rx.sub(rep, t)
 
     # product-spec §11.5-6 — exclusions (marketing/brand/HR/talent/design-only/etc.).
     # Match at a word boundary so short terms don't hit substrings

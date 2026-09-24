@@ -1,7 +1,7 @@
 """Title classification + seniority ranking (product-spec §11)."""
 import pytest
 
-from services.title_normalizer import classify
+from services.title_normalizer import classify, grade_from_body
 
 PROFILE = {
     "exclude_titles": ["marketing", "growth marketing", "brand", "design",
@@ -183,6 +183,43 @@ def test_corporate_grade_titles(title, rank, norm):
 def test_grade_does_not_leak(title, norm):
     c = classify(title, PROFILE)
     assert c.normalised == norm and c.rank == 2 and c.kept is False
+
+
+# --- UK-bank "Product & Proposition" job family (Barclays) ---------------------------
+
+@pytest.mark.parametrize("title,rank,norm,kept", [
+    ("Senior Product & Proposition Manager", 3, "Senior Product Manager", True),
+    ("Senior Product and Proposition Manager", 3, "Senior Product Manager", True),
+    ("Product & Proposition Manager - Director", 7, "Director of Product", True),
+    ("Lead Segment and Propositions Manager", 2, "Product Manager", False),   # "Lead" is not a rung
+    ("Loans Product and Proposition Manager", 2, "Product Manager", False),
+    ("Product and Proposition Manager - Payables", 2, "Product Manager", False),
+])
+def test_proposition_manager_alias(title, rank, norm, kept):
+    c = classify(title, PROFILE)
+    assert (c.rank, c.normalised, c.kept) == (rank, norm, kept)
+
+
+def test_proposition_alias_keeps_exclusions():
+    assert classify("Propositions Marketing Manager", PROFILE).kept is False
+
+
+def test_proposition_alias_is_product_pack_only():
+    assert classify("Senior Product & Proposition Manager", DESIGN_PROFILE).kept is False
+
+
+@pytest.mark.parametrize("body,expected", [
+    ("…\nVice President Expectations\nTo contribute or set strategy…", ("VP Product", "VP", 8)),
+    ("Senior Vice President Expectations", ("VP Product", "VP", 8)),
+    ("Director Expectations\nProvide expert advice…", ("Director of Product", "Director", 7)),
+    ("Managing Director Expectations", ("Director of Product", "Director", 7)),
+    ("Assistant Vice President Expectations", None),      # AVP has no rung
+    ("Analyst Expectations", None),
+    ("We have high expectations of our Directors.", None),   # not the template phrase
+    ("", None),
+])
+def test_grade_from_body(body, expected):
+    assert grade_from_body(body) == expected
 
 
 # --- AI / Innovation leadership family (product-spec §11.9) ---------------------------

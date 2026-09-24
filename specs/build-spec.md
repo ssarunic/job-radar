@@ -532,7 +532,7 @@ context-aware (rejects "learning budget £1,000", age "16-17"); US-remote roles
 (e.g. "San Francisco; Remote") correctly rejected; Wise "London / United Kingdom"
 collapsed to one row; lifecycle (open→suspected_filled→closed) and
 notes/`applied` preservation confirmed. NatWest returns 0 — genuinely no senior
-PM roles open. Workday paginates 40 pages max = 800 rows at its 20/page cap (logged); raise `ats_max_pages` for more. The listing is newest-first, so a cap only ever drops the oldest rows. The UK facet is applied only when the tenant exposes a country-level value; site-only trees (Barclays) page unfiltered, and rows whose listing location the filter can't judge ('2 Locations', street-address sites) are resolved from the detail record via the adapter's `resolve_location()` hook, for title-passing rows only.
+PM roles open. Workday paginates 40 pages max = 800 rows at its 20/page cap (logged); raise `ats_max_pages` for more. The listing is newest-first, so a cap only ever drops the oldest rows. The UK facet is applied only when the tenant exposes a country-level value; site-only trees (Barclays) page unfiltered, and rows whose listing location the filter can't judge ('2 Locations', street-address sites) are resolved from the detail record via the adapter's `resolve_location()` hook, for title-passing rows only. The adapter also sets `grades_in_body = True`: bank templates state the grade in the body ("Vice President Expectations"), so the pipeline re-ranks Workday roles on the detail text (product-spec §11.7).
 
 **Still needs work:** Google (custom careers API), Tessl (no public ATS API found),
 Kraken/Octopus (Lever slug returns 0 — needs correct slug). Marked `active=false`

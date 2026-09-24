@@ -90,6 +90,7 @@ class WorkdayFetcher:
     needs_detail = True
     live_listing = True   # ATS board lists only currently-open roles
     check_robots = False  # documented JSON API
+    grades_in_body = True  # bank templates state the grade in the body ("Director Expectations")
     rung_name = "workday"
 
     def __init__(self, company, http, query="product"):
