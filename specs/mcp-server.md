@@ -26,7 +26,7 @@ project CV — the server has no CV and no fit tool.
 
 ## Goals
 
-1. Claude clients on tailnet devices connect to `http://dalstonserver:8765/mcp` and use
+1. Claude clients on tailnet devices connect to `https://dalstonserver.tail824f04.ts.net:8765/mcp` and use
    read tools over the tracked roles.
 2. Read tools: **list / search jobs**, **get one job's full ad text**, plus light company reads.
 3. Remote **Streamable HTTP** transport, tailnet-only (no public exposure, no auth).
@@ -135,9 +135,12 @@ ruled out; the PR history has the implementation if that decision is ever revisi
 **Invariant: if `/mcp` is ever made publicly reachable, auth must come first.**
 
 ### Exposure — tailnet-only (no Funnel)
-- The whole app (web UI, `/api/*`, `/mcp`) listens on `:8765` and is reachable only from
-  devices on the tailnet. **Tailscale Funnel is deliberately not enabled** — the owner
-  does not want the server exposed on the public internet.
+- The whole app (web UI, `/api/*`, `/mcp`) listens on `127.0.0.1:8765` on the Pi (not
+  the LAN) and is published to the tailnet by **Tailscale Serve**
+  (`tailscale serve --https=8765 http://127.0.0.1:8765`), so it is reachable only from
+  devices on the tailnet, over HTTPS at the full `ts.net` name. **Tailscale Funnel is
+  deliberately not enabled** — the owner does not want the server exposed on the public
+  internet.
 - The SDK's DNS-rebinding guard validates the `Host` header (unknown → 421). Defaults
   allow local + test hosts only; **`JSA_MCP_ALLOWED_HOSTS`** (comma list, `host:*`
   wildcards ports) extends it — `deploy/docker-compose.yml` sets the Pi's tailnet +
@@ -145,7 +148,7 @@ ruled out; the PR history has the implementation if that decision is ever revisi
 
 ### Client setup
 From a device on the tailnet (Claude Code MCP config, or Claude Desktop custom connector):
-URL `http://dalstonserver:8765/mcp` → tools appear. Then ask: *"what senior PM roles are new today?"*,
+URL `https://dalstonserver.tail824f04.ts.net:8765/mcp` → tools appear. Then ask: *"what senior PM roles are new today?"*,
 *"show me the Kraken product roles"*, *"get role <id> and tell me how I fit given my CV"*,
 *"start tracking Attio"* (Claude web-searches for Attio's ATS board, then calls
 `follow_company` with the clean URL).
