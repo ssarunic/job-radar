@@ -9,7 +9,10 @@
 services:
   web:
     image: ghcr.io/ssarunic/job-radar:latest
-    ports: ["8765:8765"]
+    # Loopback only: nothing LAN-facing. The tailnet reaches the app through
+    # `tailscale serve --https=8765 127.0.0.1:8765` on the Pi (tailnet-only TLS,
+    # not Funnel) — see specs/mcp-server.md "Exposure".
+    ports: ["127.0.0.1:8765:8765"]
     environment:
       JSA_ROOT: /data
       # /mcp Host allowlist (the MCP SDK's DNS-rebinding guard 421s unknown Hosts).

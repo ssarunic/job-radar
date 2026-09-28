@@ -2,7 +2,7 @@
 
 > **Status: live.** Running on `dalstonserver` (arm64) since 2026-06-29, currently
 > **v1.1.0**. Daily 08:00 Europe/London scrape → Slack. Reachable on the tailnet at
-> http://dalstonserver.tail824f04.ts.net:8765.
+> https://dalstonserver.tail824f04.ts.net:8765 (Tailscale Serve → 127.0.0.1:8765).
 
 Trunk-based + tag-to-release + GHCR image + push-based (GitHub Actions over
 Tailscale SSH) deploy. Defers to `constitution.md` for principles; this is the
@@ -86,7 +86,7 @@ mkdir -p ~/job-radar && cd ~/job-radar
 # 3. Secrets/config — create .env (NOT in git)
 cat > .env <<'EOF'
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/XXX/YYY/ZZZ
-WEB_BASE_URL=http://dalstonserver.tail824f04.ts.net:8765
+WEB_BASE_URL=https://dalstonserver.tail824f04.ts.net:8765
 ANTHROPIC_API_KEY=
 EOF
 
@@ -94,9 +94,14 @@ EOF
 #    blast for the initial ~20 existing roles), then bring everything up.
 docker compose run --rm web seek
 docker compose --profile scheduler up -d        # web + daily scraper
+
+# 5. Publish to the tailnet (once). The container binds 127.0.0.1 only; Serve
+#    (not Funnel) adds a tailnet-only HTTPS listener in front of it.
+tailscale serve --bg --https=8765 http://127.0.0.1:8765
+tailscale serve status                          # must NOT say "Funnel on" for :8765
 ```
 
-Reachable on the tailnet at **http://dalstonserver.tail824f04.ts.net:8765**.
+Reachable on the tailnet at **https://dalstonserver.tail824f04.ts.net:8765**.
 The scheduler runs `seek` **daily at 08:00 Europe/London** (override with
 `SEEK_AT=HH:MM` / `SEEK_TZ=Area/City` in `.env`), notifying Slack only on
 genuinely new/reopened roles, each deep-linked to its detail page via `WEB_BASE_URL`.

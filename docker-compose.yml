@@ -23,7 +23,7 @@ services:
     environment:
       JSA_ROOT: /data
       SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}   # secret — never bake into the image
-      WEB_BASE_URL: ${WEB_BASE_URL:-}             # e.g. http://<pi>.<tailnet>.ts.net:8765
+      WEB_BASE_URL: ${WEB_BASE_URL:-}             # e.g. https://<pi>.<tailnet>.ts.net:8765
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}   # only if use_claude is enabled in settings
     volumes:
       - jsa-data:/data

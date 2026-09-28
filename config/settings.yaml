@@ -20,7 +20,7 @@ notify:
   slack_webhook: ""          # slack: Incoming Webhook URL; reads $SLACK_WEBHOOK_URL if blank
 
 # Web app base URL — used for deep links in Slack notifications (role title -> /jobs/<id>).
-# e.g. http://<pi-host>.<tailnet>.ts.net:8765  (leave blank to link to the external posting)
+# e.g. https://<pi-host>.<tailnet>.ts.net:8765  (leave blank to link to the external posting)
 web_base_url: ""
 
 # Claude API: read from env ANTHROPIC_API_KEY if blank. Used only for fuzzy parsing.
