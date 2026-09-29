@@ -22,13 +22,13 @@ launchctl start com.jobsearch.seek                                # run once now
 Default: daily at 08:00. Edit `StartCalendarInterval` in the plist to change it.
 Logs: `data/runs/cron.log` (run output) and `data/runs/launchd.{out,err}.log`.
 
-> The plist uses absolute paths for this repo. If you move the repo, update the
-> three paths inside it.
+> The plist needs absolute paths: replace `/ABSOLUTE/PATH/TO/job-radar` with your
+> checkout location (three occurrences) before loading it.
 
 ## Linux / cron alternative
 
 ```cron
-0 8 * * *  /Users/sasasarunic/_Sources/job-search-assistant/scripts/run_seek.sh
+0 8 * * *  /ABSOLUTE/PATH/TO/job-radar/scripts/run_seek.sh
 ```
 
 ## Notifications
@@ -39,7 +39,7 @@ Set in `config/settings.yaml`:
 notify:
   enabled: true
   provider: ntfy
-  ntfy_topic: "ssarunic-pm-roles-7x2k9"   # any hard-to-guess string
+  ntfy_topic: "jobradar-roles-q7x2k9"   # any hard-to-guess string
 ```
 
 Install the **ntfy** app (iOS/Android) and subscribe to the same topic. Each run

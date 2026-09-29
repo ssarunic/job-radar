@@ -1,8 +1,8 @@
 # Deploy — CI/CD to the Raspberry Pi
 
-> **Status: live.** Running on `dalstonserver` (arm64) since 2026-06-29, currently
+> **Status: live.** Running on a Raspberry Pi (arm64) since 2026-06-29, currently
 > **v1.1.0**. Daily 08:00 Europe/London scrape → Slack. Reachable on the tailnet at
-> https://dalstonserver.tail824f04.ts.net:8765 (Tailscale Serve → 127.0.0.1:8765).
+> `https://<pi-host>.<tailnet>.ts.net:8765` (Tailscale Serve → 127.0.0.1:8765).
 
 Trunk-based + tag-to-release + GHCR image + push-based (GitHub Actions over
 Tailscale SSH) deploy. Defers to `constitution.md` for principles; this is the
@@ -50,10 +50,10 @@ Actions). Once set, every `vX.Y.Z` tag auto-deploys to the Pi.
 1. **Tailscale OAuth client** — at <https://login.tailscale.com/admin/settings/oauth>,
    create a client with the **`devices:write`** scope (the GitHub Action joins an
    ephemeral, tagged node). Add the tag `tag:ci` to your tailnet ACL and grant it
-   SSH/`:22` access to `dalstonserver`, e.g.:
+   SSH/`:22` access to the Pi (`<pi-host>` below), e.g.:
    ```jsonc
    "tagOwners": { "tag:ci": ["autogroup:admin"] },
-   "acls": [ { "action": "accept", "src": ["tag:ci"], "dst": ["dalstonserver:22"] } ]
+   "acls": [ { "action": "accept", "src": ["tag:ci"], "dst": ["<pi-host>:22"] } ]
    ```
    Store the client id/secret as `TS_OAUTH_CLIENT_ID` / `TS_OAUTH_SECRET`.
 
@@ -68,8 +68,8 @@ Actions). Once set, every `vX.Y.Z` tag auto-deploys to the Pi.
    rm deploy_key deploy_key.pub
    ```
 
-If MagicDNS resolution flakes on the runner, replace `dalstonserver` in the
-`deploy` job with the Pi's stable tailnet IP (`100.64.162.62`).
+If MagicDNS resolution flakes on the runner, replace the hostname in the
+`DEPLOY_TARGET` variable with the Pi's stable tailnet IP (`100.x.y.z`).
 
 ## One-time Pi setup (the `DEPLOY_TARGET` box)
 
@@ -77,7 +77,7 @@ Docker + Compose + Tailscale are already installed. Then:
 
 ```bash
 # 1. Auth to GHCR (PAT with read:packages scope; create at github.com/settings/tokens)
-echo "$GHCR_PAT" | docker login ghcr.io -u ssarunic --password-stdin
+echo "$GHCR_PAT" | docker login ghcr.io -u <github-user> --password-stdin
 
 # 2. Project dir + compose
 mkdir -p ~/job-radar && cd ~/job-radar
@@ -86,7 +86,8 @@ mkdir -p ~/job-radar && cd ~/job-radar
 # 3. Secrets/config — create .env (NOT in git)
 cat > .env <<'EOF'
 SLACK_WEBHOOK_URL=https://hooks.slack.com/services/XXX/YYY/ZZZ
-WEB_BASE_URL=https://dalstonserver.tail824f04.ts.net:8765
+WEB_BASE_URL=https://<pi-host>.<tailnet>.ts.net:8765
+JSA_MCP_ALLOWED_HOSTS=<pi-host>:*,<pi-host>.<tailnet>.ts.net:*,<pi-host>.<tailnet>.ts.net
 ANTHROPIC_API_KEY=
 EOF
 
@@ -101,7 +102,7 @@ tailscale serve --bg --https=8765 http://127.0.0.1:8765
 tailscale serve status                          # must NOT say "Funnel on" for :8765
 ```
 
-Reachable on the tailnet at **https://dalstonserver.tail824f04.ts.net:8765**.
+Reachable on the tailnet at **`https://<pi-host>.<tailnet>.ts.net:8765`**.
 The scheduler runs `seek` **daily at 08:00 Europe/London** (override with
 `SEEK_AT=HH:MM` / `SEEK_TZ=Area/City` in `.env`), notifying Slack only on
 genuinely new/reopened roles, each deep-linked to its detail page via `WEB_BASE_URL`.
@@ -109,7 +110,7 @@ genuinely new/reopened roles, each deep-linked to its detail page via `WEB_BASE_
 ## Branch protection (one-time, after the first CI run names the check)
 
 ```bash
-gh api -X PUT repos/ssarunic/job-radar/branches/main/protection \
+gh api -X PUT repos/<owner>/<repo>/branches/main/protection \
   -F required_status_checks='{"strict":true,"contexts":["test"]}' \
   -F enforce_admins=false -F required_pull_request_reviews= -F restrictions=
 ```

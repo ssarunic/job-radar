@@ -5,7 +5,8 @@
 #   docker login ghcr.io                         # one-time (read:packages PAT)
 #   docker compose --profile scheduler up -d     # web + daily scraper
 #
-# Requires a .env next to this file with SLACK_WEBHOOK_URL and WEB_BASE_URL.
+# Requires a .env next to this file with SLACK_WEBHOOK_URL, WEB_BASE_URL and
+# JSA_MCP_ALLOWED_HOSTS (the tailnet names the /mcp endpoint should answer to).
 services:
   web:
     image: ghcr.io/ssarunic/job-radar:latest
@@ -18,7 +19,7 @@ services:
       # /mcp Host allowlist (the MCP SDK's DNS-rebinding guard 421s unknown Hosts).
       # Tailnet name + ts.net name (with and without port, for Funnel later) —
       # see specs/mcp-server.md "Exposure".
-      JSA_MCP_ALLOWED_HOSTS: ${JSA_MCP_ALLOWED_HOSTS:-dalstonserver:*,dalstonserver.tail824f04.ts.net:*,dalstonserver.tail824f04.ts.net}
+      JSA_MCP_ALLOWED_HOSTS: ${JSA_MCP_ALLOWED_HOSTS:-}   # set in .env, e.g. "<pi-host>:*,<pi-host>.<tailnet>.ts.net:*,<pi-host>.<tailnet>.ts.net"
     volumes:
       - jsa-data:/data
     restart: unless-stopped
