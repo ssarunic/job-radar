@@ -13,7 +13,7 @@ you can point it at *your* roles, *your* city, *your* companies.
 
 - **You follow companies** — paste a careers-page URL into the web UI; JobRadar
   auto-detects the ATS (Greenhouse, Ashby, Lever, SmartRecruiters, Workday,
-  Oracle, Recruitee, RevolutPeople, Talemetry, cvMail) and scrapes politely
+  Oracle, Recruitee, Workable, RevolutPeople, Talemetry, cvMail) and scrapes politely
   (public data only, rate-limited, robots.txt honoured — see
   [`specs/constitution.md`](specs/constitution.md)).
 - **A daily scan** filters roles by title, seniority, and location, ranks them,

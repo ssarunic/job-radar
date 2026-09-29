@@ -57,7 +57,7 @@ Google). JobRadar detects the job board behind it and scans it immediately —
 matching roles appear within seconds.
 
 Mainstream job boards work by pasting any careers URL: Greenhouse, Ashby,
-Lever, SmartRecruiters, Workday, Oracle, Recruitee, RevolutPeople. A company
+Lever, SmartRecruiters, Workday, Oracle, Recruitee, Workable, RevolutPeople. A company
 with a fully custom careers site may need a developer — see the
 [FAQ](faq.md).
 

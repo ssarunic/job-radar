@@ -3,7 +3,7 @@
 # fill this file in for you. One row per company.
 #
 # ats_type: greenhouse | ashby | lever | smartrecruiters | workday | oracle |
-#           recruitee | revolutpeople | talemetry | cvmail | custom
+#           recruitee | revolutpeople | talemetry | cvmail | workable | custom
 # priority: high | medium | low   (informational)
 # active:   true | false          (false = unfollowed, kept for history)
 name,slug,careers_url,ats_type,ats_slug,priority,active
@@ -12,3 +12,4 @@ Attio,attio,https://jobs.ashbyhq.com/attio,ashby,attio,medium,true
 Spotify,spotify,https://jobs.lever.co/spotify,lever,spotify,medium,true
 Wise,wise,https://jobs.smartrecruiters.com/Wise,smartrecruiters,Wise,high,true
 Hostaway,hostaway,https://careers.hostaway.com,recruitee,,medium,true
+CloudTalk,cloudtalk,https://apply.workable.com/cloudtalk/,workable,cloudtalk,medium,true

@@ -12,12 +12,14 @@ _GH = "https://boards-api.greenhouse.io/v1/boards/{}/jobs"
 _ASHBY = "https://api.ashbyhq.com/posting-api/job-board/{}"
 _LEVER = "https://api.lever.co/v0/postings/{}?mode=json"
 _SR = "https://api.smartrecruiters.com/v1/companies/{}/postings?limit=1"
+_WK = "https://apply.workable.com/api/v3/accounts/{}/jobs"
 
 CAREERS = {
     "greenhouse": "https://job-boards.greenhouse.io/{}",
     "ashby": "https://jobs.ashbyhq.com/{}",
     "lever": "https://jobs.lever.co/{}",
     "smartrecruiters": "https://jobs.smartrecruiters.com/{}",
+    "workable": "https://apply.workable.com/{}/",
 }
 
 
@@ -46,6 +48,13 @@ def _probe(slug: str, http) -> str | None:
     # SR returns 200 even for unknown companies, so require an actual posting count
     if _try(_SR.format(slug), lambda d: isinstance(d, dict) and (d.get("totalFound") or 0) > 0):
         return "smartrecruiters"
+    # Workable 404s unknown slugs but 200s some dormant accounts with total 0
+    try:
+        d = http.post_json(_WK.format(slug), json={"query": ""})
+        if isinstance(d, dict) and (d.get("total") or 0) > 0:
+            return "workable"
+    except Exception:
+        pass
     return None
 
 
@@ -79,6 +88,12 @@ def _from_url(url: str, http=None) -> dict | None:
         return mk("lever", seg0)
     if "smartrecruiters" in host:
         return mk("smartrecruiters", seg0)
+    if host.endswith("workable.com"):
+        # apply.workable.com/{slug}/j/{code} or the {slug}.workable.com alias
+        sub = host.split(".")[0]
+        slug = seg0 if sub in ("apply", "www", "workable") else sub
+        if slug:
+            return mk("workable", slug)
     if "myworkdayjobs" in host:
         return mk("workday", "", careers=url, name=host.split(".")[0].title())
     if "oraclecloud" in host:   # Oracle ORC — tenant subdomain is the name hint
