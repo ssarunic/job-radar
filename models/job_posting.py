@@ -4,7 +4,7 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass, field
 from typing import Optional
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 
 def _slugify(text: str, maxlen: int = 60) -> str:
@@ -20,14 +20,30 @@ def _slugify(text: str, maxlen: int = 60) -> str:
     return "".join(out).strip("-")[:maxlen].strip("-") or "role"
 
 
+# Query keys that *identify* a posting rather than track a click. Some boards put
+# the job id only in the query (Toast's Greenhouse embed: careers.toasttab.com/
+# jobs?gh_jid=8147296), so dropping the whole query collapses every role on the
+# board onto one id and the dedup silently discards all but the first listed.
+_JOB_ID_QUERY_KEYS = frozenset({
+    "gh_jid", "jid", "jobid", "job_id", "job", "id", "req", "reqid", "req_id",
+    "requisitionid", "requisition_id", "jobreqid", "posting", "postingid",
+    "position", "positionid", "p",
+})
+
+
 def canonical_url(url: str) -> str:
-    """Lowercase host, drop query/fragment, strip trailing slash (SPEC §6.2)."""
+    """Lowercase host, strip trailing slash, drop the fragment and every query
+    param except job-identifying ones (SPEC §6.2). Tracking params (utm_*, ref,
+    gh_src) never mint a new id; a job-id param is part of the identity."""
     if not url:
         return ""
     p = urlsplit(url.strip())
     host = p.netloc.lower()
     path = p.path.rstrip("/")
-    return urlunsplit((p.scheme.lower() or "https", host, path, "", ""))
+    keep = sorted((k.lower(), v) for k, v in parse_qsl(p.query, keep_blank_values=True)
+                  if k.lower() in _JOB_ID_QUERY_KEYS)
+    query = urlencode(keep) if keep else ""
+    return urlunsplit((p.scheme.lower() or "https", host, path, query, ""))
 
 
 @dataclass

@@ -54,6 +54,26 @@ def test_id_ignores_url_query_changes():
     assert a.id == b.id
 
 
+def test_canonical_url_keeps_job_id_query_param():
+    # Toast's Greenhouse embed carries the job id only in the query — two roles on
+    # the same board must not collapse onto one id.
+    a = canonical_url("https://careers.toasttab.com/jobs?gh_jid=8147296")
+    b = canonical_url("https://careers.toasttab.com/jobs?gh_jid=8141220")
+    assert a != b
+    assert a == "https://careers.toasttab.com/jobs?gh_jid=8147296"
+
+
+def test_canonical_url_drops_tracking_but_keeps_job_id():
+    assert canonical_url("https://careers.toasttab.com/jobs?gh_src=abc&gh_jid=1&utm_source=x") == \
+        "https://careers.toasttab.com/jobs?gh_jid=1"
+
+
+def test_id_differs_for_query_identified_jobs():
+    a = _jp(job_ad_url="https://careers.toasttab.com/jobs?gh_jid=8147296")
+    b = _jp(job_ad_url="https://careers.toasttab.com/jobs?gh_jid=8141220")
+    assert a.id != b.id
+
+
 def test_role_slug():
     assert _slugify("Senior PM, Payments! (Remote)") == "senior-pm-payments-remote"
     assert _jp(title_raw="Head of Product").role_slug == "head-of-product"
