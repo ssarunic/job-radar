@@ -26,7 +26,7 @@ project CV — the server has no CV and no fit tool.
 
 ## Goals
 
-1. Claude clients on tailnet devices connect to `https://dalstonserver.tail824f04.ts.net:8765/mcp` and use
+1. Claude clients on tailnet devices connect to `https://<pi-host>.<tailnet>.ts.net:8765/mcp` and use
    read tools over the tracked roles.
 2. Read tools: **list / search jobs**, **get one job's full ad text**, plus light company reads.
 3. Remote **Streamable HTTP** transport, tailnet-only (no public exposure, no auth).
@@ -56,7 +56,7 @@ project CV — the server has no CV and no fit tool.
   the same live store the daily scraper writes.
 - Deploy: `deploy/docker-compose.yml` runs the web service on `:8765`; `.github/workflows/release.yml`
   push-deploys on tag. Mounting `/mcp` into the same app ⇒ same image, same pipeline.
-- Tailscale is already on the Pi (`dalstonserver.tail824f04.ts.net`); the web app is
+- Tailscale is already on the Pi (`<pi-host>.<tailnet>.ts.net`); the web app is
   tailnet-only today. **Funnel** exposes a chosen path publicly over HTTPS with a `ts.net` cert.
 
 ## Design
@@ -148,7 +148,7 @@ ruled out; the PR history has the implementation if that decision is ever revisi
 
 ### Client setup
 From a device on the tailnet (Claude Code MCP config, or Claude Desktop custom connector):
-URL `https://dalstonserver.tail824f04.ts.net:8765/mcp` → tools appear. Then ask: *"what senior PM roles are new today?"*,
+URL `https://<pi-host>.<tailnet>.ts.net:8765/mcp` → tools appear. Then ask: *"what senior PM roles are new today?"*,
 *"show me the Kraken product roles"*, *"get role <id> and tell me how I fit given my CV"*,
 *"start tracking Attio"* (Claude web-searches for Attio's ATS board, then calls
 `follow_company` with the clean URL).

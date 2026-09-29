@@ -6,7 +6,7 @@
   <string>com.jobsearch.seek</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/Users/sasasarunic/_Sources/job-search-assistant/scripts/run_seek.sh</string>
+    <string>/ABSOLUTE/PATH/TO/job-radar/scripts/run_seek.sh</string>
   </array>
   <!-- Run daily at 08:00. launchd also fires a missed run when the Mac wakes. -->
   <key>StartCalendarInterval</key>
@@ -17,8 +17,8 @@
   <key>RunAtLoad</key>
   <false/>
   <key>StandardOutPath</key>
-  <string>/Users/sasasarunic/_Sources/job-search-assistant/data/runs/launchd.out.log</string>
+  <string>/ABSOLUTE/PATH/TO/job-radar/data/runs/launchd.out.log</string>
   <key>StandardErrorPath</key>
-  <string>/Users/sasasarunic/_Sources/job-search-assistant/data/runs/launchd.err.log</string>
+  <string>/ABSOLUTE/PATH/TO/job-radar/data/runs/launchd.err.log</string>
 </dict>
 </plist>
