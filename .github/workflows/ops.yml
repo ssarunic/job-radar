@@ -1,0 +1,34 @@
+name: Ops
+
+# Remote hands for the Pi: dump container status + logs (default), or run a
+# restricted set of read-only diagnostics. Manual-only (workflow_dispatch);
+# uses the same tailnet + SSH secrets as the release deploy job.
+on:
+  workflow_dispatch:
+    inputs:
+      tail:
+        description: "How many log lines per container"
+        default: "200"
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Join the tailnet
+        uses: tailscale/github-action@v4
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+      - name: Container status + logs
+        env:
+          PI_SSH_KEY: ${{ secrets.PI_SSH_KEY }}
+          DEPLOY_TARGET: ${{ vars.DEPLOY_TARGET }}
+          TAIL: ${{ inputs.tail }}
+        run: |
+          : "${DEPLOY_TARGET:?repo variable DEPLOY_TARGET (user@host) is not set}"
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$PI_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=accept-new "$DEPLOY_TARGET" \
+            "cd ~/job-radar && docker compose --profile scheduler ps -a && echo '=== web logs ===' && docker compose logs --tail=${TAIL:-200} web && echo '=== scraper logs ===' && docker compose --profile scheduler logs --tail=${TAIL:-200} scraper"
