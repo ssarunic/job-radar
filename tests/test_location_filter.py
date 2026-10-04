@@ -94,3 +94,24 @@ def test_expand_generic_collapse_uses_profile():
 
 def test_defaults_unchanged_without_location_block():
     assert L.expand("London; New York", {"allow_remote": True}) == ["London"]
+
+
+@pytest.mark.parametrize("raw,expected", [
+    # Hopper (Ashby): every label is "<place> - Remote"; a remote pinned to a
+    # non-UK/Europe place is not region-less and must be dropped.
+    ("US - Remote; New York - Remote; Austin - Remote; Seattle - Remote", []),
+    ("Brazil - Remote; Rio de Janeiro - Remote; São Paulo - Remote", []),
+    ("Ontario - Remote; Toronto - Remote; Vancouver - Remote", []),
+    ("Montréal - Remote", []),
+    ("England - Remote; London - Remote", ["England - Remote", "London - Remote"]),
+    ("Spain - Remote; Madrid - Remote; Barcelona - Remote", ["Spain - Remote"]),
+    ("London; Austin - Remote", ["London"]),
+    ("Remote - Denmark", ["Remote - Denmark"]),              # any EU country, not just the big five
+    ("Poland - Remote OR Romania - Remote", ["Poland - Remote", "Romania - Remote"]),
+    ("Remote - Georgia; Remote - Texas", []),                # US state, not the country
+    ("Fully Remote", ["Fully Remote"]),
+    ("Remote - Anywhere", ["Remote - Anywhere"]),
+    ("Remote (Global)", ["Remote (Global)"]),
+])
+def test_remote_pinned_to_a_place(raw, expected):
+    assert L.expand(raw, PROFILE) == expected

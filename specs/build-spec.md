@@ -324,7 +324,9 @@ Apply, in order, exactly as specified in the product-spec — do not reinvent:
 3. **Employment type** — exclude Contract (product-spec §10).
 4. **Location expansion** — one row per location, max 5; >5 with London ⇒ London + Remote only
    (product-spec §12). Remote accepted only if UK/Europe/EMEA-eligible; a remote label naming a
-   non-eligible region (`Remote (USA)`, `Remote - Canada`, `Remote (APAC)`, …) is rejected (#3).
+   non-eligible region (`Remote (USA)`, `Remote - Canada`, `Remote (APAC)`, …) is rejected (#3), as is a remote pinned to any other
+   place that isn't home or an eligible region (`Austin - Remote`, `São Paulo - Remote`). Only a
+   bare remote label (`Remote`, `Remote - Anywhere`) counts as region-less.
 5. **Salary** — never convert currency; min/max + currency + original text; bonus ⇒ `Base+Bonus`
    (product-spec §13). **Source preference:** ATS-provided *structured* compensation (Ashby
    `summaryComponents`) is authoritative when present, then Claude (if enabled), then the

@@ -23,8 +23,15 @@ import re
 UK_TERMS = ("london", "united kingdom", "england", "scotland", "wales",
             "edinburgh", "manchester")
 US_ONLY = ("us only", "u.s. only", "united states only", "us-based", "usa only")
-EUROPE_TERMS = ("uk", "europe", "emea", "eu ", "ireland", "germany", "france",
-                "spain", "netherlands", "anywhere")
+EUROPE_TERMS = ("uk", "europe", "emea", "eu ", "anywhere",
+                # EU/EEA + Switzerland, so a remote pinned to any of them
+                # ("Remote - Denmark", "Poland - Remote") stays eligible.
+                "austria", "belgium", "bulgaria", "croatia", "cyprus", "czech",
+                "denmark", "estonia", "finland", "france", "germany", "greece",
+                "hungary", "iceland", "ireland", "italy", "latvia", "lithuania",
+                "luxembourg", "malta", "netherlands", "norway", "poland",
+                "portugal", "romania", "slovakia", "slovenia", "spain", "sweden",
+                "switzerland")
 GENERIC_UK = ("united kingdom", "uk", "england", "britain", "great britain")
 
 _DEFAULTS = {
@@ -85,9 +92,27 @@ def _is_remote(loc: str) -> bool:
     return "remote" in l or "anywhere" in l
 
 
+# Words that say *how* a remote role works, not *where* it is. A remote label made
+# only of these ("Remote", "Fully remote - Anywhere", "Remote (Global)") is
+# region-less; anything left over is a place name ("Austin - Remote").
+_REMOTE_FILLER_RX = re.compile(
+    r"\b(remote|remotely|anywhere|fully|full|first|friendly|global|globally|"
+    r"worldwide|flexible|hybrid|distributed|work|working|from|home|wfh|"
+    r"in|the|or|and|only|based|option|optional|eligible|ok|possible)\b")
+
+
+def _remote_names_place(loc: str) -> bool:
+    """True when a remote label also names somewhere, e.g. 'Austin - Remote'."""
+    rest = _REMOTE_FILLER_RX.sub(" ", loc.lower())
+    return bool(re.search(r"[^\W\d_]", rest))
+
+
 def _is_concrete_foreign(loc: str, t: dict) -> bool:
-    """A real (non-remote) location that isn't home or an eligible region."""
-    return not _is_remote(loc) and not _is_home(loc, t) and not _is_eligible_region(loc, t)
+    """A real location that isn't home or an eligible region — including a remote
+    label pinned to such a place ("Austin - Remote")."""
+    if _is_home(loc, t) or _is_eligible_region(loc, t):
+        return False
+    return not _is_remote(loc) or _remote_names_place(loc)
 
 
 # Named regions the seeker isn't eligible for (#3). A remote label naming one of
@@ -172,6 +197,11 @@ def expand(location_str: str, profile: dict) -> list[str]:
             # rejected on its own terms — before posting-wide home/eligible context
             # can rescue it (#3). Only spared if it also names a home/eligible region.
             if _names_ineligible_region(pl) and not explicit:
+                continue
+            # Same for a remote pinned to any other place that isn't home or an
+            # eligible region ("Austin - Remote", "São Paulo - Remote"): the role
+            # is remote *within that place*, so no sibling office can rescue it.
+            if _remote_names_place(p) and not explicit and not _is_eligible_region(p, t):
                 continue
             if explicit or home_or_eligible:
                 accepted.append(p)          # remote alongside a home/eligible office
