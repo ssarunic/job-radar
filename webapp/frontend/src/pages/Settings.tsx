@@ -9,7 +9,6 @@ type Profile = {
   include_product_owner?: boolean;
   include_ai_innovation?: boolean;
   exclude_titles?: string[];
-  allow_remote?: boolean;
   employment?: string[];
   recency_days?: number;
   max_roles_per_company?: number;
@@ -17,7 +16,7 @@ type Profile = {
 };
 // Geography as it applies (profile value, else the built-in default) — from the API,
 // so this page never carries its own copy of the defaults.
-type Geo = { home_city: string; home_terms: string[]; remote_regions: string[] };
+type Geo = { home_city: string; home_terms: string[]; remote_regions: string[]; workplace: string[] };
 type Data = { profile: Profile; location: Geo; companies_followed: number };
 
 const SENIORITY: [number, string][] = [
@@ -30,6 +29,14 @@ const SENIORITY: [number, string][] = [
   [3, "Senior and above (default)"],
   [2, "Everything, including mid-level"],
 ];
+
+const EMPLOYMENT = ["Full time", "Part time", "Contract"];
+const EMPLOYMENT_HINT: Record<string, string> = {
+  Contract: "fixed-term, interim, temporary, freelance",
+};
+const WORKPLACE = ["On site", "Hybrid", "Remote"];
+const toggle = (list: string[], item: string, on: boolean) =>
+  on ? [...list, item] : list.filter((x) => x !== item);
 
 const showTerms = (terms: string[]) => terms.map((t) => t.trim()).join(", ");
 // Comma-separated input -> terms. A term the user didn't retype keeps its stored
@@ -127,9 +134,14 @@ function SettingsView({ data }: { data: Data }) {
           <dd style={{ textTransform: "capitalize" }}>{location.home_city}</dd>
           <dt>Accepted locations</dt>
           <dd><Terms terms={location.home_terms} /></dd>
+          <dt>Work types</dt>
+          <dd>
+            <Terms terms={location.workplace} />{" "}
+            <span className="muted">(roles that don’t say are always kept)</span>
+          </dd>
           <dt>Remote roles</dt>
           <dd>
-            {(profile.allow_remote ?? true)
+            {location.workplace.includes("Remote")
               ? <>Included when open to <Terms terms={location.remote_regions} /></>
               : "Not included"}
           </dd>
@@ -153,8 +165,8 @@ function SettingsView({ data }: { data: Data }) {
       </section>
 
       <p className="muted settings-note">
-        Changes apply from the next scan. Employment types, the per-company cap and
-        the age limit are changed in <code>config/search_profile.yaml</code>.
+        Changes apply from the next scan. The per-company cap and the age limit are
+        changed in <code>config/search_profile.yaml</code>.
       </p>
     </>
   );
@@ -175,7 +187,7 @@ function SettingsForm({ data, saveLabel, onDone, onCancel }: {
     includePO: profile.include_product_owner ?? true,
     includeAI: profile.include_ai_innovation ?? true,
     excludeTitles: profile.exclude_titles ?? [],
-    allowRemote: profile.allow_remote ?? true,
+    employment: profile.employment ?? ["Full time", "Part time"],
   };
 
   const [label, setLabel] = useState(cur.label);
@@ -185,7 +197,9 @@ function SettingsForm({ data, saveLabel, onDone, onCancel }: {
   const [excludeTitles, setExcludeTitles] = useState(showTerms(cur.excludeTitles));
   const [homeCity, setHomeCity] = useState(location.home_city);
   const [homeTerms, setHomeTerms] = useState(showTerms(location.home_terms));
-  const [allowRemote, setAllowRemote] = useState(cur.allowRemote);
+  const [employment, setEmployment] = useState(cur.employment);
+  const [workplace, setWorkplace] = useState(location.workplace);
+  const allowRemote = workplace.includes("Remote");
   const [remoteRegions, setRemoteRegions] = useState(showTerms(location.remote_regions));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -198,7 +212,10 @@ function SettingsForm({ data, saveLabel, onDone, onCancel }: {
     if (Number(seniorityMin) !== cur.seniorityMin) body.seniority_min = Number(seniorityMin);
     if (includePO !== cur.includePO) body.include_product_owner = includePO;
     if (includeAI !== cur.includeAI) body.include_ai_innovation = includeAI;
-    if (allowRemote !== cur.allowRemote) body.allow_remote = allowRemote;
+    const emp = EMPLOYMENT.filter((t) => employment.includes(t));
+    if (!sameTerms(emp, EMPLOYMENT.filter((t) => cur.employment.includes(t)))) body.employment = emp;
+    const work = WORKPLACE.filter((t) => workplace.includes(t));
+    if (!sameTerms(work, location.workplace)) body.workplace = work;
     const excl = splitTerms(excludeTitles, cur.excludeTitles);
     if (!sameTerms(excl, cur.excludeTitles)) body.exclude_titles = excl;
     if (homeCity.trim() && homeCity.trim() !== location.home_city) body.home_city = homeCity.trim();
@@ -209,6 +226,10 @@ function SettingsForm({ data, saveLabel, onDone, onCancel }: {
 
     if (home.length === 0) {
       setError("Add at least one accepted location.");
+      return;
+    }
+    if (emp.length === 0 || work.length === 0) {
+      setError(`Pick at least one ${emp.length === 0 ? "employment type" : "work type"}.`);
       return;
     }
     if (Object.keys(body).length === 0) {
@@ -266,6 +287,17 @@ function SettingsForm({ data, saveLabel, onDone, onCancel }: {
           <textarea rows={2} value={excludeTitles}
                     onChange={(e) => setExcludeTitles(e.target.value)} />
         </label>
+
+        <fieldset className="field checks">
+          <legend>Employment types</legend>
+          {EMPLOYMENT.map((t) => (
+            <label key={t} style={checkRow}>
+              <input type="checkbox" checked={employment.includes(t)}
+                     onChange={(e) => setEmployment(toggle(employment, t, e.target.checked))} />
+              <span>{t}{EMPLOYMENT_HINT[t] && <span className="muted"> ({EMPLOYMENT_HINT[t]})</span>}</span>
+            </label>
+          ))}
+        </fieldset>
       </section>
 
       <section className="settings-card">
@@ -280,11 +312,18 @@ function SettingsForm({ data, saveLabel, onDone, onCancel }: {
           <textarea rows={2} value={homeTerms} onChange={(e) => setHomeTerms(e.target.value)} />
         </label>
 
-        <label className="field" style={checkRow}>
-          <input type="checkbox" checked={allowRemote}
-                 onChange={(e) => setAllowRemote(e.target.checked)} />
-          Include remote roles
-        </label>
+        <fieldset className="field checks">
+          <legend>
+            Work types <span className="muted">(roles that don’t say are always kept)</span>
+          </legend>
+          {WORKPLACE.map((t) => (
+            <label key={t} style={checkRow}>
+              <input type="checkbox" checked={workplace.includes(t)}
+                     onChange={(e) => setWorkplace(toggle(workplace, t, e.target.checked))} />
+              {t}
+            </label>
+          ))}
+        </fieldset>
 
         {allowRemote && (
           <label className="field">

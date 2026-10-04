@@ -113,19 +113,33 @@ def parse(text: str) -> tuple[Salary, str]:
     return Salary(), _comp_type(text, False)
 
 
+# An explicit fixed-term statement. Strong enough to override a structured
+# "Full time" — ATS fields describe hours, not permanence (NatWest: FULL_TIME on a
+# role "offered for a period of twelve months").
+_MONTHS = r"(?:\d+|six|nine|twelve|eighteen)[- ]?months?"
+_FIXED_TERM_RX = re.compile(
+    r"\bfixed[- ]term (?:contract|role|position|appointment)\b|\bftc\b"
+    rf"|\boffered for a period of {_MONTHS}\b"
+    rf"|\b{_MONTHS},? (?:fixed[- ]term|ftc|contract|secondment|maternity cover)\b"
+    r"|\b(?:day|daily) rate\b")
+# "contract" alone is too noisy ("details are provided in your contract", "contract
+# negotiations over many years"); it needs a stated duration or "fixed" right by it.
+_DURATION = r"(?:\d+|six|nine|twelve|eighteen)[- ]?(?:months?|years?)"
+_CONTRACT_CTX_RX = re.compile(
+    rf"\b{_DURATION}\b[^.\n]{{0,20}}\bcontract\b|\bcontract\b[^.\n]{{0,25}}\b{_DURATION}\b"
+    r"|\bfixed\b[^.\n]{0,20}\bcontract\b|\bcontract (?:role|position)\b")
+
+
 def employment_type(text: str) -> str:
     """Detect employment type from free body text (product-spec §10)."""
     t = (text or "").lower()
-    if re.search(r"\b(fixed[- ]term|temporary|interim|freelance)\b", t):
+    if _FIXED_TERM_RX.search(t) or re.search(r"\b(fixed[- ]term|temporary|interim|freelance)\b", t):
         return "Contract"
-    if re.search(r"\bcontract\b", t) and re.search(
-            r"\b(month|year|fixed|day rate|daily rate)\b", t):
-        return "Contract"  # "contract" alone is too noisy; need supporting context
+    if _CONTRACT_CTX_RX.search(t):
+        return "Contract"
     if re.search(r"\bpart[- ]time\b", t):
         return "Part time"
-    if re.search(r"\b(full[- ]time|permanent)\b", t):
-        return "Full time"
-    return "Full time"  # default when unstated
+    return "Full time"  # stated, or the default when unstated
 
 
 def classify_employment(raw_value: str, body: str) -> str:
@@ -135,6 +149,8 @@ def classify_employment(raw_value: str, body: str) -> str:
     if v:
         if any(k in v for k in ("contract", "fixed", "temporary", "interim",
                                 "freelance", "intern", "seasonal")):
+            return "Contract"
+        if _FIXED_TERM_RX.search((body or "").lower()):
             return "Contract"
         if "part" in v:
             return "Part time"

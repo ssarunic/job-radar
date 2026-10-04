@@ -32,6 +32,7 @@ def fetch_listing(ats_slug: str, http) -> list[dict]:
             "posted_date": j.get("createdAt"),
             "description": _markdown(j) or plain.strip(),
             "employment_type": (cats.get("commitment") or "").strip(),
+            "workplace": j.get("workplaceType") or "",   # "unspecified" normalises to ""
             "salary_text": plain + " " + (j.get("additionalPlain") or ""),
             "source_type": "ATS",
             "source_detail": "Lever",

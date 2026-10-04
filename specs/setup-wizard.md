@@ -16,17 +16,19 @@
 - **`PUT /api/profile`** — merges a constrained subset into
   `search_profile.yaml`: `search_label`, `seniority_min` (1–9),
   `include_product_owner`, `include_ai_innovation`, `allow_remote`,
-  `exclude_titles`, and the `location` block keys (`home_city`, `home_terms`
+  `exclude_titles`, `employment` (non-empty subset of Full time / Part time /
+  Contract), `workplace` (non-empty subset of On site / Hybrid / Remote —
+  also sets `allow_remote` to match, so the two never disagree), and the `location` block keys (`home_city`, `home_terms`
   — at least one, `remote_regions` — merged, not replaced). Writes via
   `store.atomic_write_text`. Comments in the shipped YAML are not preserved
   once the page saves (machine-written thereafter) — accepted trade-off,
   fields are documented in `docs/configuration.md`. Advanced fields
-  (`custom_patterns`, `employment`, operational knobs) are deliberately
+  (`custom_patterns`, operational knobs) are deliberately
   **not** writable here.
 - **`/settings` page** (`webapp/frontend/src/pages/Settings.tsx`, in the
   nav) — **read-only by default**: Roles, Locations and Companies cards show
-  the rules in force, including the file-only ones (employment types,
-  per-company cap, age limit) and a link to the Companies page. **Edit**
+  the rules in force, including the file-only ones (per-company cap,
+  age limit) and a link to the Companies page. **Edit**
   swaps the cards for a form; **Save** returns to the view, **Cancel**
   discards. The rules drive the daily scan, so a change is always a
   deliberate Edit → Save.
