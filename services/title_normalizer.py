@@ -64,6 +64,13 @@ _C_DOM = r"(?:product|technology|tech|engineering|digital|data|innovation|operat
 _CHIEF_PRODUCT = (rf"\bchief\s+(?:{_C_DOM}{_C_SEP})*product(?:{_C_SEP}{_C_DOM})*\s+officer\b"
                   r"|\b(?:cpto|ctpo)\b")
 
+# "Director, Product & Technology" — the comma/bare form of "Director of Product".
+# Director must lead its segment (optionally behind a grade modifier), so a compound
+# title whose director belongs to another function ("Sales Director, Product
+# Specialists", "Art Director, Product") isn't promoted.
+_LEAD_DIRECTOR = (r"(?:^|[-–—,|:/]\s*)"
+                  r"(?:(?:senior|sr\.?|executive|managing|group|global|associate)\s+)*director\b")
+
 # (regex, normalised title, seniority level, rank) — ordered by priority (product-spec §11.3).
 # Order matters: first match wins, so seniority descends and Principal precedes Group.
 PATTERNS = [
@@ -74,7 +81,8 @@ PATTERNS = [
      r"|\bproduct (?:lead|leader)\b.*\b(?:svp|vp|vice president)\b"
      rf"|{_graded(_VP_GRADE)}", "VP Product", "VP", 8),
     (rf"\bdirector of {_QUAL}product\b|\bproduct director\b"
-     rf"|\bdirector\b,?\s+{_QUAL}product\b"
+     rf"|\bdirector\b,?\s+{_QUAL}product management\b"
+     rf"|{_LEAD_DIRECTOR},?\s+{_QUAL}product\b"
      r"|\bdirector\b.*\bproduct (?:lead|leader)\b|\bproduct (?:lead|leader)\b.*\bdirector\b"
      rf"|{_graded(_DIR_GRADE)}",
      "Director of Product", "Director", 7),

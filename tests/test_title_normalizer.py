@@ -239,6 +239,8 @@ def test_grade_from_body(body, expected):
     ("VP Engineering & Product", 8, "VP Product"),
     ("Director of Product and Engineering", 7, "Director of Product"),
     ("Director, Product & Technology", 7, "Director of Product"),  # comma form, was missed
+    ("Senior Director, Product & Engineering", 7, "Director of Product"),
+    ("Payments - Director, Product", 7, "Director of Product"),
     ("Head of Product & Engineering", 6, "Head of Product"),
     ("Head of Engineering and Product", 6, "Head of Product"),
 ])
@@ -258,6 +260,10 @@ def test_product_engineering_titles_kept(title, rank, norm):
     "VP Engineering",
     "Head of Engineering",
     "Director of Engineering",
+    # the comma form needs Director to lead its segment — not another function's director
+    "Sales Director, Product Specialists",
+    "Account Director Product Sales",
+    "Art Director, Product",
 ])
 def test_engineering_only_titles_dropped(title):
     c = classify(title, PROFILE)
