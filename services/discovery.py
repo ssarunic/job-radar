@@ -4,6 +4,8 @@ Returns a companies.csv-ready dict, or None if nothing matched (the user can the
 add a workday/talemetry/custom entry by hand with a careers URL)."""
 from __future__ import annotations
 
+import re
+from collections import Counter
 from urllib.parse import urlsplit
 
 from models.job_posting import _slugify
@@ -21,6 +23,37 @@ CAREERS = {
     "smartrecruiters": "https://jobs.smartrecruiters.com/{}",
     "workable": "https://apply.workable.com/{}/",
 }
+
+
+# Leading host labels that say "this is the jobs site", not who the company is.
+_GENERIC_LABELS = {"www", "careers", "career", "jobs", "job", "apply", "work",
+                   "join", "hiring", "talent", "recruiting", "recruitment"}
+
+# A Workday board linked from a branded careers page: tenant, wdN shard, site
+# (an optional locale segment like /en-US/ sits between host and site).
+_WD_LINK_RX = re.compile(
+    r"https?://([a-z0-9-]+)\.(wd\d+)\.myworkdayjobs\.com/(?:[a-z]{2}-[a-z]{2}/)?([\w-]+)",
+    re.I)
+
+
+def _host_name(host: str) -> str:
+    """Company name hint from a host, skipping generic labels so
+    careers.expediagroup.com → "Expediagroup", not "Careers"."""
+    labels = [l for l in host.lower().split(".") if l]
+    for label in labels[:-1]:                   # never the TLD
+        if label not in _GENERIC_LABELS:
+            return label.title()
+    return (labels[0] if labels else host).title()
+
+
+def _workday_board(body: str) -> tuple[str, str] | None:
+    """(tenant, board URL) for the Workday site a careers page links to most."""
+    hits = Counter((m.group(1).lower(), m.group(2).lower(), m.group(3))
+                   for m in _WD_LINK_RX.finditer(body))
+    if not hits:
+        return None
+    tenant, shard, site = hits.most_common(1)[0][0]
+    return tenant, f"https://{tenant}.{shard}.myworkdayjobs.com/{site}"
 
 
 def _slug_variants(name: str) -> list[str]:
@@ -95,7 +128,11 @@ def _from_url(url: str, http=None) -> dict | None:
         if slug:
             return mk("workable", slug)
     if "myworkdayjobs" in host:
-        return mk("workday", "", careers=url, name=host.split(".")[0].title())
+        # A pasted job/apply link (…/search/job/…/apply) must collapse to the
+        # board — the adapter reads the site from the last path segment.
+        board = _workday_board(url)
+        return mk("workday", "", careers=board[1] if board else url,
+                  name=host.split(".")[0].title())
     if "oraclecloud" in host:   # Oracle ORC — tenant subdomain is the name hint
         return mk("oracle", "", careers=url, name=host.split(".")[0].upper())
     if "recruitee.com" in host:                 # {slug}.recruitee.com (origin proxies the API)
@@ -115,14 +152,21 @@ def _from_url(url: str, http=None) -> dict | None:
     # Unrecognised host: body-probe for an embedded ATS (esp. Talemetry, which has
     # no host marker). Cloudflare-protected sites (e.g. NatWest) will 403 here and
     # fall through to custom — set ats_type by hand for those (#2).
-    nm = host.replace("www.", "").split(".")[0].title()
+    nm = _host_name(host)
     if http is not None:
         try:
-            body = http.get(url).text.lower()
+            raw = http.get(url).text
+            body = raw.lower()
             if "talemetry" in body:
                 origin = f"{urlsplit(url).scheme}://{host}"
                 return mk("talemetry", "", careers=origin, name=nm)
             if "myworkdayjobs" in body:
+                # The adapter derives its API from the Workday host, so point
+                # careers_url at the linked board, not the branded page (site
+                # names are case-sensitive — match on the raw body).
+                board = _workday_board(raw)
+                if board:
+                    return mk("workday", "", careers=board[1], name=board[0].title())
                 return mk("workday", "", careers=url, name=nm)
             if "recruitee" in body:   # custom domain (careers.hostaway.com) proxies the API
                 labels = host.replace("www.", "").split(".")

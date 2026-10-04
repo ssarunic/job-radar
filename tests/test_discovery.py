@@ -91,6 +91,34 @@ def test_from_url_cloudflare_falls_back_to_custom():
     assert d["ats_type"] == "custom"
 
 
+def test_from_url_names_company_not_generic_subdomain():
+    """careers.expediagroup.com was saved as "Careers" — unfindable in the list."""
+    d = discovery.discover("https://careers.expediagroup.com/jobs/", FakeHttpRaises())
+    assert d["name"] == "Expediagroup" and d["slug"] == "expediagroup"
+    assert discovery._host_name("jobs.natwestgroup.com") == "Natwestgroup"
+    assert discovery._host_name("www.tessl.io") == "Tessl"
+    assert discovery._host_name("careers.acme.co.uk") == "Acme"
+
+
+def test_from_url_body_probe_resolves_workday_board():
+    """A branded careers page linking to Workday resolves to the Workday board —
+    the adapter derives its cxs endpoint from that host, not the branded one."""
+    link = "https://expedia.wd108.myworkdayjobs.com/en-US/search/introduceYourself"
+    http = FakeHttpText(f'<a href="{link}">Join</a><a href="{link}">Join</a>')
+    d = discovery.discover("https://careers.expediagroup.com/jobs/", http)
+    assert d["ats_type"] == "workday"
+    assert d["careers_url"] == "https://expedia.wd108.myworkdayjobs.com/search"
+    assert d["name"] == "Expedia" and d["slug"] == "expedia"
+
+
+def test_from_url_workday_job_link_collapses_to_board():
+    d = discovery.discover(
+        "https://expedia.wd108.myworkdayjobs.com/search/job/UK---London/"
+        "Senior-Product-Manager--EG-Advertising_R-103969/apply", http=None)
+    assert d["careers_url"] == "https://expedia.wd108.myworkdayjobs.com/search"
+    assert d["name"] == "Expedia"
+
+
 def test_from_name_probes_ashby():
     http = FakeHttp({"posting-api/job-board/cohere": {"jobs": [1, 2, 3]}})
     d = discovery.discover("Cohere", http)
