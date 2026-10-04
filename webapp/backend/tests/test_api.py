@@ -224,7 +224,10 @@ def test_follow_empty_is_422(client):
 
 def test_follow_query_undetected_is_422(client, monkeypatch):
     monkeypatch.setattr("services.discovery.discover", lambda query, http: None)
-    assert client.post("/api/companies", json={"query": "Nope Inc"}).status_code == 422
+    r = client.post("/api/companies", json={"query": "Nope Inc"})
+    assert r.status_code == 422
+    # shown verbatim in the Follow modal: plain language, no field names
+    assert "careers page" in r.json()["detail"] and "ats_type" not in r.json()["detail"]
 
 
 def test_follow_scans_new_company_by_default(client, monkeypatch):

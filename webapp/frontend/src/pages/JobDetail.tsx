@@ -57,7 +57,9 @@ export default function JobDetail() {
   const [copied, setCopied] = useState<"idle" | "busy" | "done" | "failed">("idle");
   const copiedReset = useRef<number | undefined>(undefined);
 
-  useEffect(() => window.scrollTo(0, 0), []);   // don't inherit the list's scroll offset
+  // don't inherit the list's scroll offset (braces: scrollTo may return a Promise,
+  // which must not become the effect's cleanup)
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   if (isLoading) return <p className="muted">Loading…</p>;
   if (isError || !data) return <p className="muted">Not found. <Link to={back}>← all roles</Link></p>;
