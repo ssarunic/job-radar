@@ -246,6 +246,10 @@ def follow_company(body: AddCompany):
         query = (body.query or "").strip()
         if not query:
             raise HTTPException(422, "provide `query` (name or URL), or `ats_type` + `careers_url`")
+        if not query.lower().startswith("http"):     # typed a name we already track
+            existing = registry.find_by_name(query)
+            if existing:
+                raise HTTPException(409, f"already tracking {existing['name']}")
         http = HttpClient(settings, RateLimiter(settings.get("rate_limit_per_sec", 1)))
         info = discovery.discover(query, http)
         if not info:

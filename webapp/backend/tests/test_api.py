@@ -191,6 +191,17 @@ def test_follow_manual_no_network(client):
     assert {c["slug"] for c in client.get("/api/companies").json()["companies"]} >= {"wise"}
 
 
+def test_follow_by_name_already_tracked_409_without_discovery(client, monkeypatch):
+    """Typing a tracked company's name says so, even when its ATS isn't
+    name-probeable (was: "couldn't auto-detect an ATS for 'Natwest'")."""
+    def boom(*a, **k):
+        raise AssertionError("discovery should not run")
+    monkeypatch.setattr("services.discovery.discover", boom)
+    r = client.post("/api/companies", json={"query": "capsa"})
+    assert r.status_code == 409
+    assert "already tracking capsa" in r.json()["detail"].lower()
+
+
 def test_follow_dedupe_409(client):
     r = client.post("/api/companies", json={
         "name": "Capsa", "ats_type": "ashby", "careers_url": "https://jobs.ashbyhq.com/capsa"})

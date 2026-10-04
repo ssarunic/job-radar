@@ -5,7 +5,7 @@ import csv
 import io
 from pathlib import Path
 
-from models.job_posting import canonical_url
+from models.job_posting import _slugify, canonical_url
 from services import store
 
 FIELDS = ["name", "slug", "careers_url", "ats_type", "ats_slug", "priority", "active"]
@@ -55,6 +55,20 @@ def find_existing(row: dict, path: Path = None) -> dict | None:
     path = path or store.config_dir() / "companies.csv"
     for r in list_companies(path):
         if _same_company(row, r):
+            return r
+    return None
+
+
+def find_by_name(query: str, path: Path = None) -> dict | None:
+    """The tracked company a typed name refers to (slug or name, case/punctuation
+    insensitive) — lets `follow` answer "already tracking" before ATS discovery,
+    which can't find boards with no name-probeable API (Talemetry, Workday, ...)."""
+    want = _slugify(query or "")
+    if not want:
+        return None
+    path = path or store.config_dir() / "companies.csv"
+    for r in list_companies(path):
+        if want in (r["slug"], _slugify(r["name"])):
             return r
     return None
 
