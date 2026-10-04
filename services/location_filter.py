@@ -45,6 +45,17 @@ _DEFAULTS = {
 }
 
 
+def editable_terms(profile: dict) -> dict:
+    """The user-editable geography as it currently applies — the profile's
+    value, else the UK default. For the web Settings page, so it shows (and
+    pre-fills) the real rules rather than its own copy of the defaults."""
+    cfg = (profile or {}).get("location") or {}
+    return {"home_city": str(cfg.get("home_city", _DEFAULTS["home_city"])),
+            "home_terms": [str(t) for t in cfg.get("home_terms", _DEFAULTS["home_terms"])],
+            "remote_regions": [str(t) for t in
+                               cfg.get("remote_regions", _DEFAULTS["remote_regions"])]}
+
+
 def _terms(profile: dict) -> dict:
     cfg = (profile or {}).get("location") or {}
     out = {}

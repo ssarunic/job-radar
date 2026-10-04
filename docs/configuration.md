@@ -1,8 +1,9 @@
 # Configuration
 
-The basics (what roles, seniority floor, location, remote preference) are
-editable from the web UI at **`/setup`** — no file editing needed. Everything
-below is for going deeper. Note: once you save from the UI, the profile file
+The basics (what roles, seniority floor, excluded title words, location,
+remote preference) are shown on the web UI's **Settings** page — press
+**Edit** there to change them, no file editing needed. Everything below is
+for going deeper. Note: once you save a change from the UI, the profile file
 is rewritten without its explanatory comments (this page is the reference).
 
 Three files control JobRadar. After the first run they live in the Docker

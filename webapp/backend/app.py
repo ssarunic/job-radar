@@ -30,7 +30,15 @@ from models.job_posting import _slugify  # noqa: E402
 from outputs import index_builder, md_writer  # noqa: E402
 from scrapers.http_client import HttpClient  # noqa: E402
 from scrapers.rate_limiter import RateLimiter  # noqa: E402
-from services import discovery, loader, queries, registry, run_service, store  # noqa: E402
+from services import (  # noqa: E402
+    discovery,
+    loader,
+    location_filter,
+    queries,
+    registry,
+    run_service,
+    store,
+)
 
 
 @asynccontextmanager
@@ -141,11 +149,13 @@ def _company_view(c: dict, counts: dict) -> dict:
 
 
 class ProfileUpdate(BaseModel):
-    """The wizard's editable subset of search_profile.yaml. Everything is
-    optional — only provided fields are merged; the rest of the file (packs,
-    exclusions, operational knobs) is preserved."""
+    """The Settings page's editable subset of search_profile.yaml. Everything
+    is optional — only provided fields are merged; the rest of the file (packs,
+    operational knobs) is preserved."""
     search_label: Optional[str] = None
     seniority_min: Optional[int] = None
+    include_product_owner: Optional[bool] = None
+    include_ai_innovation: Optional[bool] = None
     allow_remote: Optional[bool] = None
     home_city: Optional[str] = None
     home_terms: Optional[list[str]] = None
@@ -156,25 +166,31 @@ class ProfileUpdate(BaseModel):
 @app.get("/api/profile")
 def get_profile():
     """The current search profile + whether any company is followed yet —
-    the frontend uses (companies_followed == 0) to offer first-run setup."""
+    the frontend uses (companies_followed == 0) to offer first-run setup.
+    `location` is the geography as it applies (profile value, else default)."""
     followed = sum(1 for c in registry.list_companies() if c.get("active"))
-    return {"profile": loader.load_profile(), "companies_followed": followed}
+    profile = loader.load_profile()
+    return {"profile": profile, "companies_followed": followed,
+            "location": location_filter.editable_terms(profile)}
 
 
 @app.put("/api/profile")
 def update_profile(body: ProfileUpdate):
-    """Merge the wizard fields into search_profile.yaml (atomic write). YAML
+    """Merge the Settings fields into search_profile.yaml (atomic write). YAML
     comments in the shipped default are not preserved — the file becomes
     machine-written after first save; docs/configuration.md documents fields."""
     if body.seniority_min is not None and not 1 <= body.seniority_min <= 9:
         raise HTTPException(status_code=422, detail="seniority_min must be 1–9")
+    if body.home_terms is not None and not body.home_terms:
+        raise HTTPException(status_code=422, detail="home_terms needs at least one location")
     for name in ("home_terms", "remote_regions", "exclude_titles"):
         v = getattr(body, name)
         if v is not None and any(not str(t).strip() for t in v):
             raise HTTPException(status_code=422, detail=f"{name} contains empty terms")
 
     profile = loader.load_profile()
-    for key in ("search_label", "seniority_min", "allow_remote", "exclude_titles"):
+    for key in ("search_label", "seniority_min", "include_product_owner",
+                "include_ai_innovation", "allow_remote", "exclude_titles"):
         v = getattr(body, key)
         if v is not None:
             profile[key] = v
@@ -186,7 +202,7 @@ def update_profile(body: ProfileUpdate):
 
     store.atomic_write_text(store.config_dir() / "search_profile.yaml",
                             yaml.safe_dump(profile, sort_keys=False, allow_unicode=True))
-    return {"profile": profile}
+    return {"profile": profile, "location": location_filter.editable_terms(profile)}
 
 
 @app.get("/api/companies")

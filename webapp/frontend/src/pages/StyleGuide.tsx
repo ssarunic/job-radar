@@ -69,7 +69,7 @@ export default function StyleGuide() {
       </div>
       <div className="field">
         Field label
-        <input placeholder="Wizard field" />
+        <input placeholder="Settings field" />
       </div>
       <div className="notes"><textarea rows={2} placeholder="Textarea" /></div>
 

@@ -360,7 +360,7 @@ def test_runs_content_search(client, tmp_path):
     assert "matched" not in client.get("/api/runs").json()["runs"][0]
 
 
-# --- profile (setup wizard) ------------------------------------------------------
+# --- profile (Settings page) ------------------------------------------------------
 
 def test_get_profile(client):
     p = client.get("/api/profile").json()
@@ -391,7 +391,30 @@ def test_put_profile_partial_location_merge(client):
     assert loc["home_city"] == "Berlin" and loc["remote_regions"] == ["europe"]
 
 
+def test_get_profile_location_falls_back_to_defaults(client):
+    # shipped profile has no `location:` block — the page still gets the real rules
+    loc = client.get("/api/profile").json()["location"]
+    assert loc["home_city"] == "london"
+    assert "edinburgh" in loc["home_terms"] and "eu " in loc["remote_regions"]
+    client.put("/api/profile", json={"home_terms": ["berlin"]})
+    loc = client.get("/api/profile").json()["location"]
+    assert loc["home_terms"] == ["berlin"] and loc["home_city"] == "london"
+
+
+def test_put_profile_role_toggles_and_exclusions(client):
+    r = client.put("/api/profile", json={
+        "include_product_owner": False, "include_ai_innovation": False,
+        "exclude_titles": ["marketing", "intern"]})
+    assert r.status_code == 200
+    p = client.get("/api/profile").json()["profile"]
+    assert p["include_product_owner"] is False and p["include_ai_innovation"] is False
+    assert p["exclude_titles"] == ["marketing", "intern"]
+    assert p["seniority_min"] == 3                      # untouched
+
+
 def test_put_profile_validates(client):
+    assert client.put("/api/profile", json={"home_terms": []}).status_code == 422
+
     assert client.put("/api/profile", json={"seniority_min": 12}).status_code == 422
     assert client.put("/api/profile",
                       json={"home_terms": ["ok", "  "]}).status_code == 422

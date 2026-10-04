@@ -8,7 +8,7 @@ import Companies from "./pages/Companies";
 import CompanyDetail from "./pages/CompanyDetail";
 import Activity from "./pages/Activity";
 import RunDetail from "./pages/RunDetail";
-import Setup from "./pages/Setup";
+import Settings from "./pages/Settings";
 import StyleGuide from "./pages/StyleGuide";
 import Icon from "./components/Icon";
 
@@ -82,6 +82,7 @@ export default function App() {
           <NavLink to="/" end>Roles</NavLink>
           <NavLink to="/companies">Companies</NavLink>
           <NavLink to="/activity">Activity</NavLink>
+          <NavLink to="/settings">Settings</NavLink>
         </nav>
         <RefreshButton />
       </header>
@@ -93,7 +94,8 @@ export default function App() {
           <Route path="/companies/:slug" element={<CompanyDetail />} />
           <Route path="/activity" element={<Activity />} />
           <Route path="/activity/:ts" element={<RunDetail />} />
-          <Route path="/setup" element={<Setup />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/setup" element={<Settings firstRun />} />
           <Route path="/styleguide" element={<StyleGuide />} />
         </Routes>
       </main>

@@ -64,3 +64,13 @@ history rather than deleting anything.
 
 The Activity page is the run history: what every scan added, closed, or
 reopened, so you can always answer "what changed and when".
+
+## Settings
+
+The Settings page shows the rules JobRadar is searching with: which roles
+(minimum seniority, title words it skips), which locations (your home city,
+the places you accept, whether remote roles count) and how many companies you
+follow. It is read-only until you press **Edit**; **Save** keeps your changes
+and **Cancel** discards them. Changes take effect from the next scan — roles
+already on your list stay as they are. A few rarely-changed options are shown
+there but set in a file; see [Configuration](configuration.md).

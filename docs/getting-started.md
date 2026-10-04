@@ -31,7 +31,8 @@ when new roles appear. Skip it if you're happy just checking the web page.
 
 What you're *searching for* (roles, seniority, location) is configured after
 start-up: on first run the web UI points you to **Set up your search**
-(`/setup`) — four questions, no file editing. (It ships with a senior Product Management profile
+(`/setup`) — a short form, no file editing; afterwards the same rules live
+on the **Settings** page. (It ships with a senior Product Management profile
 for London/UK; power users can edit `config/search_profile.yaml` directly —
 every field is explained in [Configuration](configuration.md).)
 

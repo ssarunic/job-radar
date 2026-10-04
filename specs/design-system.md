@@ -78,7 +78,8 @@ One-off colours in use (acceptable, don't multiply): `#c8f7c5` salary text,
   box. Put any new detail-page control inside it and it sizes itself.
 - **Small button** — `button.small`: 12px, inline with headings.
 - **Inputs/selects** — panel bg, `--line` border, radius 8, 14px, padding
-  8px 10px (`.filters`, `.field`).
+  8px 10px (`.filters`, `.field`). Inside a `.settings-card` (itself panel
+  bg) they drop to `--bg` so the control stays visible.
 - **Badges** — status pills, 999px radius, semantic bg + dark text.
   **Pills** — neutral count/tag chips (`#20262f` fill).
 
@@ -86,6 +87,10 @@ One-off colours in use (acceptable, don't multiply): `#c8f7c5` salary text,
 
 - **List row** (`.row`): panel card, radius 10, accent border on hover =
   clickable. Company 700 + title, then 13px muted `.row-meta` line.
+- **Settings card** (`.settings-card`): panel card, radius 10, `h3` title.
+  Read-only content is a `.kv` definition list (muted label column, hairline
+  between rows; stacks on phones) with `.pills` for term lists; the same card
+  holds `.field` controls in edit mode. Save/Cancel go in an `.actions` row.
 - **Detail page**: `.back` link → `h1` → muted `.sub` with badge → `.facts`
   (hairline-bounded emoji facts strip) → `.actions` → `.ad` / `.notes` panels.
 - **Modal**: fixed backdrop `rgba(0,0,0,.55)`, panel radius 12 + shadow,
