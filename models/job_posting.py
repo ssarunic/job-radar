@@ -63,7 +63,7 @@ class JobPosting:
     seniority_level: str = ""
     seniority_rank: int = 0
     employment_type: str = ""          # Full time | Part time | Contract | Unknown
-    workplace_model: str = ""          # On site | Hybrid | Remote
+    workplace_model: str = ""          # On site | Hybrid | Remote | Not stated
     locations: list = field(default_factory=list)  # all accepted locations for this role
     remote_eligible_regions: str = ""
     salary: Salary = field(default_factory=Salary)

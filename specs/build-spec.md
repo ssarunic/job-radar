@@ -131,7 +131,8 @@ exclude_titles: ["marketing", "growth marketing", "brand", "design", "hr", "tale
 locations:      ["London", "UK", "United Kingdom", "England"]
 allow_remote:   true              # accept if UK/Europe/EMEA-eligible, not US-only
 remote_keywords: ["remote", "anywhere", "uk remote", "emea remote", "europe remote"]
-employment:     ["Full time", "Part time"]   # exclude Contract
+employment:     ["Full time", "Part time"]   # exclude Contract (subset of Full time / Part time / Contract)
+workplace:      ["On site", "Hybrid", "Remote"]   # work types kept (default all); "Not stated" is always kept
 recency_days:   45
 max_roles_per_company: 10
 ```
@@ -323,7 +324,26 @@ Apply, in order, exactly as specified in the product-spec — do not reinvent:
 1. **Title normalisation + seniority rank** — product-spec §11. Keep if `rank >= seniority_min` OR
    (Product Owner AND `include_product_owner`).
 2. **Title exclusions** — product-spec §11 steps 5–6 (marketing/brand/HR/design-only).
-3. **Employment type** — exclude Contract (product-spec §10).
+3. **Employment type** — keep only the profile's `employment` set (default Full time +
+   Part time, i.e. exclude Contract — product-spec §10). Fixed-term, interim, temporary,
+   freelance and internship all classify as Contract. The ATS's structured value wins over
+   body text, except that an explicit fixed-term statement in the ad ("offered for a period
+   of twelve months", "12-month FTC") overrides a structured "Full time" — ATS fields
+   describe hours, not permanence.
+3a. **Work type** — `workplace_model` is On site / Hybrid / Remote / **Not stated**, from the
+   most reliable source first: (1) the ATS's structured value (Ashby `workplaceType`, Lever
+   `workplaceType`, SmartRecruiters `location.hybrid/remote`, Workable `workplace`, Recruitee
+   `hybrid/remote/on_site`, Workday `remoteType`, Oracle `WorkplaceType`, Talemetry
+   `jobLocationType` — the last three as a `Workplace type:` header line in the detail text);
+   (2) accepted location labels that are *all* remote; (3) an explicit arrangement phrase in
+   the ad (`#LI-Hybrid`, "hybrid working policy", "3 days a week in the office", "this is a
+   fully remote position") — never a bare "hybrid"/"remote", which ad copy uses for other
+   things ("hybrid cloud", "work remotely for 3 months each year"); (4) any remote label.
+   Most ads never say, so the fallback is Not stated, not On site. The profile's `workplace`
+   set (default all three) drops a role only when it *states* an unticked type; **Not stated
+   is always kept**. Unticking Remote is equivalent to `allow_remote: false`
+   (`location_filter.allowed_workplaces`). Ashby's `isRemote` is also true for Hybrid roles,
+   so the adapter adds a `Remote` location label only for `workplaceType: Remote`.
 4. **Location expansion** — one row per location, max 5; >5 with London ⇒ London + Remote only
    (product-spec §12). Remote accepted only if UK/Europe/EMEA-eligible; a remote label naming a
    non-eligible region (`Remote (USA)`, `Remote - Canada`, `Remote (APAC)`, …) is rejected (#3), as is a remote pinned to any other
@@ -345,7 +365,7 @@ Apply, in order, exactly as specified in the product-spec — do not reinvent:
    product-spec §10 — see §9.)
 7. **Per-company cap** — keep top `max_roles_per_company` by seniority; ties by posted date, then
    alphabetical (product-spec §9.2 step 10). The cap runs **after** the detail fetch and detail-derived
-   filters (recency, employment): the pipeline ranks a candidate pool, fetches detail, applies the
+   filters (recency, employment, work type): the pipeline ranks a candidate pool, fetches detail, applies the
    final filters, and keeps the first `max_roles` survivors — so a stale/contract role can't occupy
    a slot and then be silently dropped.
 8. **Dedup** — product-spec §15 (URL, or company + normalised title + first 120 chars + location).

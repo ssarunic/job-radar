@@ -65,6 +65,14 @@ def test_picks_salary_context_over_other_amount():
     ("", "This is a 12 month contract role", "Contract"),
     ("", "Contract type: Full Time", "Full time"),   # 'contract' word w/o context
     ("", "no signal here", "Full time"),
+    # "contract" needs duration context close by, not merely somewhere in the ad
+    ("", "Details are provided in your contract.\n\nReviews every 6 months.", "Full time"),
+    ("", "Experience of procurement and contract negotiations over many years", "Full time"),
+    # an explicit fixed-term statement overrides a structured "Full time" (hours, not permanence)
+    ("Full time", "This role will be offered for a period of twelve months", "Contract"),
+    ("FullTime", "12-month FTC covering parental leave", "Contract"),
+    ("Full time", "Paid maternity leave, as well as 6 weeks paternity leave", "Full time"),
+    ("Full time", "Over this 12-month programme, you'll work on real projects", "Full time"),
 ])
 def test_classify_employment(raw, body, expected):
     assert salary_parser.classify_employment(raw, body) == expected

@@ -16,7 +16,11 @@ def _locations(job) -> str:
             parts.append(sec.get("location") or sec.get("locationName") or "")
         elif isinstance(sec, str):
             parts.append(sec)
-    if job.get("isRemote") and "remote" not in " ".join(parts).lower():
+    # `isRemote` is also true for Hybrid roles, so a stated workplaceType decides;
+    # the flag only counts when the type is absent.
+    remote = (job.get("workplaceType") == "Remote" if job.get("workplaceType")
+              else job.get("isRemote"))
+    if remote and "remote" not in " ".join(parts).lower():
         parts.append("Remote")
     return "; ".join(p for p in parts if p)
 
@@ -62,6 +66,7 @@ def fetch_listing(ats_slug: str, http) -> list[dict]:
             "freshness_date": j.get("publishedAt"),
             "description": html_to_markdown(j.get("descriptionHtml", "")) or plain,
             "employment_type": EMP.get(j.get("employmentType"), ""),
+            "workplace": j.get("workplaceType") or "",
             "salary_text": plain,
             "salary": _salary(j),          # structured comp, preferred over regex
             "source_type": "ATS",

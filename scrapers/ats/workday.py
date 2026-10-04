@@ -194,6 +194,7 @@ class WorkdayFetcher:
         if not jpi:
             return ""
         header = (f"Employment type: {jpi.get('timeType','')}\n"
+                  f"Workplace type: {jpi.get('remoteType') or ''}\n"
                   f"Date posted: {jpi.get('startDate','')}\n"
                   f"Location: {jpi.get('location','')}\n\n")
         return header + html_to_markdown(jpi.get("jobDescription", ""))

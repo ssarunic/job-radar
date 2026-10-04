@@ -46,12 +46,64 @@ def test_expand_caps_at_five_keeping_london_and_remote():
 
 
 @pytest.mark.parametrize("loc,desc,model", [
-    ("London", "hybrid working", "Hybrid"),
+    ("London", "We have a hybrid working policy.", "Hybrid"),
+    ("London", "Location: London, UK (Hybrid, in-person 4 days per week)", "Hybrid"),
+    ("London", "We expect employees to be in the office at least three days per week.", "Hybrid"),
+    ("London", "expected to be in the London office two days per week", "Hybrid"),
+    ("London", "You'll spend around 3 days per week in the office.", "Hybrid"),
+    ("London", "You'll work from home some of the time", "Hybrid"),
+    ("London", "We work 5 days a week in the office.", "On site"),
+    ("London", "This is an office-based role.", "On site"),
+    ("London", "Come take off with us! #LI-Remote", "Remote"),
+    ("London", "This is a fully remote position.", "Remote"),
+    ("London", "London or Remote in the UK | £100,000", "Remote"),
     ("Remote (UK)", "", "Remote"),
-    ("London", "based in our office", "On site"),
+    ("UK - Remote", "If you live in London we have a hybrid approach", "Remote"),
+    ("London ; Remote", "", "Remote"),
+    ("London ; UK - Remote", "(this is a hybrid role)", "Hybrid"),
+    # most ads never say — and that is not the same as on site
+    ("London", "based in our office", "Not stated"),
+    ("London", "", "Not stated"),
+    # "hybrid" / "remote" used for something other than the working arrangement
+    ("London", "platforms operating across hybrid cloud and on-premise environments", "Not stated"),
+    ("London", "moving to a higher-contribution model (federated or hybrid)", "Not stated"),
+    ("London", "experience working in hybrid technology environments", "Not stated"),
+    ("London", '"Mobile Wise" — work remotely for 3 months each year', "Not stated"),
+    ("London", "people working around the world, from our offices and remotely", "Not stated"),
+    ("London", "Openness to periodic on-site embedding with business teams", "Not stated"),
 ])
 def test_workplace_model(loc, desc, model):
     assert L.workplace_model(loc, desc) == model
+
+
+@pytest.mark.parametrize("structured,model", [
+    ("OnSite", "On site"), ("on-site", "On site"), ("on_site", "On site"),
+    ("Hybrid", "Hybrid"), ("remote", "Remote"), ("TELECOMMUTE", "Remote"),
+    ("Fully Remote", "Remote"),
+])
+def test_workplace_model_structured_value_wins(structured, model):
+    # the ATS's own field beats both the location labels and the ad copy
+    assert L.workplace_model("London ; Remote", "remote-first team", structured) == model
+    assert L.normalise_workplace(structured) == model
+
+
+def test_workplace_model_reads_detail_header_line():
+    body = "Employment type: Full time\nWorkplace type: Hybrid\nLocation: LONDON\n\nAd."
+    assert L.workplace_model("London", body) == "Hybrid"
+    # an empty header (tenant doesn't fill the field) must not swallow the next line
+    body = "Employment type: Full time\nWorkplace type: \nLocation: Remote hub\n\nAd."
+    assert L.workplace_model("London", body) == "Not stated"
+    assert L.normalise_workplace("unspecified") == ""
+
+
+def test_allowed_workplaces_and_remote_gate():
+    assert L.allowed_workplaces({}) == ["On site", "Hybrid", "Remote"]
+    assert L.allowed_workplaces({"allow_remote": False}) == ["On site", "Hybrid"]
+    assert L.allowed_workplaces({"workplace": ["Remote", "Hybrid"]}) == ["Hybrid", "Remote"]
+    assert not L.remote_allowed({"workplace": ["On site", "Hybrid"]})
+    # unticking Remote behaves exactly like allow_remote: false
+    assert L.expand("London; Remote (UK)", {"workplace": ["On site", "Hybrid"]}) == ["London"]
+    assert L.expand("Remote (UK)", {"workplace": ["On site"]}) == []
 
 
 def test_split_locations_dedupes():

@@ -122,6 +122,7 @@ class OracleFetcher:
             f"{self.detail_api}?onlyData=true&expand=all&finder={fin}", headers=_JSON_HEADERS)
         j = (data.get("items") or [{}])[0]
         header = (f"Employment type: {_emp(j)}\n"
+                  f"Workplace type: {j.get('WorkplaceType') or ''}\n"
                   f"Date posted: {j.get('PostedDate', '')}\n"
                   f"Location: {j.get('PrimaryLocation', '')}\n\n")
         body = j.get("ExternalDescriptionStr") or j.get("ShortDescriptionStr") or ""

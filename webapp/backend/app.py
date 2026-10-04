@@ -161,6 +161,11 @@ class ProfileUpdate(BaseModel):
     home_terms: Optional[list[str]] = None
     remote_regions: Optional[list[str]] = None
     exclude_titles: Optional[list[str]] = None
+    employment: Optional[list[str]] = None
+    workplace: Optional[list[str]] = None
+
+
+EMPLOYMENT_TYPES = ("Full time", "Part time", "Contract")
 
 
 @app.get("/api/profile")
@@ -188,12 +193,32 @@ def update_profile(body: ProfileUpdate):
         if v is not None and any(not str(t).strip() for t in v):
             raise HTTPException(status_code=422, detail=f"{name} contains empty terms")
 
+    for name, known in (("employment", EMPLOYMENT_TYPES),
+                        ("workplace", location_filter.WORKPLACE_MODELS)):
+        v = getattr(body, name)
+        if v is None:
+            continue
+        if not v or any(t not in known for t in v):
+            raise HTTPException(
+                status_code=422,
+                detail=f"{name} needs at least one of: {', '.join(known)}")
+        setattr(body, name, [t for t in known if t in v])   # canonical order, de-duped
+
     profile = loader.load_profile()
     for key in ("search_label", "seniority_min", "include_product_owner",
-                "include_ai_innovation", "allow_remote", "exclude_titles"):
+                "include_ai_innovation", "allow_remote", "exclude_titles",
+                "employment", "workplace"):
         v = getattr(body, key)
         if v is not None:
             profile[key] = v
+    # `workplace` and the older `allow_remote` flag both gate remote roles; keep
+    # them agreeing whichever one the client sent.
+    if body.workplace is not None:
+        profile["allow_remote"] = "Remote" in body.workplace
+    elif body.allow_remote is not None and "workplace" in profile:
+        chosen = [m for m in profile["workplace"] if m != "Remote"]
+        profile["workplace"] = [m for m in location_filter.WORKPLACE_MODELS
+                                if m in chosen or (m == "Remote" and body.allow_remote)]
     loc_updates = {k: v for k, v in
                    {"home_city": body.home_city, "home_terms": body.home_terms,
                     "remote_regions": body.remote_regions}.items() if v is not None}

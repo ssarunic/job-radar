@@ -70,6 +70,7 @@ def _map(o: dict) -> dict:
         "posted_date": o.get("published_at") or o.get("created_at"),
         "description": _markdown(o),
         "employment_type": _employment(o.get("employment_type_code")),
+        "workplace": next((k for k in ("hybrid", "remote", "on_site") if o.get(k)), ""),
         "salary_text": _salary_text(o.get("salary")),
         "source_type": "ATS",
         "source_detail": "Recruitee",
