@@ -46,9 +46,9 @@ Two gaps block Founding-PM roles from showing up:
 
 ## Ops / data
 
-- **Config sync** — the Pi's live `/data/config/companies.csv` and the repo's `config/companies.csv`
-  diverge (web-UI adds like JPMC/Hostaway don't reach git). Consider an export/commit path so a
-  fresh reinstall seeds the real list. Low urgency (volume persists).
+- **Config backup** — the followed-company list lives only in the Pi's `/data/config/companies.csv`
+  (the file is git-ignored by design, so it never reaches the repo). Consider a private export/backup
+  path so a fresh reinstall can restore the real list. Low urgency (volume persists).
 - **`seek --no-notify` flag** — a first-class way to run the CLI seek without posting to Slack
   (today: unset `$SLACK_WEBHOOK_URL`, or use the web scan which suppresses it).
 - **SQLite read-model** — keep Markdown canonical, add SQLite as a *derived* projection **only**
