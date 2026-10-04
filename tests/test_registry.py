@@ -26,6 +26,14 @@ def test_add_company(tmp_path):
     assert {r["slug"] for r in rows} == {"monzo", "cohere"}
 
 
+def test_find_by_name_matches_slug_or_name_loosely(tmp_path):
+    p = _csv(tmp_path)
+    assert registry.find_by_name("monzo", p)["slug"] == "monzo"
+    assert registry.find_by_name("  MONZO ", p)["slug"] == "monzo"
+    assert registry.find_by_name("Cohere", p) is None
+    assert registry.find_by_name("", p) is None
+
+
 def test_add_duplicate_rejected(tmp_path):
     p = _csv(tmp_path)
     assert registry.add_company({"name": "Monzo", "slug": "monzo", "careers_url": "",

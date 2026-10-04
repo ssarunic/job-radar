@@ -122,6 +122,10 @@ def companies_cmd():
 @click.argument("query")
 def follow(query):
     """Start tracking a company by name (auto-detects ATS) or careers URL."""
+    existing = None if query.lower().startswith("http") else registry.find_by_name(query)
+    if existing:
+        click.echo(f"Already tracking {existing['name']}.")
+        return
     info = discovery.discover(query, _http())
     if not info:
         click.echo(f"Couldn't auto-detect an ATS for {query!r}. Add it to "

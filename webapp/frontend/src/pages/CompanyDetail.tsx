@@ -23,7 +23,9 @@ export default function CompanyDetail() {
     },
   });
 
-  useEffect(() => window.scrollTo(0, 0), []);   // don't inherit the list's scroll offset
+  // don't inherit the list's scroll offset (braces: scrollTo may return a Promise,
+  // which must not become the effect's cleanup)
+  useEffect(() => { window.scrollTo(0, 0); }, []);
 
   if (detail.isLoading) return <p className="muted">Loading…</p>;
   if (detail.isError || !detail.data)

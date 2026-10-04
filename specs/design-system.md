@@ -46,6 +46,9 @@ One-off colours in use (acceptable, don't multiply): `#c8f7c5` salary text,
 - Scale: 24px page `h1` (20px under 520px) · 17px section/modal headings and
   brand · 14px nav, filters, facts, field labels · 13px buttons, row metadata ·
   12px pills/badges/`button.small`.
+- Under 520px every text control (`input`, `select`, `textarea`) is **16px** —
+  iOS Safari zooms the page on focus below that. New form controls must be
+  added to that rule in the phone block at the end of `index.css`.
 - Weights: 700 brand + company names, 600 badges + primary action. No italics
   except rendered ad Markdown.
 
@@ -57,6 +60,10 @@ One-off colours in use (acceptable, don't multiply): `#c8f7c5` salary text,
 - Gaps: 8px between controls in a row; 10–14px metadata gaps; 14–16px between
   blocks; `main` is `max-width: 880px` centred, 16px padding.
 - Borders: `1px solid var(--line)` everywhere a surface meets the page.
+- Under 520px the topbar is two rows (brand + refresh, then nav); the refresh
+  status never wraps — it ellipsizes. Buttons are min 40px tall there, and
+  nothing may widen the page: long ad text wraps (`overflow-wrap: anywhere`),
+  wide ad tables scroll inside the card.
 
 ## Controls
 

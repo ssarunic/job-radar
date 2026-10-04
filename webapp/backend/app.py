@@ -246,11 +246,19 @@ def follow_company(body: AddCompany):
         query = (body.query or "").strip()
         if not query:
             raise HTTPException(422, "provide `query` (name or URL), or `ats_type` + `careers_url`")
+        if not query.lower().startswith("http"):     # typed a name we already track
+            existing = registry.find_by_name(query)
+            if existing:
+                raise HTTPException(409, f"already tracking {existing['name']}")
         http = HttpClient(settings, RateLimiter(settings.get("rate_limit_per_sec", 1)))
         info = discovery.discover(query, http)
         if not info:
-            raise HTTPException(422, f"couldn't auto-detect an ATS for {query!r} — "
-                                     "add manually with ats_type + careers_url")
+            # shown verbatim in the Follow modal — keep it plain-language
+            if query.lower().startswith("http"):
+                raise HTTPException(422, "Couldn't find a jobs board at that link. "
+                                         "Check the URL and try again.")
+            raise HTTPException(422, f"Couldn't find a careers page for “{query}”. "
+                                     "Paste the link to the company's careers page instead.")
         info["active"] = True
     if not registry.add_company(info):
         existing = registry.find_existing(info)
