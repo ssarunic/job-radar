@@ -412,8 +412,30 @@ def test_put_profile_role_toggles_and_exclusions(client):
     assert p["seniority_min"] == 3                      # untouched
 
 
+def test_put_profile_employment_and_work_types(client):
+    p = client.get("/api/profile").json()
+    assert p["location"]["workplace"] == ["On site", "Hybrid", "Remote"]   # default: all
+    r = client.put("/api/profile", json={
+        "employment": ["Contract", "Full time"], "workplace": ["Hybrid", "On site"]})
+    assert r.status_code == 200
+    p = client.get("/api/profile").json()
+    assert p["profile"]["employment"] == ["Full time", "Contract"]         # canonical order
+    assert p["profile"]["workplace"] == ["On site", "Hybrid"]
+    assert p["profile"]["allow_remote"] is False                           # kept in step
+    assert p["location"]["workplace"] == ["On site", "Hybrid"]
+    # the older flag still works, and re-adds Remote to the stored list
+    client.put("/api/profile", json={"allow_remote": True})
+    p = client.get("/api/profile").json()
+    assert p["profile"]["workplace"] == ["On site", "Hybrid", "Remote"]
+    assert p["location"]["workplace"] == ["On site", "Hybrid", "Remote"]
+
+
 def test_put_profile_validates(client):
     assert client.put("/api/profile", json={"home_terms": []}).status_code == 422
+    assert client.put("/api/profile", json={"employment": []}).status_code == 422
+    assert client.put("/api/profile", json={"employment": ["Zero hours"]}).status_code == 422
+    assert client.put("/api/profile", json={"workplace": []}).status_code == 422
+    assert client.put("/api/profile", json={"workplace": ["Anywhere"]}).status_code == 422
 
     assert client.put("/api/profile", json={"seniority_min": 12}).status_code == 422
     assert client.put("/api/profile",

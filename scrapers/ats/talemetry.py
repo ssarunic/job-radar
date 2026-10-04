@@ -132,5 +132,6 @@ class TalemetryFetcher:
         if not ld:
             return ""
         header = (f"Employment type: {_EMP.get(ld.get('employmentType'), '')}\n"
+                  f"Workplace type: {ld.get('jobLocationType') or ''}\n"
                   f"Date posted: {ld.get('datePosted', '')}\n\n")
         return header + html_to_markdown(ld.get("description", ""))

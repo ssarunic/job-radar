@@ -37,6 +37,7 @@ def fetch_listing(ats_slug: str, http) -> list[dict]:
         content = data.get("content", [])
         for j in content:
             emp = (j.get("typeOfEmployment") or {}).get("label", "")
+            loc = j.get("location") if isinstance(j.get("location"), dict) else {}
             out.append({
                 "title": (j.get("name") or "").strip(),
                 "location": _location(j.get("location")),
@@ -46,6 +47,9 @@ def fetch_listing(ats_slug: str, http) -> list[dict]:
                 "description": "",
                 "employment_type": EMP.get(emp.lower(),
                                            emp.replace("-", " ").title() if emp else ""),
+                # only the flags that are set say anything: both false = not stated
+                "workplace": ("hybrid" if loc.get("hybrid")
+                              else "remote" if loc.get("remote") else ""),
                 "salary_text": "",
                 "source_type": "ATS",
                 "source_detail": "SmartRecruiters",

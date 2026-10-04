@@ -316,7 +316,7 @@ Analyze job posting and return JSON:
   "seniority_level": "CPO|VP|Director|Head|Principal|Group|Senior|Mid|Other",
   "normalized_title": "standardized title",
   "employment_type": "Full time|Part time|Contract",
-  "workplace_model": "On site|Hybrid|Remote"
+  "workplace_model": "On site|Hybrid|Remote|Not stated"
 }
 ```
 

@@ -24,9 +24,11 @@ exclude_titles:           # drop any title containing these words
   - "graduate"            # entry-level programmes
   - "internship"
 
-allow_remote: true        # accept remote roles eligible for your region
-
-employment: ["Full time", "Part time"]   # Contract is always excluded
+employment: ["Full time", "Part time"]   # add "Contract" to also keep fixed-term,
+                                          # interim, temporary and freelance roles
+workplace: ["On site", "Hybrid", "Remote"]   # work types to keep; a role that
+                          # doesn't say how it works is always kept. Remote roles
+                          # must also be open to your region (see `location` below)
 recency_days: 45          # ignore postings older than this
 max_roles_per_company: 10 # keep the N most senior per company
 # advanced: detail_fetch_cap: 50   # bounds full-ad fetches per company per scan

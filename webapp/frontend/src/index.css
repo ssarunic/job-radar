@@ -115,6 +115,9 @@ button:disabled { opacity: .5; cursor: default; }
   border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
 .field textarea { font: inherit; font-size: 14px; resize: vertical; }
 .field input[type="checkbox"] { width: auto; flex-shrink: 0; }
+fieldset.checks { border: none; padding: 0; margin-left: 0; margin-right: 0; gap: 8px; }
+fieldset.checks legend { padding: 0; margin-bottom: 6px; }
+fieldset.checks label { display: flex; }
 .settings { max-width: 640px; }
 .settings-head { display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 14px; }

@@ -72,6 +72,7 @@ def fetch_listing(ats_slug: str, http) -> list[dict]:
                 "freshness_date": j.get("published"),
                 "description": "",
                 "employment_type": "",      # not exposed by the public API
+                "workplace": j.get("workplace") or ("remote" if j.get("remote") else ""),
                 "salary_text": "",
                 "source_type": "ATS",
                 "source_detail": "Workable",
