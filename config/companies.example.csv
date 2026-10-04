@@ -1,6 +1,7 @@
-# Example company registry — copy rows you want into companies.csv, or (easier)
-# just follow companies from the web UI's "+ Follow" button and let discovery
-# fill this file in for you. One row per company.
+# Example company registry. Your own list lives in config/companies.csv, which is
+# git-ignored and created the first time you follow a company (web UI "+ Follow"
+# or `main.py follow`). To author it by hand, copy this file to companies.csv and
+# keep the rows you want. One row per company.
 #
 # ats_type: greenhouse | ashby | lever | smartrecruiters | workday | oracle |
 #           recruitee | revolutpeople | talemetry | cvmail | workable | custom

@@ -69,3 +69,16 @@ def test_set_active_toggle(tmp_path):
     assert registry.set_active("monzo", False, p) is True
     assert registry.list_companies(p)[0]["active"] is False
     assert registry.set_active("nope", False, p) is False
+
+
+def test_missing_file_means_nothing_followed(tmp_path):
+    """companies.csv is user-owned and not shipped: absent = empty, and the first
+    follow creates it."""
+    p = tmp_path / "config" / "companies.csv"
+    assert registry.list_companies(p) == []
+    assert registry.find_by_name("monzo", p) is None
+    assert registry.set_active("monzo", False, p) is False
+    assert registry.add_company({"name": "Monzo", "slug": "monzo", "careers_url": "",
+                                 "ats_type": "greenhouse", "ats_slug": "monzo",
+                                 "priority": "medium", "active": True}, p) is True
+    assert [r["slug"] for r in registry.list_companies(p)] == ["monzo"]

@@ -24,6 +24,10 @@ uv.lock
 .env
 config/settings.local.yaml
 
+# Your followed-company list — personal, created on first follow
+# (see config/companies.example.csv for the format).
+config/companies.csv
+
 # Generated runtime output — regenerable, kept local (not versioned).
 # Directories are preserved via .gitkeep.
 jobs/*

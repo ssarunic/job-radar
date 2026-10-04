@@ -104,7 +104,9 @@ Rules:
 
 ### 3.1 `config/companies.csv`
 
-One row per company. CSV is fine here (flat, hand-edited).
+One row per company. CSV is fine here (flat, hand-edited). The file is **user-owned and
+git-ignored** — the repo ships only `config/companies.example.csv`. A missing file means "nothing
+followed yet"; the first follow creates it.
 
 | column | required | example | notes |
 | --- | --- | --- | --- |
@@ -407,7 +409,7 @@ Everything in product-spec §6 (fields), §11 (titles/ranking), §12 (location),
 ```
 job-radar/
 ├── config/
-│   ├── companies.csv
+│   ├── companies.csv          # user-owned, git-ignored (see companies.example.csv)
 │   ├── search_profile.yaml
 │   ├── settings.yaml
 │   └── overrides/<slug>.yaml

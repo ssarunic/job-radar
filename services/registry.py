@@ -14,6 +14,8 @@ FIELDS = ["name", "slug", "careers_url", "ats_type", "ats_slug", "priority", "ac
 def list_companies(path: Path = None) -> list[dict]:
     path = path or store.config_dir() / "companies.csv"
     rows = []
+    if not Path(path).exists():      # user-owned, not shipped: absent = nothing followed yet
+        return rows
     with open(path, newline="") as f:
         for r in csv.DictReader(f):
             r = {k: (v or "").strip() for k, v in r.items()}

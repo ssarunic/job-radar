@@ -1,10 +1,11 @@
 #!/usr/bin/env sh
 set -e
 : "${JSA_ROOT:=/data}"
-# seed default config into the data volume on first run (user edits it there after)
-if [ ! -f "$JSA_ROOT/config/companies.csv" ]; then
+# seed default config into the data volume on first run (user edits it there after).
+# companies.csv is user-owned and never shipped: it is created on the first follow.
+if [ ! -f "$JSA_ROOT/config/settings.yaml" ]; then
   mkdir -p "$JSA_ROOT/config"
-  cp /app/config/companies.csv /app/config/search_profile.yaml /app/config/settings.yaml "$JSA_ROOT/config/" 2>/dev/null || true
+  cp /app/config/search_profile.yaml /app/config/settings.yaml "$JSA_ROOT/config/" 2>/dev/null || true
   [ -d /app/config/overrides ] && cp -r /app/config/overrides "$JSA_ROOT/config/" 2>/dev/null || true
 fi
 case "${1:-web}" in

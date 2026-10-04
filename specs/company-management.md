@@ -16,8 +16,11 @@ is the main day-to-day friction.
 The followed-company list is `config/companies.csv`, read/written by
 `services/registry.py` via `store.config_dir()`. Because `store.root()` honours
 `JSA_ROOT` (=`/data` on the Pi), `config_dir()` resolves to **`/data/config`** — on
-the persistent `jsa-data` volume. `docker/entrypoint.sh` seeds `/data/config` from
-the image **only on first run** (`if [ ! -f … ]`), never overwriting after. So
+the persistent `jsa-data` volume. `docker/entrypoint.sh` seeds `/data/config`
+(settings + search profile) from the image **only on first run** (`if [ ! -f … ]`),
+never overwriting after. `companies.csv` itself is not shipped or seeded — it is
+git-ignored, and the registry treats a missing file as an empty list and creates it
+on the first follow. So
 `follow`/`unfollow` already persist across redeploys. **This feature is about access
 (a write API + UI), not persistence.**
 

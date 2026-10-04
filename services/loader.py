@@ -1,13 +1,12 @@
 """Config loading + per-company profile merge (SPEC §3)."""
 from __future__ import annotations
 
-import csv
 import os
 from pathlib import Path
 
 import yaml
 
-from services import store
+from services import registry, store
 
 # Paths resolved per call (not frozen at import) so JSA_ROOT works in test/web/embedded.
 
@@ -41,13 +40,7 @@ def load_profile() -> dict:
 
 
 def load_companies() -> list[dict]:
-    rows = []
-    with open(store.config_dir() / "companies.csv", newline="") as f:
-        for row in csv.DictReader(f):
-            row = {k: (v or "").strip() for k, v in row.items()}
-            row["active"] = row.get("active", "true").lower() in ("true", "1", "yes")
-            rows.append(row)
-    return rows
+    return registry.list_companies()
 
 
 def merged_profile(company: dict, base_profile: dict) -> dict:

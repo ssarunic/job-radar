@@ -13,3 +13,4 @@ specs
 *.md
 .DS_Store
 .env
+config/companies.csv
