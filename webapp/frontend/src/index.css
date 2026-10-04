@@ -108,11 +108,30 @@ svg.icon { flex-shrink: 0; }
 button:hover:not(:disabled), a.btn:hover { border-color: var(--accent); }
 button:disabled { opacity: .5; cursor: default; }
 
-/* Setup wizard */
+/* Settings (also the first-run /setup form) */
 .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px;
   font-size: 14px; }
-.field input, .field select { background: var(--panel); color: var(--text);
+.field input, .field select, .field textarea { background: var(--panel); color: var(--text);
   border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.field textarea { font: inherit; font-size: 14px; resize: vertical; }
+.field input[type="checkbox"] { width: auto; flex-shrink: 0; }
+.settings { max-width: 640px; }
+.settings-head { display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px; }
+.settings-head h2 { margin: 0; font-size: 20px; }
+.settings-card { background: var(--panel); border: 1px solid var(--line);
+  border-radius: 10px; padding: 12px 16px 2px; margin-bottom: 14px; }
+.settings-card h3 { margin: 0 0 10px; font-size: 15px; }
+.settings-note { font-size: 13px; }
+.settings-note code { color: var(--text); }
+.kv { display: grid; grid-template-columns: 190px 1fr; margin: 0 0 10px; font-size: 14px; }
+.kv dt, .kv dd { margin: 0; padding: 8px 0; border-top: 1px solid var(--line); }
+.kv dt { color: var(--muted); }
+.pills { display: inline-flex; gap: 6px; flex-wrap: wrap; vertical-align: middle; }
+.link { color: var(--accent); }
+/* controls inside a card sit on --panel, so they drop to --bg to stay visible */
+.settings-card .field input, .settings-card .field select,
+.settings-card .field textarea { background: var(--bg); }
 .banner { background: var(--panel); border: 1px solid var(--line);
   border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 14px; }
 
@@ -142,8 +161,12 @@ button.small { font-size: 12px; padding: 2px 10px; margin-left: 8px; vertical-al
   .refresh { flex: 1; justify-content: flex-end; }
   .topnav a { padding: 9px 0; }
   /* iOS Safari zooms the page when a focused control is under 16px */
-  .filters select, .filters input, .field input, .field select,
+  .filters select, .filters input, .field input, .field select, .field textarea,
   .notes textarea { font-size: 16px; }
+  /* settings rows stack: label above value, one hairline per pair */
+  .kv { grid-template-columns: 1fr; }
+  .kv dd { border-top: none; padding-top: 0; }
+  .kv dt { padding-bottom: 2px; }
   /* comfortable tap targets */
   button, a.btn { min-height: 40px; }
   button.small, .modal-x { min-height: 32px; }
