@@ -125,9 +125,11 @@ def test_slack_blocks_deep_link_to_web_app():
     section = blocks[1]["text"]["text"]
     assert text == "2 new senior PM roles"
     assert blocks[0]["type"] == "header" and "2 new senior PM roles" in blocks[0]["text"]["text"]
-    # title links to the web-app detail page; external posting offered as "apply"
+    # title links to the web-app detail page — and that is the only link per role
     assert "<http://pi:8765/jobs/abc123|Senior PM>" in section
-    assert "<https://boards.greenhouse.io/monzo/jobs/abc|apply ↗>" in section
+    assert "<http://pi:8765/jobs/def456|Principal PM>" in section
+    assert "greenhouse.io" not in section and "wise.com" not in section
+    assert "apply ↗" not in section
     assert "Cohere" not in section        # updates aren't new
 
 

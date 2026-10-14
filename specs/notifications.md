@@ -31,8 +31,9 @@ the network send is injectable, so providers are unit-tested without network.
   heartbeat.
 - **slack** — Incoming Webhook (`notify.slack_webhook`, or `$SLACK_WEBHOOK_URL` if blank).
   Block Kit message where **each role title deep-links to its web-app detail page**
-  (`web_base_url/jobs/<id>`, from `settings.web_base_url` or `$WEB_BASE_URL`) with an
-  "apply ↗" external link. The heartbeat uses a distinct "✅ All quiet — no new roles"
+  (`web_base_url/jobs/<id>`, from `settings.web_base_url` or `$WEB_BASE_URL`) — the only
+  link per role, so a tap always lands in the tracker (the detail page has the Apply
+  button); the external posting is linked only when no base URL is set. The heartbeat uses a distinct "✅ All quiet — no new roles"
   Block Kit message.
 
 ## Interactive scans suppress Slack
