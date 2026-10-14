@@ -2,8 +2,15 @@
 import html as _html
 import json
 
-from scrapers.ats.screenloop import (ScreenloopFetcher, _location, board_url, parse_board,
-                                     parse_job, react_props, slug_from_url)
+from scrapers.ats.screenloop import (
+    ScreenloopFetcher,
+    _location,
+    board_url,
+    parse_board,
+    parse_job,
+    react_props,
+    slug_from_url,
+)
 from scrapers.ladder import _build_rungs, detect_ats
 from scrapers.result import EMPTY, OK
 from services import discovery
