@@ -205,7 +205,8 @@ _WORKPLACE_HEADER_RX = re.compile(r"^workplace type:[ \t]*(\S.*)$",
 # and "remote" on their own are everywhere in ad copy ("hybrid cloud", "work
 # remotely for 3 months each year", "experience leading remote teams"), so only
 # arrangement phrases count.
-_DAYS = r"(\d|one|two|three|four|five)\+?(?:\s*(?:-|–|to|or)\s*(?:\d|one|two|three|four|five))? days?"
+_NUM = r"(?:\d|one|two|three|four|five)"
+_DAYS = rf"({_NUM})\+?(?:\s*(?:-|–|to|or)\s*{_NUM})? days?"
 _PER_WEEK = r"(?:a|per|each|every) week"
 _OFFICE_DAYS_RX = re.compile(
     rf"\b{_DAYS} {_PER_WEEK},? (?:in|from|at) (?:the|our|an?) [\w ]{{0,20}}?office"
