@@ -13,6 +13,7 @@ from scrapers.ats import ashby, greenhouse, lever, revolut_people, smartrecruite
 from scrapers.ats.cvmail import CvMailFetcher
 from scrapers.ats.oracle import OracleFetcher
 from scrapers.ats.recruitee import RecruiteeFetcher
+from scrapers.ats.screenloop import ScreenloopFetcher
 from scrapers.ats.talemetry import TalemetryFetcher
 from scrapers.ats.workday import WorkdayFetcher
 from scrapers.playwright_scraper import PlaywrightSession
@@ -32,7 +33,7 @@ def detect_ats(company: dict, http) -> str:
                ("revolut.com/careers", "revolutpeople"),
                ("talemetry", "talemetry"), ("oraclecloud", "oracle"),
                ("recruitee", "recruitee"), ("cvmail", "cvmail"),
-               ("workable.com", "workable"))
+               ("workable.com", "workable"), ("screenloop", "screenloop"))
     low = url.lower()
     for needle, ats in markers:
         if needle in low:
@@ -172,6 +173,8 @@ def _build_rungs(company, profile, http):
         return [(True, lambda: RecruiteeFetcher(company, http)), playwright, static]
     if ats == "cvmail":
         return [(True, lambda: CvMailFetcher(company, http)), playwright, static]
+    if ats == "screenloop":
+        return [(True, lambda: ScreenloopFetcher(company, http)), playwright, static]
     if ats == "revolutpeople":
         return [(True, lambda: revolut_people.make_fetcher(company, http)),
                 playwright, static]

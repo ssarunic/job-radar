@@ -128,10 +128,23 @@ def employment_type(text: str) -> str:
     return "Full time"  # default when unstated
 
 
+# Adapters whose listing carries no employment field (Workday, Oracle, Talemetry,
+# Screenloop) prepend the ATS's structured value to the detail text as a header
+# line; it is as authoritative as a listing field, so read it before guessing
+# from the ad copy (which may mention a contract hire in passing).
+_EMPLOYMENT_HEADER_RX = re.compile(r"^employment type:[ \t]*(\S.*)$", re.I | re.M)
+
+
+def _header_employment(body: str) -> str:
+    m = _EMPLOYMENT_HEADER_RX.search(body or "")
+    return m.group(1).strip() if m else ""
+
+
 def classify_employment(raw_value: str, body: str) -> str:
     """Normalise a structured employment value (Ashby 'FullTime', Workday 'Full time',
-    SR 'Contractor', 'Fixed-term'…) and fall back to body heuristics (product-spec §10, #4)."""
-    v = (raw_value or "").lower()
+    SR 'Contractor', 'Fixed-term'…, or an `Employment type:` header line in the detail
+    text) and fall back to body heuristics (product-spec §10, #4)."""
+    v = (raw_value or _header_employment(body) or "").lower()
     if v:
         if any(k in v for k in ("contract", "fixed", "temporary", "interim",
                                 "freelance", "intern", "seasonal")):

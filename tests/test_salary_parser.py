@@ -68,3 +68,19 @@ def test_picks_salary_context_over_other_amount():
 ])
 def test_classify_employment(raw, body, expected):
     assert salary_parser.classify_employment(raw, body) == expected
+
+
+def test_classify_employment_reads_the_detail_header_line():
+    # Screenloop/Workday-style detail text: the ATS's structured value rides as a
+    # header line, and the ad copy mentions a contract hire in passing ("year"
+    # nearby would otherwise satisfy the noisy body heuristic).
+    body = ("Employment type: Full time\nWorkplace type: Hybrid\n\n"
+            "Every year thousands move. A contract product person is already underway.")
+    assert salary_parser.classify_employment("", body) == "Full time"
+    assert salary_parser.classify_employment(None, body) == "Full time"
+    assert salary_parser.classify_employment("", body.replace("Full time", "Part time")) == "Part time"
+    assert salary_parser.classify_employment("", body.replace("Full time", "Fixed-term")) == "Contract"
+    # an explicit listing value still wins over the header
+    assert salary_parser.classify_employment("Contractor", body) == "Contract"
+    # an empty header falls through to the body heuristics
+    assert salary_parser.classify_employment("", "Employment type: \n\nA 12 month contract.") == "Contract"
