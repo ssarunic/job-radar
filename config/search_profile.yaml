@@ -35,9 +35,13 @@ allow_remote: true               # accept if UK/Europe/EMEA-eligible (not US-onl
 #   - {pattern: "\\bstaff product designer\\b",   normalised: "Staff Product Designer",   level: "Staff",  rank: 5}
 #   - {pattern: "\\bsenior product designer\\b",  normalised: "Senior Product Designer",  level: "Senior", rank: 3}
 
-employment:                      # exclude Contract (product-spec §10)
-  - "Full time"
+employment:                      # exclude Contract (product-spec §10); add "Contract"
+  - "Full time"                  # to also keep fixed-term / interim / freelance roles
   - "Part time"
+
+# Work types to keep. A role that doesn't state its work type is always kept;
+# unticking Remote here is the same as allow_remote: false.
+# workplace: ["On site", "Hybrid", "Remote"]
 
 recency_days: 45
 max_roles_per_company: 10

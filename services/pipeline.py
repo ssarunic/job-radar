@@ -147,6 +147,7 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
     # roles at the top buries eligible ones below it. Detail fetches are the only
     # real cost, so bound *those* with an explicit, logged cap (not a silent slice).
     allowed = set(profile.get("employment", ["Full time", "Part time"]))
+    workplaces = set(location_filter.allowed_workplaces(profile))
     kept: list[JobPosting] = []
     details = 0
     for jp, raw in ranked:
@@ -185,6 +186,14 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
         if jp.employment_type not in allowed:
             continue
 
+        # work type: a role that states one the seeker unticked is dropped; one
+        # that doesn't say ("Not stated") is always kept
+        jp.workplace_model = location_filter.workplace_model(
+            " ; ".join(jp.locations), body, raw.get("workplace", ""))
+        if (jp.workplace_model in location_filter.WORKPLACE_MODELS
+                and jp.workplace_model not in workplaces):
+            continue
+
         ats_sal = raw.get("salary")
         if ats_sal and ats_sal.get("min") is not None:
             # ATS-provided structured comp (e.g. Ashby) — authoritative
@@ -204,7 +213,6 @@ def process_company(company: dict, profile: dict, raw_listing: list[dict],
             else:
                 jp.salary, jp.compensation_type = salary_parser.parse(salary_text)
 
-        jp.workplace_model = location_filter.workplace_model(" ; ".join(jp.locations), body)
         jp.requirements = _extract_requirements(body)
         jp.description = _clean_body(body)   # full ad text (MD is the canonical record)
         kept.append(jp)
