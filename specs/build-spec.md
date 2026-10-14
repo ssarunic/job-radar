@@ -480,8 +480,9 @@ providers are unit-tested without network. See `notifications.md`. Providers:
 - **slack** — Incoming Webhook (`notify.slack_webhook`, or `$SLACK_WEBHOOK_URL` if blank).
   Sends a Block Kit message where **each role title deep-links to its web-app detail page**
   (`web_base_url/jobs/<id>`, from `settings.web_base_url` or `$WEB_BASE_URL`) so you can open
-  it in the tracker from your phone, with an "apply ↗" link to the external posting. Falls
-  back to linking the external posting when no `web_base_url` is set. The scheduler/scraper
+  it in the tracker from your phone — the only link in the message, so a tap always lands in
+  the tracker (the detail page carries the Apply button). Falls back to linking the external
+  posting when no `web_base_url` is set. The scheduler/scraper
   container is the one that fires these (it runs `seek`), so the webhook + base URL are set on
   that service (see `docker-compose.yml`).
 

@@ -7,8 +7,9 @@ so a quiet run still sends an **"all quiet" heartbeat** (so a silent morning mea
 when there's nothing new. Providers:
 - **ntfy** (https://ntfy.sh/<topic>): zero setup, plain-text body.
 - **slack**: Incoming Webhook, Block Kit message where each role title **deep-links
-  to its web-app detail page** (`web_base_url/jobs/<id>`) so you can open it in the
-  tracker from your phone, plus an "apply ↗" link to the external posting.
+  to its web-app detail page** (`web_base_url/jobs/<id>`) — the only link in the
+  message, so a tap always lands in the tracker (the detail page carries the Apply
+  button). Falls back to the external posting only when no base URL is set.
 
 Disabled until configured. The network send is injectable for tests.
 """
@@ -63,11 +64,9 @@ def _slack_line(row: dict, web_base_url: str) -> str:
     detail = _detail_url(web_base_url, row)
     label = f"<{detail}|{title}>" if detail else title   # Slack mrkdwn link
     loc = row.get("location")
-    line = f"• *{label}* — {row.get('company', '')}" + (f" ({loc})" if loc else "")
-    ext = row.get("url")
-    if ext and ext != detail:                            # also offer the external apply link
-        line += f"  ·  <{ext}|apply ↗>"
-    return line
+    # No second link to the external ad: the tracker's detail page has the Apply
+    # button, and one link per role keeps taps landing in JobRadar.
+    return f"• *{label}* — {row.get('company', '')}" + (f" ({loc})" if loc else "")
 
 
 def build_slack_blocks(diff: list[dict], web_base_url: str = "", max_items: int = 12,
