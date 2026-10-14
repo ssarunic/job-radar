@@ -150,6 +150,20 @@ def test_from_name_probes_workable_last():
     assert d["careers_url"] == "https://apply.workable.com/cloudtalk/"
 
 
+def test_from_name_probes_screenloop_after_the_json_apis():
+    class Http(FakeHttp):
+        def get(self, url, **kw):
+            assert "screenloop.com/careers/homesearch" in url
+            return _Resp('<div data-react-class="applicant_tracking/Careers/CareersPage" '
+                         'data-react-props="{&quot;jobPosts&quot;:[{&quot;id&quot;:1,'
+                         '&quot;name&quot;:&quot;Head of Product&quot;}]}"></div>')
+    d = discovery.discover("Homesearch", Http({}))
+    assert d["ats_type"] == "screenloop" and d["ats_slug"] == "homesearch"
+    assert d["careers_url"] == "https://app.screenloop.com/careers/homesearch"
+    # FakeHttp has no get(): the probe swallows that and reports no match
+    assert discovery.discover("Homesearch", FakeHttp({})) is None
+
+
 def test_workable_requires_postings():
     # Workable 200s some dormant accounts with total 0 -> must NOT match
     http = FakeHttp({"workable.com/api/v3/accounts/ghost/jobs": {"total": 0, "results": []}})

@@ -9,12 +9,14 @@ from collections import Counter
 from urllib.parse import urlsplit
 
 from models.job_posting import _slugify
+from scrapers.ats import screenloop
 
 _GH = "https://boards-api.greenhouse.io/v1/boards/{}/jobs"
 _ASHBY = "https://api.ashbyhq.com/posting-api/job-board/{}"
 _LEVER = "https://api.lever.co/v0/postings/{}?mode=json"
 _SR = "https://api.smartrecruiters.com/v1/companies/{}/postings?limit=1"
 _WK = "https://apply.workable.com/api/v3/accounts/{}/jobs"
+_SL = "https://app.screenloop.com/careers/{}"
 
 CAREERS = {
     "greenhouse": "https://job-boards.greenhouse.io/{}",
@@ -22,6 +24,7 @@ CAREERS = {
     "lever": "https://jobs.lever.co/{}",
     "smartrecruiters": "https://jobs.smartrecruiters.com/{}",
     "workable": "https://apply.workable.com/{}/",
+    "screenloop": "https://app.screenloop.com/careers/{}",
 }
 
 
@@ -88,6 +91,13 @@ def _probe(slug: str, http) -> str | None:
             return "workable"
     except Exception:
         pass
+    # Screenloop has no JSON API: the board HTML embeds jobPosts[]; unknown slugs 404.
+    # Require a listed post so an empty/dormant board does not claim the name.
+    try:
+        if screenloop.parse_board(http.get(_SL.format(slug)).text, slug):
+            return "screenloop"
+    except Exception:
+        pass
     return None
 
 
@@ -121,6 +131,10 @@ def _from_url(url: str, http=None) -> dict | None:
         return mk("lever", seg0)
     if "smartrecruiters" in host:
         return mk("smartrecruiters", seg0)
+    if host.endswith("screenloop.com"):   # app.screenloop.com/careers/{slug}[/job_posts/N]
+        slug = screenloop.slug_from_url(url)
+        if slug:
+            return mk("screenloop", slug)
     if host.endswith("workable.com"):
         # apply.workable.com/{slug}/j/{code} or the {slug}.workable.com alias
         sub = host.split(".")[0]

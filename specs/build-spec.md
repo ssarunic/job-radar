@@ -113,7 +113,7 @@ followed yet"; the first follow creates it.
 | `name` | yes | NatWest | display name |
 | `slug` | yes | natwest | folder name under `jobs/`; lowercase, kebab |
 | `careers_url` | yes | https://jobs.natwestgroup.com/search/searchjobs | listing/search page |
-| `ats_type` | no | greenhouse \| lever \| ashby \| workday \| smartrecruiters \| talemetry \| revolutpeople \| oracle \| recruitee \| cvmail \| workable \| custom \| auto | `auto` ⇒ detect (§4.1) |
+| `ats_type` | no | greenhouse \| lever \| ashby \| workday \| smartrecruiters \| talemetry \| revolutpeople \| oracle \| recruitee \| cvmail \| workable \| screenloop \| custom \| auto | `auto` ⇒ detect (§4.1) |
 | `ats_slug` | no | natwest | the org identifier the ATS API expects, if different from `slug` |
 | `priority` | no | high | ordering only |
 | `active` | no | true | `false` ⇒ skipped without deleting the row |
@@ -198,6 +198,7 @@ Detection (`ats_type: auto`): fetch `careers_url`, inspect final URL/host and pa
 | Oracle ORC (Fusion CE) | host `*.fa.*.oraclecloud.com` + `/hcmUI/CandidateExperience/…/sites/{SITE}/` | `GET {host}/hcmRestApi/resources/latest/recruitingCEJobRequisitions?expand=requisitionList&finder=findReqs;siteNumber={SITE},selectedLocationsFacet={UK},limit=100,offset=N` + per-posting detail (`recruitingCEJobRequisitionDetails` → `ExternalDescriptionStr`). Country-level UK location facet discovered first to collapse volume — see `oracle-adapter.md` |
 | Recruitee | host `{slug}.recruitee.com`, or `recruitee` in the page body (custom domain) | `GET {careers_origin}/api/offers/` — descriptions inline (custom domains proxy the API, so no tenant-slug resolution) — see `recruitee-adapter.md` |
 | Workable | host `apply.workable.com/{slug}/…` or `{slug}.workable.com`, or `workable.com` in the page body (embedded widget) | `POST https://apply.workable.com/api/v3/accounts/{ats_slug}/jobs` (10/page, body `token` = `nextPage`) + per-posting detail (`GET …/api/v2/accounts/{ats_slug}/jobs/{shortcode}` → description/requirements/benefits HTML). Remote roles list every eligible country — see `workable-adapter.md` |
+| Screenloop | host `app.screenloop.com/careers/{slug}/…`, or `screenloop` in the page body | **HTML, no public JSON API**: the Rails page embeds the React board's props — `GET /careers/{slug}` → `data-react-props` JSON `jobPosts[]` (title, structured location; no dates/bodies) + per-posting detail (`GET /careers/{slug}/job_posts/{id}` → `previewJobPost` employment/work type/salary as header lines + `jobPostHtmlString` → Markdown). Robots-checked — see `screenloop-adapter.md` |
 | cvMail (Thomson Reuters) | host contains `cvmail` (`fsr.cvmailuk.com/<firm>/`) | **HTML, no JSON API**: `GET /{firm}/main.cfm?page=jobBoard` table (+ form-POST pagination with per-render `x-token`) + per-posting detail (`page=jobSpecific&jobId=N`, label/value rows → Markdown). Job URLs normalised to drop the volatile `rcd` param; no posted dates; robots-checked — see `cvmail-adapter.md` |
 
 This rung handles most companies and is immune to HTML redesigns. Prefer it whenever possible.
@@ -420,7 +421,7 @@ job-radar/
 ├── models/                        # JobPosting dataclass
 ├── scrapers/
 │   ├── ladder.py                  # orchestrates rungs 1–3
-│   ├── ats/{greenhouse,lever,ashby,workday,smartrecruiters,talemetry,revolut_people,oracle,recruitee,cvmail,workable}.py
+│   ├── ats/{greenhouse,lever,ashby,workday,smartrecruiters,talemetry,revolut_people,oracle,recruitee,cvmail,workable,screenloop}.py
 │   ├── playwright_scraper.py
 │   ├── static_scraper.py
 │   └── rate_limiter.py

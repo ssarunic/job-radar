@@ -4,7 +4,7 @@
 # keep the rows you want. One row per company.
 #
 # ats_type: greenhouse | ashby | lever | smartrecruiters | workday | oracle |
-#           recruitee | revolutpeople | talemetry | cvmail | workable | custom
+#           recruitee | revolutpeople | talemetry | cvmail | workable | screenloop | custom
 # priority: high | medium | low   (informational)
 # active:   true | false          (false = unfollowed, kept for history)
 name,slug,careers_url,ats_type,ats_slug,priority,active
@@ -14,3 +14,4 @@ Spotify,spotify,https://jobs.lever.co/spotify,lever,spotify,medium,true
 Wise,wise,https://jobs.smartrecruiters.com/Wise,smartrecruiters,Wise,high,true
 Hostaway,hostaway,https://careers.hostaway.com,recruitee,,medium,true
 CloudTalk,cloudtalk,https://apply.workable.com/cloudtalk/,workable,cloudtalk,medium,true
+Homesearch,homesearch,https://app.screenloop.com/careers/homesearch,screenloop,homesearch,medium,true

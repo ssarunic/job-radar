@@ -97,7 +97,7 @@ searches the web.
 Accepted `ats_url` forms: the adapter boards (`(job-)boards.greenhouse.io/<slug>`,
 `jobs.ashbyhq.com/<slug>`, `jobs.lever.co/<slug>`, `jobs.smartrecruiters.com/<Company>`,
 `<tenant>.myworkdayjobs.com/<site>`, Oracle `…oraclecloud.com…`, `<slug>.recruitee.com`,
-`apply.workable.com/<slug>/…`)
+`apply.workable.com/<slug>/…`, `app.screenloop.com/careers/<slug>`)
 plus careers pages that embed a detectable ATS (Talemetry/Workday/Recruitee body probe).
 Anything resolving to `custom` is rejected with an error that tells the model what to
 pass instead. Because discovery body-probes unrecognised hosts with a real GET, the
