@@ -1,0 +1,10 @@
+# Daytona (daytona.io) has no ATS: a Framer-built careers page whose job cards are
+# plain anchors to Notion job descriptions, so it runs on the static rung with these
+# selectors. They key on data-framer-name attributes, not Framer's generated class
+# names. Each card holds three "Job Title"-named blocks in order: title, department,
+# location — the location selector picks the second block of the trailing meta row.
+ats_type: custom
+selectors:
+  job_card: 'a[href*="app.notion.com/p/"]'
+  title: 'div[data-framer-name="Job Title"] p'
+  location: 'div[data-framer-name="Job Title"] + div > div:nth-child(2) div[data-framer-name="Job Title"] p'

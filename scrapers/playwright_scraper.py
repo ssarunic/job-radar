@@ -182,7 +182,9 @@ def _safe_href(card, sel: str | None, base_url: str) -> str:
     try:
         loc = card.locator(sel).first if sel else card.locator("a").first
         if loc.count() == 0:
-            return ""
+            if sel:
+                return ""
+            loc = card   # the card itself may be the anchor (Framer/Webflow boards)
         href = loc.get_attribute("href") or ""
         return urljoin(base_url, href) if href else ""
     except Exception:

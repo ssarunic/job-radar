@@ -237,7 +237,9 @@ Chromium, headless per settings)**:
 
 ### 4.3 Rung 3 — static HTML (`requests` + BeautifulSoup)
 
-Last resort for simple server-rendered listings. Same parse contract as Rung 2.
+Last resort for simple server-rendered listings. Same parse contract as Rung 2. With no
+`link` selector, the card's first nested `<a>` is the posting link — or the card itself when
+the card *is* the anchor (Framer/Webflow boards such as Daytona, `config/overrides/daytona.yaml`).
 
 ### 4.4 Detail fetch
 

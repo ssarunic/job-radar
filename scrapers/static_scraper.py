@@ -14,6 +14,8 @@ def listing(url: str, selectors: dict, http):
         title_el = card.select_one(selectors["title"]) if selectors.get("title") else None
         loc_el = card.select_one(selectors["location"]) if selectors.get("location") else None
         link_el = card.select_one(selectors["link"]) if selectors.get("link") else card.find("a")
+        if link_el is None and not selectors.get("link") and card.name == "a":
+            link_el = card   # Framer/Webflow boards: the card itself is the anchor
         href = link_el.get("href") if link_el else ""
         out.append({
             "title": (title_el.get_text(strip=True) if title_el else ""),
