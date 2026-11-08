@@ -167,6 +167,12 @@ def test_marketing_alone_still_excluded():
     ("Product Management Director", 7, "Director of Product"),
     ("Director, Product Manager", 7, "Director of Product"),        # grade first
     ("Director - Product Owner", 7, "Director of Product"),
+    # real JPMC case: one area-qualifier segment between the function and the grade
+    ("Payments - Merchant Services - Product Manager, Omnichannel Solutions – Vice President"
+     " - London", 8, "VP Product"),
+    ("Product Manager - Merchant Services EMEA - Vice President", 8, "VP Product"),
+    ("Product Manager, Omni-Channel Payments - Director", 7, "Director of Product"),
+    ("Product Owner, Card Issuing | Executive Director", 7, "Director of Product"),
 ])
 def test_corporate_grade_titles(title, rank, norm):
     c = classify(title, PROFILE)
@@ -179,6 +185,12 @@ def test_corporate_grade_titles(title, rank, norm):
     ("Product Manager - Directory Services", "Product Manager"),
     # AVP has no rung on the ladder: ranks on the function, so still below the floor
     ("Product Manager - AVP", "Product Manager"),
+    # qualifier bridge: the grade must be its own segment, not part of another role
+    ("Product Manager - Sales Director", "Product Manager"),
+    ("Product Manager, Payments - Assistant Vice President", "Product Manager"),
+    ("Product Manager, Payments - Director of Sales", "Product Manager"),
+    # only ONE qualifier segment may bridge
+    ("Product Manager, Payments - Cards - Ops - Vice President", "Product Manager"),
 ])
 def test_grade_does_not_leak(title, norm):
     c = classify(title, PROFILE)

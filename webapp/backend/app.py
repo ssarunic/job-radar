@@ -163,6 +163,7 @@ class ProfileUpdate(BaseModel):
     exclude_titles: Optional[list[str]] = None
     employment: Optional[list[str]] = None
     workplace: Optional[list[str]] = None
+    max_roles_per_company: Optional[int] = None
 
 
 EMPLOYMENT_TYPES = ("Full time", "Part time", "Contract")
@@ -186,6 +187,8 @@ def update_profile(body: ProfileUpdate):
     machine-written after first save; docs/configuration.md documents fields."""
     if body.seniority_min is not None and not 1 <= body.seniority_min <= 9:
         raise HTTPException(status_code=422, detail="seniority_min must be 1–9")
+    if body.max_roles_per_company is not None and not 1 <= body.max_roles_per_company <= 50:
+        raise HTTPException(status_code=422, detail="max_roles_per_company must be 1–50")
     if body.home_terms is not None and not body.home_terms:
         raise HTTPException(status_code=422, detail="home_terms needs at least one location")
     for name in ("home_terms", "remote_regions", "exclude_titles"):
@@ -207,7 +210,7 @@ def update_profile(body: ProfileUpdate):
     profile = loader.load_profile()
     for key in ("search_label", "seniority_min", "include_product_owner",
                 "include_ai_innovation", "allow_remote", "exclude_titles",
-                "employment", "workplace"):
+                "employment", "workplace", "max_roles_per_company"):
         v = getattr(body, key)
         if v is not None:
             profile[key] = v

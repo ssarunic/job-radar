@@ -47,12 +47,26 @@ _VP_GRADE = r"(?:senior |executive )?vice president|svp|evp|vp"
 _DIR_GRADE = r"(?:managing |executive )?director"
 
 
+# JP Morgan's template puts one area qualifier between the function and the grade:
+# "Payments - Merchant Services - Product Manager, Omnichannel Solutions - Vice
+# President - London". Allowed only after the PM role, as ONE short segment (≤4 words,
+# no separators inside), and only when the grade is its own segment, delimited by hard
+# separators on both sides. That way "Product Manager - Sales Director" and "…, Payments
+# - Assistant Vice President" don't match.
+_HARD_SEP = r"\s*[-–—,|:]\s*"
+_QUAL_WORD = r"[\w&/'’.]+(?:-[\w&/'’.]+)*"
+_QUAL_SEG = rf"(?:{_QUAL_WORD}\s+){{0,3}}{_QUAL_WORD}"
+_SEG_END = r"(?=\s*(?:[-–—,|:]|$))"
+
+
 def _graded(grade: str) -> str:
     """`<pm role><sep><grade>` or `<grade><sep><pm role>`. The two must be
     adjacent, so a grade attached to another function doesn't leak across
-    ("Director of Engineering, Product Manager" is not a Director product role)."""
+    ("Director of Engineering, Product Manager" is not a Director product role).
+    The one exception is `<pm role>, <area qualifier> - <grade>` (see `_QUAL_SEG`)."""
     return (rf"\b{_PM_ROLE}\b{_GRADE_SEP}(?:{grade})\b"
-            rf"|\b(?:{grade}){_GRADE_SEP}{_PM_ROLE}\b")
+            rf"|\b(?:{grade}){_GRADE_SEP}{_PM_ROLE}\b"
+            rf"|\b{_PM_ROLE}{_HARD_SEP}{_QUAL_SEG}{_HARD_SEP}(?:{grade}){_SEG_END}")
 
 
 # Conjoined C-suite titles (product-spec §11.10): scale-ups and mid-size orgs often

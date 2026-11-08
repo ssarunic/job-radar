@@ -158,15 +158,15 @@ function SettingsView({ data }: { data: Data }) {
             <Link to="/companies?show=all" className="link">Manage companies</Link>
           </dd>
           <dt>Roles kept per company</dt>
-          <dd>Top {profile.max_roles_per_company ?? 10} most senior</dd>
+          <dd>Top {profile.max_roles_per_company ?? 20} most senior</dd>
           <dt>Posting age limit</dt>
           <dd>{profile.recency_days ?? 45} days</dd>
         </dl>
       </section>
 
       <p className="muted settings-note">
-        Changes apply from the next scan. The per-company cap and the age limit are
-        changed in <code>config/search_profile.yaml</code>.
+        Changes apply from the next scan. The posting age limit is changed in{" "}
+        <code>config/search_profile.yaml</code>.
       </p>
     </>
   );
@@ -188,6 +188,7 @@ function SettingsForm({ data, saveLabel, onDone, onCancel }: {
     includeAI: profile.include_ai_innovation ?? true,
     excludeTitles: profile.exclude_titles ?? [],
     employment: profile.employment ?? ["Full time", "Part time"],
+    maxRoles: profile.max_roles_per_company ?? 20,
   };
 
   const [label, setLabel] = useState(cur.label);
@@ -201,6 +202,7 @@ function SettingsForm({ data, saveLabel, onDone, onCancel }: {
   const [workplace, setWorkplace] = useState(location.workplace);
   const allowRemote = workplace.includes("Remote");
   const [remoteRegions, setRemoteRegions] = useState(showTerms(location.remote_regions));
+  const [maxRoles, setMaxRoles] = useState(String(cur.maxRoles));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -223,6 +225,13 @@ function SettingsForm({ data, saveLabel, onDone, onCancel }: {
     if (!sameTerms(home, location.home_terms)) body.home_terms = home;
     const regions = splitTerms(remoteRegions, location.remote_regions);
     if (!sameTerms(regions, location.remote_regions)) body.remote_regions = regions;
+
+    const roles = Number(maxRoles);
+    if (!Number.isInteger(roles) || roles < 1 || roles > 50) {
+      setError("Roles kept per company must be a whole number from 1 to 50.");
+      return;
+    }
+    if (roles !== cur.maxRoles) body.max_roles_per_company = roles;
 
     if (home.length === 0) {
       setError("Add at least one accepted location.");
@@ -331,6 +340,15 @@ function SettingsForm({ data, saveLabel, onDone, onCancel }: {
             <input value={remoteRegions} onChange={(e) => setRemoteRegions(e.target.value)} />
           </label>
         )}
+      </section>
+
+      <section className="settings-card">
+        <h3>Companies</h3>
+        <label className="field">
+          <span>Roles kept per company <span className="muted">(the most senior; 1–50)</span></span>
+          <input type="number" min={1} max={50} value={maxRoles}
+                 onChange={(e) => setMaxRoles(e.target.value)} />
+        </label>
       </section>
 
       {error && <p className="error">{error}</p>}
