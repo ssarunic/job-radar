@@ -438,6 +438,8 @@ def test_put_profile_validates(client):
     assert client.put("/api/profile", json={"workplace": ["Anywhere"]}).status_code == 422
 
     assert client.put("/api/profile", json={"seniority_min": 12}).status_code == 422
+    assert client.put("/api/profile", json={"max_roles_per_company": 0}).status_code == 422
+    assert client.put("/api/profile", json={"max_roles_per_company": 51}).status_code == 422
     assert client.put("/api/profile",
                       json={"home_terms": ["ok", "  "]}).status_code == 422
 
@@ -481,3 +483,11 @@ def test_patch_job_validation(client):
                         json={"status": "closed"}).status_code == 422
     assert client.patch("/api/jobs/nope1234",
                         json={"status": "applied"}).status_code == 404
+
+
+def test_put_profile_max_roles_per_company(client):
+    assert client.get("/api/profile").json()["profile"]["max_roles_per_company"] == 20
+    r = client.put("/api/profile", json={"max_roles_per_company": 15})
+    assert r.status_code == 200
+    p = client.get("/api/profile").json()["profile"]
+    assert p["max_roles_per_company"] == 15 and p["seniority_min"] == 3   # rest untouched

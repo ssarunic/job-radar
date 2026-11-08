@@ -30,7 +30,7 @@ workplace: ["On site", "Hybrid", "Remote"]   # work types to keep; a role that
                           # doesn't say how it works is always kept. Remote roles
                           # must also be open to your region (see `location` below)
 recency_days: 45          # ignore postings older than this
-max_roles_per_company: 10 # keep the N most senior per company
+max_roles_per_company: 20 # keep the N most senior per company (1–50; also on the Settings page)
 # advanced: detail_fetch_cap: 50   # bounds full-ad fetches per company per scan
 ```
 

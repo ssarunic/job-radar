@@ -44,4 +44,4 @@ employment:                      # exclude Contract (product-spec §10); add "Co
 # workplace: ["On site", "Hybrid", "Remote"]
 
 recency_days: 45
-max_roles_per_company: 10
+max_roles_per_company: 20

@@ -134,7 +134,7 @@ remote_keywords: ["remote", "anywhere", "uk remote", "emea remote", "europe remo
 employment:     ["Full time", "Part time"]   # exclude Contract (subset of Full time / Part time / Contract)
 workplace:      ["On site", "Hybrid", "Remote"]   # work types kept (default all); "Not stated" is always kept
 recency_days:   45
-max_roles_per_company: 10
+max_roles_per_company: 20
 ```
 
 ### 3.3 `config/overrides/<slug>.yaml` — per-company override (optional)

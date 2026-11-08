@@ -58,7 +58,7 @@ def _extract_requirements(description: str) -> str:
 def process_company(company: dict, profile: dict, raw_listing: list[dict],
                     fetcher, settings: dict, claude, today: date) -> list[JobPosting]:
     recency_days = profile.get("recency_days", 45)
-    max_roles = profile.get("max_roles_per_company", 10)
+    max_roles = profile.get("max_roles_per_company", 20)
     # An ATS board only lists currently-open roles, so presence in the feed is
     # proof of liveness — the recency cutoff must not drop those, or a still-open
     # role silently ages out mid-tracking and the lifecycle falsely closes it.

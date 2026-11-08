@@ -70,7 +70,7 @@ These are the non-obvious rules the implementation must encode (product-spec §1
 - **Salary**: never convert currency. Detect symbol/code, extract min/max (single number → both), always preserve the original text in `SalaryOriginalText`. Bonus mentioned → `CompensationType = Base+Bonus`.
 - **Funding / revenue / employees**: store original strings (no conversion). For employee ranges use the midpoint for heuristics (51–200 → 125) and note the approximation.
 - **Location**: accept London / UK / United Kingdom / England-with-London; remote OK if UK/Europe/EMEA-eligible (not US-only). Multi-location postings expand to one row per location, max 5; if >5 and includes London, keep only London + Remote.
-- **Per-company cap**: keep top 10 most senior roles; ties broken by posted date, then alphabetical.
+- **Per-company cap**: keep the top `max_roles_per_company` most senior roles (default 20, was 10 in product-spec); ties broken by posted date, then alphabetical.
 - **Dedup**: company = same canonical domain; job = same `JobAdURL` OR same Company + normalized title + first 120 chars of description + same location.
 - **Posting lifecycle**: a posting missing for N=2 runs → `Suspected Filled`, then `Closed` on the next run.
 
